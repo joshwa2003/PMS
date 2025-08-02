@@ -74,11 +74,6 @@ function ProfileForm() {
         roleData.currentCompany = userData.currentCompany || "";
         roleData.currentPosition = userData.currentPosition || "";
         break;
-      case 'company_hr':
-        roleData.companyName = userData.companyName || "";
-        roleData.companyWebsite = userData.companyWebsite || "";
-        roleData.hrPosition = userData.hrPosition || "";
-        break;
       default:
         break;
     }
@@ -125,7 +120,6 @@ function ProfileForm() {
       other_staff: 'Other Staff',
       student: 'Student',
       alumni: 'Alumni',
-      company_hr: 'Company HR',
     };
     return roleNames[role] || role;
   };
@@ -232,39 +226,6 @@ function ProfileForm() {
                 label="Current Position"
                 value={formData.currentPosition || ""}
                 onChange={(e) => handleInputChange('currentPosition', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-          </>
-        );
-
-      case 'company_hr':
-        return (
-          <>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="Company Name"
-                value={formData.companyName || ""}
-                onChange={(e) => handleInputChange('companyName', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="Company Website"
-                value={formData.companyWebsite || ""}
-                onChange={(e) => handleInputChange('companyWebsite', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="HR Position"
-                value={formData.hrPosition || ""}
-                onChange={(e) => handleInputChange('hrPosition', e.target.value)}
                 fullWidth
               />
             </Grid>

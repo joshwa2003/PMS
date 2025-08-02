@@ -26,7 +26,7 @@ const phoneValidation = body('phone')
   .withMessage('Phone number must be exactly 10 digits');
 
 const roleValidation = body('role')
-  .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni', 'company_hr'])
+  .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
   .withMessage('Invalid role specified');
 
 const departmentValidation = body('department')
@@ -84,27 +84,6 @@ exports.validateRegister = [
     .isLength({ max: 100 })
     .withMessage('Current position cannot exceed 100 characters'),
   
-  // Company HR-specific validations
-  body('companyName')
-    .if(body('role').equals('company_hr'))
-    .notEmpty()
-    .withMessage('Company name is required for Company HR')
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Company name must be between 2 and 100 characters'),
-  
-  body('companyWebsite')
-    .if(body('role').equals('company_hr'))
-    .optional()
-    .isURL()
-    .withMessage('Please provide a valid company website URL'),
-  
-  body('hrPosition')
-    .if(body('role').equals('company_hr'))
-    .notEmpty()
-    .withMessage('HR position is required for Company HR')
-    .isLength({ min: 2, max: 100 })
-    .withMessage('HR position must be between 2 and 100 characters'),
-  
   // Staff-specific validations
   body('employeeId')
     .if(body('role').isIn(['placement_staff', 'department_hod', 'other_staff', 'admin']))
@@ -159,11 +138,6 @@ exports.validateProfileUpdate = [
     .optional()
     .isLength({ max: 100 })
     .withMessage('Current position cannot exceed 100 characters'),
-  
-  body('companyWebsite')
-    .optional()
-    .isURL()
-    .withMessage('Please provide a valid company website URL'),
 ];
 
 // Change password validation
@@ -209,7 +183,7 @@ exports.validateUserUpdate = [
   
   body('role')
     .optional()
-    .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni', 'company_hr'])
+    .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
     .withMessage('Invalid role specified'),
   
   body('department')
@@ -232,7 +206,7 @@ exports.validateUserUpdate = [
 exports.validateUserSearch = [
   body('role')
     .optional()
-    .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni', 'company_hr'])
+    .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
     .withMessage('Invalid role specified'),
   
   body('department')

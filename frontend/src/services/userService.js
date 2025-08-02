@@ -156,10 +156,6 @@ class UserService {
     return this.getUsersByRole('department_hod', params);
   }
 
-  async getCompanyHRs(params = {}) {
-    return this.getUsersByRole('company_hr', params);
-  }
-
   async getAdmins(params = {}) {
     return this.getUsersByRole('admin', params);
   }
@@ -221,11 +217,6 @@ class UserService {
         currentCompany: user.currentCompany,
         currentPosition: user.currentPosition
       }),
-      ...(user.role === 'company_hr' && {
-        companyName: user.companyName,
-        companyWebsite: user.companyWebsite,
-        hrPosition: user.hrPosition
-      }),
       ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
         employeeId: user.employeeId,
         designation: user.designation
@@ -242,8 +233,7 @@ class UserService {
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-      alumni: 'Alumni',
-      company_hr: 'Company HR'
+      alumni: 'Alumni'
     };
     return roleNames[role] || role;
   }

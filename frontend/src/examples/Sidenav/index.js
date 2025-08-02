@@ -79,7 +79,6 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       other_staff: 'Other Staff',
       student: 'Student',
       alumni: 'Alumni',
-      company_hr: 'Company HR',
     };
     return roleNames[role] || role;
   };

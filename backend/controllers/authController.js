@@ -63,9 +63,6 @@ exports.register = async (req, res) => {
       batch,
       employeeId,
       designation,
-      companyName,
-      companyWebsite,
-      hrPosition,
       graduationYear,
       currentCompany,
       currentPosition
@@ -100,10 +97,6 @@ exports.register = async (req, res) => {
       userData.graduationYear = graduationYear;
       userData.currentCompany = currentCompany;
       userData.currentPosition = currentPosition;
-    } else if (role === 'company_hr') {
-      userData.companyName = companyName;
-      userData.companyWebsite = companyWebsite;
-      userData.hrPosition = hrPosition;
     } else if (['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(role)) {
       userData.employeeId = employeeId;
       userData.designation = designation;
@@ -225,11 +218,6 @@ exports.getMe = async (req, res) => {
           currentCompany: user.currentCompany,
           currentPosition: user.currentPosition
         }),
-        ...(user.role === 'company_hr' && {
-          companyName: user.companyName,
-          companyWebsite: user.companyWebsite,
-          hrPosition: user.hrPosition
-        }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
           employeeId: user.employeeId,
           designation: user.designation
@@ -262,7 +250,7 @@ exports.updateProfile = async (req, res) => {
 
     const allowedFields = [
       'firstName', 'lastName', 'phone', 'bio', 'profilePicture',
-      'cgpa', 'currentCompany', 'currentPosition', 'companyWebsite'
+      'cgpa', 'currentCompany', 'currentPosition'
     ];
 
     const updates = {};

@@ -64,11 +64,6 @@ exports.getAllUsers = async (req, res) => {
           currentCompany: user.currentCompany,
           currentPosition: user.currentPosition
         }),
-        ...(user.role === 'company_hr' && {
-          companyName: user.companyName,
-          companyWebsite: user.companyWebsite,
-          hrPosition: user.hrPosition
-        }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
           employeeId: user.employeeId,
           designation: user.designation
@@ -128,11 +123,6 @@ exports.getUserById = async (req, res) => {
           currentCompany: user.currentCompany,
           currentPosition: user.currentPosition
         }),
-        ...(user.role === 'company_hr' && {
-          companyName: user.companyName,
-          companyWebsite: user.companyWebsite,
-          hrPosition: user.hrPosition
-        }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
           employeeId: user.employeeId,
           designation: user.designation
@@ -176,9 +166,9 @@ exports.updateProfile = async (req, res) => {
     // Define fields that can be updated by user themselves
     const profileAllowedFields = [
       'firstName', 'lastName', 'phone', 'bio', 'profilePicture',
-      'cgpa', 'currentCompany', 'currentPosition', 'companyWebsite',
+      'cgpa', 'currentCompany', 'currentPosition',
       'studentId', 'batch', 'employeeId', 'designation',
-      'companyName', 'hrPosition', 'graduationYear'
+      'graduationYear'
     ];
 
     const profileUpdates = {};
@@ -222,11 +212,6 @@ exports.updateProfile = async (req, res) => {
           currentCompany: updatedProfile.currentCompany,
           currentPosition: updatedProfile.currentPosition
         }),
-        ...(updatedProfile.role === 'company_hr' && {
-          companyName: updatedProfile.companyName,
-          companyWebsite: updatedProfile.companyWebsite,
-          hrPosition: updatedProfile.hrPosition
-        }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(updatedProfile.role) && {
           employeeId: updatedProfile.employeeId,
           designation: updatedProfile.designation
@@ -269,7 +254,7 @@ exports.updateUser = async (req, res) => {
     // Define fields that can be updated
     const allowedFields = [
       'firstName', 'lastName', 'phone', 'bio', 'profilePicture',
-      'cgpa', 'currentCompany', 'currentPosition', 'companyWebsite'
+      'cgpa', 'currentCompany', 'currentPosition'
     ];
 
     // Admin can update additional fields
@@ -277,7 +262,7 @@ exports.updateUser = async (req, res) => {
       allowedFields.push(
         'email', 'role', 'department', 'isActive', 'isVerified',
         'studentId', 'batch', 'employeeId', 'designation',
-        'companyName', 'hrPosition', 'graduationYear'
+        'graduationYear'
       );
     }
 
@@ -371,7 +356,7 @@ exports.getUsersByRole = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const validRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni', 'company_hr'];
+    const validRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'];
     
     if (!validRoles.includes(role)) {
       return res.status(400).json({
@@ -526,8 +511,7 @@ exports.searchUsers = async (req, res) => {
         { lastName: { $regex: searchTerm, $options: 'i' } },
         { email: { $regex: searchTerm, $options: 'i' } },
         { studentId: { $regex: searchTerm, $options: 'i' } },
-        { employeeId: { $regex: searchTerm, $options: 'i' } },
-        { companyName: { $regex: searchTerm, $options: 'i' } }
+        { employeeId: { $regex: searchTerm, $options: 'i' } }
       ];
     }
 

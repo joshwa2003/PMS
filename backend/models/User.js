@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Role is required'],
     enum: {
-      values: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni', 'company_hr'],
+      values: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'],
       message: 'Invalid role specified'
     }
   },
@@ -83,19 +83,6 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Company HR-specific fields
-  companyName: {
-    type: String,
-    trim: true
-  },
-  companyWebsite: {
-    type: String,
-    trim: true
-  },
-  hrPosition: {
-    type: String,
-    trim: true
-  },
   
   // Staff-specific fields
   employeeId: {
@@ -197,8 +184,7 @@ userSchema.statics.getRolePermissions = function(role) {
     department_hod: ['read', 'view_reports'],
     other_staff: ['read'],
     student: ['read'],
-    alumni: ['read', 'write'],
-    company_hr: ['read', 'write', 'manage_jobs']
+    alumni: ['read', 'write']
   };
   
   return rolePermissions[role] || ['read'];

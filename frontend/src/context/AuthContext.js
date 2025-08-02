@@ -197,7 +197,6 @@ export const AuthProvider = ({ children }) => {
   const isOtherStaff = () => hasRole('other_staff');
   const isStudent = () => hasRole('student');
   const isAlumni = () => hasRole('alumni');
-  const isCompanyHR = () => hasRole('company_hr');
 
   const isStaff = () => {
     return hasAnyRole(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff']);
@@ -208,7 +207,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canManageJobs = () => {
-    return hasPermission('manage_jobs') || hasAnyRole(['admin', 'placement_director', 'placement_staff', 'company_hr']);
+    return hasPermission('manage_jobs') || hasAnyRole(['admin', 'placement_director', 'placement_staff']);
   };
 
   const canViewReports = () => {
@@ -242,7 +241,6 @@ export const AuthProvider = ({ children }) => {
     isOtherStaff,
     isStudent,
     isAlumni,
-    isCompanyHR,
     isStaff,
     canManageUsers,
     canManageJobs,

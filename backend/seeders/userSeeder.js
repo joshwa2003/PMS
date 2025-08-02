@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const User = require('../models/User');
 
-// Dummy users data for all 8 roles
+// Dummy users data for all roles (excluding company_hr)
 const dummyUsers = [
   // Admin Users
   {
@@ -321,68 +321,6 @@ const dummyUsers = [
     isActive: true,
     isVerified: true,
     bio: 'EEE graduate working at Tesla on electric vehicle technologies.'
-  },
-
-  // Company HR
-  {
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.hr@techcorp.com',
-    password: 'CompanyHR@123',
-    role: 'company_hr',
-    department: 'HR',
-    phone: '9876543231',
-    companyName: 'TechCorp Solutions',
-    companyWebsite: 'https://www.techcorp.com',
-    hrPosition: 'Senior HR Manager',
-    isActive: true,
-    isVerified: true,
-    bio: 'Senior HR Manager at TechCorp Solutions, specializing in campus recruitment.'
-  },
-  {
-    firstName: 'Michael',
-    lastName: 'Brown',
-    email: 'michael.hr@innovatetech.com',
-    password: 'CompanyHR@123',
-    role: 'company_hr',
-    department: 'HR',
-    phone: '9876543232',
-    companyName: 'InnovateTech Pvt Ltd',
-    companyWebsite: 'https://www.innovatetech.com',
-    hrPosition: 'Talent Acquisition Lead',
-    isActive: true,
-    isVerified: true,
-    bio: 'Talent Acquisition Lead with 8+ years of experience in technical recruitment.'
-  },
-  {
-    firstName: 'Lisa',
-    lastName: 'Davis',
-    email: 'lisa.hr@globalsoft.com',
-    password: 'CompanyHR@123',
-    role: 'company_hr',
-    department: 'HR',
-    phone: '9876543233',
-    companyName: 'GlobalSoft Technologies',
-    companyWebsite: 'https://www.globalsoft.com',
-    hrPosition: 'Campus Recruitment Manager',
-    isActive: true,
-    isVerified: true,
-    bio: 'Campus Recruitment Manager focusing on engineering talent acquisition.'
-  },
-  {
-    firstName: 'David',
-    lastName: 'Wilson',
-    email: 'david.hr@futuretech.com',
-    password: 'CompanyHR@123',
-    role: 'company_hr',
-    department: 'HR',
-    phone: '9876543234',
-    companyName: 'FutureTech Industries',
-    companyWebsite: 'https://www.futuretech.com',
-    hrPosition: 'HR Business Partner',
-    isActive: true,
-    isVerified: true,
-    bio: 'HR Business Partner specializing in emerging technology recruitment.'
   }
 ];
 
@@ -446,7 +384,6 @@ const seedUsers = async () => {
     console.log('   Placement Director: priya.director@saec.edu.in / Director@123');
     console.log('   Student: arjun.2021cse001@saec.edu.in / Student@123');
     console.log('   Alumni: deepak.alumni@gmail.com / Alumni@123');
-    console.log('   Company HR: sarah.hr@techcorp.com / CompanyHR@123');
 
     console.log('\n🎉 User seeding completed successfully!');
   } catch (error) {

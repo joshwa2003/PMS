@@ -84,7 +84,7 @@ const routes = [
     icon: <Icon fontSize="small">work</Icon>,
     route: "/billing",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff', 'company_hr']}>
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <Billing />
       </ProtectedRoute>
     ),

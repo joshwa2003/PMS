@@ -179,10 +179,6 @@ class AuthService {
     return this.hasRole('alumni');
   }
 
-  isCompanyHR() {
-    return this.hasRole('company_hr');
-  }
-
   // Check if user is staff member (any staff role)
   isStaff() {
     return this.hasAnyRole(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff']);
@@ -195,7 +191,7 @@ class AuthService {
 
   // Check if user can manage jobs
   canManageJobs() {
-    return this.hasPermission('manage_jobs') || this.hasAnyRole(['admin', 'placement_director', 'placement_staff', 'company_hr']);
+    return this.hasPermission('manage_jobs') || this.hasAnyRole(['admin', 'placement_director', 'placement_staff']);
   }
 
   // Check if user can view reports

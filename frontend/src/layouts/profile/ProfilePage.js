@@ -43,7 +43,6 @@ function ProfilePage() {
       other_staff: 'Other Staff',
       student: 'Student',
       alumni: 'Alumni',
-      company_hr: 'Company HR',
     };
     return roleNames[role] || role;
   };
