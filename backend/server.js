@@ -14,6 +14,7 @@ const studentRoutes = require('./routes/students');
 const administratorRoutes = require('./routes/administrators');
 const administratorProfileRoutes = require('./routes/administratorProfiles');
 const placementDirectorProfileRoutes = require('./routes/placementDirectorProfiles');
+const placementStaffProfileRoutes = require('./routes/placementStaffProfiles');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use(`/api/${API_VERSION}/students`, studentRoutes);
 app.use(`/api/${API_VERSION}/administrators`, administratorRoutes);
 app.use(`/api/${API_VERSION}/administrator-profiles`, administratorProfileRoutes);
 app.use(`/api/${API_VERSION}/placement-director-profiles`, placementDirectorProfileRoutes);
+app.use(`/api/${API_VERSION}/placement-staff-profiles`, placementStaffProfileRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

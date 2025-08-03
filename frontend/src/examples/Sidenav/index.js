@@ -135,6 +135,10 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         // Show Placement Director Profile only for placement directors
         return user.role === 'placement_director';
       
+      case 'placement-staff-profile':
+        // Show Placement Staff Profile only for placement staff
+        return user.role === 'placement_staff';
+      
       default:
         // Show all other routes by default
         return true;
