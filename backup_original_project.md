@@ -4,7 +4,7 @@ This file contains the backup of the original Material Dashboard React project b
 
 ## Original Project Structure
 - **Framework**: React 18.2.0 with Material-UI
-- **Template**: Material Dashboard 2 React by Creative Tim
+- **Template**: Material Dashboard 2 React by S.A. Engineering College
 - **Features**: Dashboard, Tables, Billing, RTL, Notifications, Profile, Sign In/Up
 
 ## Original Routes Configuration

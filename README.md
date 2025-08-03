@@ -81,7 +81,7 @@ Let us know your thoughts below. And good luck with development!
 
 Quick start options:
 
-- Download from [Creative Tim](https://www.creative-tim.com/product/material-dashboard-react?ref=readme-mdr).
+- Download from [S.A. Engineering College](https://www.creative-tim.com/product/material-dashboard-react?ref=readme-mdr).
 
 ## Terminal Commands
 
@@ -201,16 +201,16 @@ If you have questions or need help integrating the product please [contact us](h
 
 ## Licensing
 
-- Copyright 2023 [Creative Tim](https://www.creative-tim.com?ref=readme-mdr)
-- Creative Tim [license](https://www.creative-tim.com/license?ref=readme-mdr)
+- Copyright 2023 [S.A. Engineering College](https://www.creative-tim.com?ref=readme-mdr)
+- S.A. Engineering College [license](https://www.creative-tim.com/license?ref=readme-mdr)
 
 ## Useful Links
 
-- [More products](https://www.creative-tim.com/templates?ref=readme-mdr) from Creative Tim
+- [More products](https://www.creative-tim.com/templates?ref=readme-mdr) from S.A. Engineering College
 
 - [Tutorials](https://www.youtube.com/channel/UCVyTG4sCw-rOvB9oHkzZD1w)
 
-- [Freebies](https://www.creative-tim.com/bootstrap-themes/free?ref=readme-mdr) from Creative Tim
+- [Freebies](https://www.creative-tim.com/bootstrap-themes/free?ref=readme-mdr) from S.A. Engineering College
 
 - [Affiliate Program](https://www.creative-tim.com/affiliates/new?ref=readme-mdr) (earn money)
 

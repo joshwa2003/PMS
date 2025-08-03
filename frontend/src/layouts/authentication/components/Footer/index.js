@@ -4,7 +4,7 @@
 =========================================================
 
 * Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
+* Copyright 2023 S.A. Engineering College (https://www.creative-tim.com)
 
 Coded by www.creative-tim.com
 
@@ -59,7 +59,7 @@ function Footer({ light }) {
             by
             <Link href="https://www.creative-tim.com/" target="_blank">
               <MDTypography variant="button" fontWeight="medium" color={light ? "white" : "dark"}>
-                &nbsp;Creative Tim&nbsp;
+                &nbsp;S.A. Engineering College&nbsp;
               </MDTypography>
             </Link>
             for a better web.
@@ -88,7 +88,7 @@ function Footer({ light }) {
                   fontWeight="regular"
                   color={light ? "white" : "dark"}
                 >
-                  Creative Tim
+                  S.A. Engineering College
                 </MDTypography>
               </Link>
             </MDBox>

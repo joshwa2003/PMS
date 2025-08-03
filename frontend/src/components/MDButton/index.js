@@ -4,7 +4,7 @@
 =========================================================
 
 * Product Page: https://www.creative-tim.com/product/soft-ui-dashboard-pro-react
-* Copyright 2021 Creative Tim (https://www.creative-tim.com)
+* Copyright 2021 S.A. Engineering College (https://www.creative-tim.com)
 
 Coded by www.creative-tim.com
 
