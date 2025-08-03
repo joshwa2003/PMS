@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import studentApi from '../api/studentApi';
 import { useAuth } from './AuthContext';
 
@@ -83,7 +83,8 @@ const initialState = {
       patents: [],
       workSamples: []
     },
-    profileSummary: ''
+    profileSummary: '',
+    profileImageUrl: ''
   },
   validationErrors: {},
   hasUnsavedChanges: false
@@ -214,22 +215,25 @@ const StudentProfileContext = createContext();
 // Student Profile Provider component
 export const StudentProfileProvider = ({ children }) => {
   const [state, dispatch] = useReducer(studentProfileReducer, initialState);
-  const { user, isStudent } = useAuth();
-
-  // Load student profile on mount
-  useEffect(() => {
-    if (user && isStudent()) {
-      loadProfile();
-    }
-  }, [user]);
+  const { user, isStudent, updateProfilePicture } = useAuth();
+  const hasLoadedRef = useRef(false);
 
   // Load profile function
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (state.isLoading || hasLoadedRef.current) return;
+    
+    hasLoadedRef.current = true;
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
 
     try {
       const profile = await studentApi.getProfile();
       dispatch({ type: ACTIONS.SET_PROFILE, payload: profile });
+      
+      // Sync profile image with AuthContext if it exists
+      if (profile?.profileImageUrl) {
+        updateProfilePicture(profile.profileImageUrl);
+      }
     } catch (error) {
       // If profile doesn't exist, that's okay - user can create one
       if (error.message.includes('not found')) {
@@ -238,7 +242,14 @@ export const StudentProfileProvider = ({ children }) => {
         dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       }
     }
-  };
+  }, [updateProfilePicture, state.isLoading]);
+
+  // Load student profile on mount
+  useEffect(() => {
+    if (user?.role === 'student' && user?.id && !hasLoadedRef.current) {
+      loadProfile();
+    }
+  }, [user?.id, user?.role, loadProfile]); // Only depend on stable values
 
   // Save profile function
   const saveProfile = async (sectionData = null) => {
@@ -248,24 +259,64 @@ export const StudentProfileProvider = ({ children }) => {
     try {
       const dataToSave = sectionData || state.formData;
       
+      // Clean the data before sending - remove empty strings and null values
+      const cleanedData = cleanFormData(dataToSave);
+      
+      console.log('Saving profile data:', cleanedData);
+      
       // Validate data
-      const errors = studentApi.validateStudentData(dataToSave);
+      const errors = studentApi.validateStudentData(cleanedData);
       if (errors.length > 0) {
         dispatch({ type: ACTIONS.SET_VALIDATION_ERRORS, payload: { general: errors } });
         dispatch({ type: ACTIONS.SET_SAVING, payload: false });
         return { success: false, errors };
       }
 
-      const updatedProfile = await studentApi.updateProfile(dataToSave);
+      const updatedProfile = await studentApi.updateProfile(cleanedData);
       dispatch({ type: ACTIONS.SET_PROFILE, payload: updatedProfile });
       
       return { success: true, profile: updatedProfile };
     } catch (error) {
+      console.error('Save profile error:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       return { success: false, error: error.message };
     } finally {
       dispatch({ type: ACTIONS.SET_SAVING, payload: false });
     }
+  };
+
+  // Helper function to clean form data
+  const cleanFormData = (data) => {
+    const cleaned = {};
+    
+    Object.keys(data).forEach(key => {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        if (typeof data[key] === 'object' && !Array.isArray(data[key])) {
+          // Handle nested objects
+          const cleanedNested = {};
+          Object.keys(data[key]).forEach(nestedKey => {
+            const value = data[key][nestedKey];
+            if (value !== undefined && value !== null && value !== '') {
+              cleanedNested[nestedKey] = value;
+            }
+          });
+          if (Object.keys(cleanedNested).length > 0) {
+            cleaned[key] = cleanedNested;
+          }
+        } else if (Array.isArray(data[key])) {
+          // Handle arrays - only include non-empty arrays
+          if (data[key].length > 0) {
+            cleaned[key] = data[key].filter(item => 
+              item !== undefined && item !== null && item !== ''
+            );
+          }
+        } else {
+          cleaned[key] = data[key];
+        }
+      }
+    });
+    
+    return cleaned;
   };
 
   // Update form data function
@@ -293,6 +344,25 @@ export const StudentProfileProvider = ({ children }) => {
   // Reset form function
   const resetForm = () => {
     dispatch({ type: ACTIONS.RESET_FORM });
+  };
+
+  // Upload profile image function
+  const uploadProfileImage = async (file) => {
+    dispatch({ type: ACTIONS.SET_SAVING, payload: true });
+
+    try {
+      const response = await studentApi.uploadProfileImage(file);
+      
+      // Update form data with new profile image URL
+      updateFormData('profileImageUrl', response.profileImageUrl);
+      
+      return { success: true, profileImageUrl: response.profileImageUrl };
+    } catch (error) {
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: ACTIONS.SET_SAVING, payload: false });
+    }
   };
 
   // Upload resume function
@@ -395,6 +465,7 @@ export const StudentProfileProvider = ({ children }) => {
     setActiveTab,
     clearError,
     resetForm,
+    uploadProfileImage,
     uploadResume,
 
     // Array operations

@@ -1,6 +1,7 @@
 const Student = require('../models/Student');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const supabaseStorage = require('../services/supabaseStorage');
 
 // @desc    Get current student's profile
 // @route   GET /api/students/profile
@@ -34,9 +35,16 @@ const getStudentProfile = async (req, res) => {
 // @access  Private (Student only)
 const updateStudentProfile = async (req, res) => {
   try {
+    console.log('Update student profile request:', {
+      userId: req.user.id,
+      bodyKeys: Object.keys(req.body),
+      body: req.body
+    });
+
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -47,27 +55,71 @@ const updateStudentProfile = async (req, res) => {
     const userId = req.user.id;
     let student = await Student.findOne({ userId });
 
+    // Clean the request body to remove empty strings and null values
+    const cleanedBody = {};
+    Object.keys(req.body).forEach(key => {
+      if (req.body[key] !== undefined && req.body[key] !== null) {
+        if (typeof req.body[key] === 'object' && !Array.isArray(req.body[key])) {
+          // Handle nested objects
+          const cleanedNestedObj = {};
+          Object.keys(req.body[key]).forEach(nestedKey => {
+            if (req.body[key][nestedKey] !== undefined && req.body[key][nestedKey] !== null) {
+              cleanedNestedObj[nestedKey] = req.body[key][nestedKey];
+            }
+          });
+          if (Object.keys(cleanedNestedObj).length > 0) {
+            cleanedBody[key] = cleanedNestedObj;
+          }
+        } else {
+          cleanedBody[key] = req.body[key];
+        }
+      }
+    });
+
+    console.log('Cleaned body:', cleanedBody);
+
     if (student) {
       // Update existing profile
-      Object.keys(req.body).forEach(key => {
-        if (req.body[key] !== undefined) {
-          if (typeof req.body[key] === 'object' && !Array.isArray(req.body[key])) {
-            // Handle nested objects
-            student[key] = { ...student[key], ...req.body[key] };
-          } else {
-            student[key] = req.body[key];
-          }
+      Object.keys(cleanedBody).forEach(key => {
+        if (typeof cleanedBody[key] === 'object' && !Array.isArray(cleanedBody[key])) {
+          // Handle nested objects - merge with existing data
+          student[key] = { ...student[key], ...cleanedBody[key] };
+        } else {
+          student[key] = cleanedBody[key];
         }
       });
 
       student = await student.save();
+      console.log('Student profile updated successfully');
     } else {
-      // Create new profile
+      // Create new profile - ensure required fields are present
+      if (!cleanedBody.studentId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Student ID is required for new profile creation'
+        });
+      }
+
+      if (!cleanedBody.registrationNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'Registration number is required for new profile creation'
+        });
+      }
+
+      if (!cleanedBody.personalInfo || !cleanedBody.personalInfo.fullName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Full name is required for new profile creation'
+        });
+      }
+
       student = new Student({
-        ...req.body,
+        ...cleanedBody,
         userId
       });
       await student.save();
+      console.log('New student profile created successfully');
     }
 
     // Populate user data
@@ -87,6 +139,8 @@ const updateStudentProfile = async (req, res) => {
         message: err.message
       }));
       
+      console.log('MongoDB validation errors:', validationErrors);
+      
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -95,15 +149,27 @@ const updateStudentProfile = async (req, res) => {
     }
 
     if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      console.log('Duplicate key error:', duplicateField);
+      
       return res.status(400).json({
         success: false,
-        message: 'Student ID already exists'
+        message: `${duplicateField} already exists. Please use a different value.`
+      });
+    }
+
+    if (error.name === 'CastError') {
+      console.log('Cast error:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: `Invalid data type for field: ${error.path}`
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'Server error while updating student profile'
+      message: 'Server error while updating student profile',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -342,6 +408,65 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+// @desc    Upload profile image (Student only)
+// @route   POST /api/students/profile-image
+// @access  Private (Student only)
+const uploadProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const student = await Student.findOne({ userId: req.user.id });
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Delete old profile image if exists
+    if (student.profileImageUrl) {
+      const oldPath = student.profileImageUrl.split('/').slice(-2).join('/');
+      await supabaseStorage.deleteFile(oldPath);
+    }
+
+    // Upload new profile image to Supabase
+    const uploadResult = await supabaseStorage.uploadProfileImage(
+      req.file.buffer,
+      req.file.originalname,
+      req.user.id
+    );
+
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: uploadResult.error || 'Failed to upload profile image'
+      });
+    }
+
+    // Update student profile with new image URL
+    student.profileImageUrl = uploadResult.url;
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile image uploaded successfully',
+      profileImageUrl: uploadResult.url
+    });
+  } catch (error) {
+    console.error('Upload profile image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while uploading profile image'
+    });
+  }
+};
+
 // @desc    Upload resume (Student only)
 // @route   POST /api/students/resume
 // @access  Private (Student only)
@@ -363,8 +488,28 @@ const uploadResume = async (req, res) => {
       });
     }
 
+    // Delete old resume if exists
+    if (student.placement.resumeLink) {
+      const oldPath = student.placement.resumeLink.split('/').slice(-2).join('/');
+      await supabaseStorage.deleteFile(oldPath);
+    }
+
+    // Upload new resume to Supabase
+    const uploadResult = await supabaseStorage.uploadResume(
+      req.file.buffer,
+      req.file.originalname,
+      req.user.id
+    );
+
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: uploadResult.error || 'Failed to upload resume'
+      });
+    }
+
     // Update resume link and last updated date
-    student.placement.resumeLink = req.file.path;
+    student.placement.resumeLink = uploadResult.url;
     student.placement.resumeLastUpdated = new Date();
     
     await student.save();
@@ -372,7 +517,7 @@ const uploadResume = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Resume uploaded successfully',
-      resumeLink: req.file.path
+      resumeLink: uploadResult.url
     });
   } catch (error) {
     console.error('Upload resume error:', error);
@@ -391,5 +536,6 @@ module.exports = {
   updatePlacementStatus,
   getStudentStats,
   deleteStudent,
+  uploadProfileImage,
   uploadResume
 };

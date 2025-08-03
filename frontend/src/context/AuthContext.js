@@ -161,6 +161,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Update user profile picture (for syncing with student profile image)
+  const updateProfilePicture = (profileImageUrl) => {
+    dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: { profilePicture: profileImageUrl } });
+  };
+
   // Change password function
   const changePassword = async (currentPassword, newPassword, confirmPassword) => {
     try {
@@ -227,6 +232,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    updateProfilePicture,
     changePassword,
     clearError,
 

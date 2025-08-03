@@ -31,6 +31,28 @@ class StudentApi {
     }
   }
 
+  // Upload profile image
+  async uploadProfileImage(file) {
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await api.post('/students/profile-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to upload profile image');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Upload resume
   async uploadResume(file) {
     try {
@@ -184,29 +206,70 @@ class StudentApi {
   validateStudentData(data) {
     const errors = [];
 
-    // Basic validation
-    if (!data.studentId || data.studentId.trim().length === 0) {
-      errors.push('Student ID is required');
+    // Only validate if we're creating a new profile (has required fields)
+    const isNewProfile = data.studentId || data.registrationNumber || data.personalInfo?.fullName;
+    
+    if (isNewProfile) {
+      // Basic validation for new profiles
+      if (!data.studentId || (typeof data.studentId === 'string' && data.studentId.trim().length === 0)) {
+        errors.push('Student ID is required');
+      }
+
+      if (!data.registrationNumber || (typeof data.registrationNumber === 'string' && data.registrationNumber.trim().length === 0)) {
+        errors.push('Registration number is required');
+      }
+
+      if (!data.personalInfo?.fullName || (typeof data.personalInfo.fullName === 'string' && data.personalInfo.fullName.trim().length < 2)) {
+        errors.push('Full name must be at least 2 characters long');
+      }
     }
 
-    if (!data.registrationNumber || data.registrationNumber.trim().length === 0) {
-      errors.push('Registration number is required');
+    // Optional field validations
+    if (data.contact?.email && data.contact.email.trim() !== '') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact.email)) {
+        errors.push('Please provide a valid email address');
+      }
     }
 
-    if (!data.personalInfo?.fullName || data.personalInfo.fullName.trim().length < 2) {
-      errors.push('Full name must be at least 2 characters long');
+    if (data.contact?.phone && data.contact.phone.trim() !== '') {
+      const cleanPhone = data.contact.phone.replace(/\s/g, '');
+      if (!/^[0-9]{10}$/.test(cleanPhone)) {
+        errors.push('Phone number must be exactly 10 digits');
+      }
     }
 
-    if (data.contact?.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact.email)) {
-      errors.push('Please provide a valid email address');
+    if (data.contact?.pincode && data.contact.pincode.trim() !== '') {
+      if (!/^[0-9]{6}$/.test(data.contact.pincode)) {
+        errors.push('Pincode must be exactly 6 digits');
+      }
     }
 
-    if (data.contact?.phone && !/^[0-9]{10}$/.test(data.contact.phone)) {
-      errors.push('Phone number must be exactly 10 digits');
+    if (data.academic?.cgpa !== null && data.academic?.cgpa !== undefined && data.academic?.cgpa !== '') {
+      const cgpa = parseFloat(data.academic.cgpa);
+      if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
+        errors.push('CGPA must be between 0 and 10');
+      }
     }
 
-    if (data.academic?.cgpa && (data.academic.cgpa < 0 || data.academic.cgpa > 10)) {
-      errors.push('CGPA must be between 0 and 10');
+    if (data.academic?.backlogs !== null && data.academic?.backlogs !== undefined && data.academic?.backlogs !== '') {
+      const backlogs = parseInt(data.academic.backlogs);
+      if (isNaN(backlogs) || backlogs < 0) {
+        errors.push('Backlogs must be a non-negative integer');
+      }
+    }
+
+    if (data.academic?.yearOfStudy !== null && data.academic?.yearOfStudy !== undefined && data.academic?.yearOfStudy !== '') {
+      const year = parseInt(data.academic.yearOfStudy);
+      if (isNaN(year) || year < 1 || year > 5) {
+        errors.push('Year of study must be between 1 and 5');
+      }
+    }
+
+    if (data.academic?.currentSemester !== null && data.academic?.currentSemester !== undefined && data.academic?.currentSemester !== '') {
+      const semester = parseInt(data.academic.currentSemester);
+      if (isNaN(semester) || semester < 1 || semester > 10) {
+        errors.push('Current semester must be between 1 and 10');
+      }
     }
 
     return errors;

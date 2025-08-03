@@ -1,20 +1,46 @@
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
-  studentId: { type: String, required: true, unique: true },  // Roll number or unique ID
-  registrationNumber: { type: String, required: true },
+  studentId: { 
+    type: String, 
+    required: [true, 'Student ID is required'], 
+    unique: true,
+    trim: true
+  },
+  registrationNumber: { 
+    type: String, 
+    required: [true, 'Registration number is required'],
+    trim: true
+  },
 
   personalInfo: {
-    fullName: { type: String, required: true },
+    fullName: { 
+      type: String, 
+      required: [true, 'Full name is required'],
+      trim: true,
+      minlength: [2, 'Full name must be at least 2 characters long']
+    },
     dateOfBirth: { type: Date },
-    gender: { type: String, enum: ['Male', 'Female', 'Other'] },
-    nationality: { type: String },
-    category: { type: String, enum: ['GEN', 'SC', 'ST', 'OBC', 'Others'] },
-    maritalStatus: { type: String },
+    gender: { 
+      type: String, 
+      enum: {
+        values: ['Male', 'Female', 'Other'],
+        message: 'Gender must be Male, Female, or Other'
+      }
+    },
+    nationality: { type: String, trim: true },
+    category: { 
+      type: String, 
+      enum: {
+        values: ['GEN', 'SC', 'ST', 'OBC', 'Others'],
+        message: 'Category must be one of: GEN, SC, ST, OBC, Others'
+      }
+    },
+    maritalStatus: { type: String, trim: true },
     differentlyAbled: { type: Boolean, default: false },
     careerBreak: { type: Boolean, default: false },
     workPermitUSA: { type: Boolean, default: false },
-    workPermitCountries: [{ type: String }],
+    workPermitCountries: [{ type: String, trim: true }],
   },
 
   contact: {
@@ -121,6 +147,7 @@ const studentSchema = new mongoose.Schema({
   },
 
   profileSummary: { type: String },
+  profileImageUrl: { type: String }, // Supabase URL for profile image
   profileLastUpdated: { type: Date, default: Date.now },
   
   // Reference to User model

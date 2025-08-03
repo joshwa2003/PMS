@@ -52,10 +52,11 @@ mongoose.connect(process.env.MONGODB_URI, {
   process.exit(1);
 });
 
-// Routes
-app.use(`/api/${process.env.API_VERSION}/auth`, authRoutes);
-app.use(`/api/${process.env.API_VERSION}/users`, userRoutes);
-app.use(`/api/${process.env.API_VERSION}/students`, studentRoutes);
+// Routes - with fallback for API_VERSION
+const API_VERSION = process.env.API_VERSION || 'v1';
+app.use(`/api/${API_VERSION}/auth`, authRoutes);
+app.use(`/api/${API_VERSION}/users`, userRoutes);
+app.use(`/api/${API_VERSION}/students`, studentRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -71,7 +72,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Placement Management System API',
-    version: process.env.API_VERSION,
+    version: API_VERSION,
     documentation: '/api/docs'
   });
 });

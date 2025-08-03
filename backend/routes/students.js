@@ -16,22 +16,25 @@ const {
   updatePlacementStatus,
   getStudentStats,
   deleteStudent,
+  uploadProfileImage,
   uploadResume
 } = require('../controllers/studentController');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/resumes/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'resume-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for file uploads (using memory storage for Supabase)
+const storage = multer.memoryStorage();
 
-const fileFilter = (req, file, cb) => {
-  // Accept only PDF files
+// File filter for profile images
+const imageFileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
+  }
+};
+
+// File filter for PDF files (resumes)
+const pdfFileFilter = (req, file, cb) => {
   if (file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
@@ -39,11 +42,21 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
+// Multer configuration for profile images
+const uploadImage = multer({
   storage: storage,
-  fileFilter: fileFilter,
+  fileFilter: imageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 // 5MB limit for images
+  }
+});
+
+// Multer configuration for PDF files
+const uploadPDF = multer({
+  storage: storage,
+  fileFilter: pdfFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for PDFs
   }
 });
 
@@ -51,83 +64,159 @@ const upload = multer({
 const validateStudentProfile = [
   body('studentId')
     .optional()
+    .trim()
     .isLength({ min: 1 })
-    .withMessage('Student ID is required'),
+    .withMessage('Student ID cannot be empty'),
   
   body('registrationNumber')
     .optional()
+    .trim()
     .isLength({ min: 1 })
-    .withMessage('Registration number is required'),
+    .withMessage('Registration number cannot be empty'),
   
   body('personalInfo.fullName')
     .optional()
+    .trim()
     .isLength({ min: 2 })
     .withMessage('Full name must be at least 2 characters long'),
   
   body('personalInfo.gender')
     .optional()
-    .isIn(['Male', 'Female', 'Other'])
-    .withMessage('Invalid gender value'),
+    .custom((value) => {
+      if (value && !['Male', 'Female', 'Other'].includes(value)) {
+        throw new Error('Invalid gender value');
+      }
+      return true;
+    }),
   
   body('personalInfo.category')
     .optional()
-    .isIn(['GEN', 'SC', 'ST', 'OBC', 'Others'])
-    .withMessage('Invalid category value'),
+    .custom((value) => {
+      if (value && !['GEN', 'SC', 'ST', 'OBC', 'Others'].includes(value)) {
+        throw new Error('Invalid category value');
+      }
+      return true;
+    }),
   
   body('contact.email')
     .optional()
-    .isEmail()
-    .withMessage('Please provide a valid email'),
+    .custom((value) => {
+      if (value && value.trim() !== '') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          throw new Error('Please provide a valid email');
+        }
+      }
+      return true;
+    }),
   
   body('contact.phone')
     .optional()
-    .matches(/^[0-9]{10}$/)
-    .withMessage('Phone number must be exactly 10 digits'),
+    .custom((value) => {
+      if (value && value.trim() !== '') {
+        if (!/^[0-9]{10}$/.test(value.replace(/\s/g, ''))) {
+          throw new Error('Phone number must be exactly 10 digits');
+        }
+      }
+      return true;
+    }),
   
   body('contact.pincode')
     .optional()
-    .matches(/^[0-9]{6}$/)
-    .withMessage('Pincode must be exactly 6 digits'),
+    .custom((value) => {
+      if (value && value.trim() !== '') {
+        if (!/^[0-9]{6}$/.test(value)) {
+          throw new Error('Pincode must be exactly 6 digits');
+        }
+      }
+      return true;
+    }),
   
   body('academic.cgpa')
     .optional()
-    .isFloat({ min: 0, max: 10 })
-    .withMessage('CGPA must be between 0 and 10'),
+    .custom((value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        const cgpa = parseFloat(value);
+        if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
+          throw new Error('CGPA must be between 0 and 10');
+        }
+      }
+      return true;
+    }),
   
   body('academic.backlogs')
     .optional()
-    .isInt({ min: 0 })
-    .withMessage('Backlogs must be a non-negative integer'),
+    .custom((value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        const backlogs = parseInt(value);
+        if (isNaN(backlogs) || backlogs < 0) {
+          throw new Error('Backlogs must be a non-negative integer');
+        }
+      }
+      return true;
+    }),
   
   body('academic.yearOfStudy')
     .optional()
-    .isInt({ min: 1, max: 5 })
-    .withMessage('Year of study must be between 1 and 5'),
+    .custom((value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        const year = parseInt(value);
+        if (isNaN(year) || year < 1 || year > 5) {
+          throw new Error('Year of study must be between 1 and 5');
+        }
+      }
+      return true;
+    }),
   
   body('academic.currentSemester')
     .optional()
-    .isInt({ min: 1, max: 10 })
-    .withMessage('Current semester must be between 1 and 10'),
+    .custom((value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        const semester = parseInt(value);
+        if (isNaN(semester) || semester < 1 || semester > 10) {
+          throw new Error('Current semester must be between 1 and 10');
+        }
+      }
+      return true;
+    }),
   
   body('placement.placementStatus')
     .optional()
-    .isIn(['Unplaced', 'Placed', 'Multiple Offers'])
-    .withMessage('Invalid placement status'),
+    .custom((value) => {
+      if (value && !['Unplaced', 'Placed', 'Multiple Offers'].includes(value)) {
+        throw new Error('Invalid placement status');
+      }
+      return true;
+    }),
   
   body('careerProfile.experienceStatus')
     .optional()
-    .isIn(['Fresher', 'Experienced'])
-    .withMessage('Invalid experience status'),
+    .custom((value) => {
+      if (value && !['Fresher', 'Experienced'].includes(value)) {
+        throw new Error('Invalid experience status');
+      }
+      return true;
+    }),
   
   body('careerProfile.availableToJoinInDays')
     .optional()
-    .isInt({ min: 0 })
-    .withMessage('Available to join days must be a non-negative integer'),
+    .custom((value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        const days = parseInt(value);
+        if (isNaN(days) || days < 0) {
+          throw new Error('Available to join days must be a non-negative integer');
+        }
+      }
+      return true;
+    }),
   
   body('languagesKnown.*.proficiency')
     .optional()
-    .isIn(['Basic', 'Intermediate', 'Fluent'])
-    .withMessage('Invalid language proficiency level')
+    .custom((value) => {
+      if (value && !['Basic', 'Intermediate', 'Fluent'].includes(value)) {
+        throw new Error('Invalid language proficiency level');
+      }
+      return true;
+    })
 ];
 
 // Role-based access middleware
@@ -174,10 +263,15 @@ router.get('/profile', auth, requireStudent, getStudentProfile);
 // @access  Private (Student only)
 router.put('/profile', auth, requireStudent, validateStudentProfile, updateStudentProfile);
 
+// @route   POST /api/students/profile-image
+// @desc    Upload profile image
+// @access  Private (Student only)
+router.post('/profile-image', auth, requireStudent, uploadImage.single('profileImage'), uploadProfileImage);
+
 // @route   POST /api/students/resume
 // @desc    Upload resume
 // @access  Private (Student only)
-router.post('/resume', auth, requireStudent, upload.single('resume'), uploadResume);
+router.post('/resume', auth, requireStudent, uploadPDF.single('resume'), uploadResume);
 
 // @route   GET /api/students/stats
 // @desc    Get student statistics
@@ -226,7 +320,7 @@ router.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        message: 'File too large. Maximum size is 5MB.'
+        message: 'File too large. Maximum size exceeded.'
       });
     }
   }
@@ -235,6 +329,13 @@ router.use((error, req, res, next) => {
     return res.status(400).json({
       success: false,
       message: 'Only PDF files are allowed for resume upload.'
+    });
+  }
+  
+  if (error.message === 'Only JPEG, PNG, and WebP images are allowed') {
+    return res.status(400).json({
+      success: false,
+      message: 'Only JPEG, PNG, and WebP images are allowed for profile image upload.'
     });
   }
   
