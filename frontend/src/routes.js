@@ -45,6 +45,7 @@ import Profile from "layouts/profile";
 import ProfilePage from "layouts/profile/ProfilePage";
 import StudentProfile from "pages/StudentProfile";
 import AdministratorProfile from "pages/AdministratorProfile";
+import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -148,6 +149,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'director', 'staff', 'hod']}>
         <AdministratorProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Placement Director Profile",
+    key: "placement-director-profile",
+    icon: <Icon fontSize="small">business_center</Icon>,
+    route: "/placement-director-profile",
+    component: (
+      <ProtectedRoute requiredRoles={['placement_director']}>
+        <PlacementDirectorProfile />
       </ProtectedRoute>
     ),
   },

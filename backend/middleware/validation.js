@@ -304,6 +304,166 @@ exports.validateUserSearch = [
     .withMessage('Sort order must be either asc or desc'),
 ];
 
+// Placement Director Profile validation
+exports.validatePlacementDirectorProfileUpdate = [
+  // Basic Information
+  body('employeeId')
+    .optional()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Employee ID must be between 3 and 20 characters'),
+  
+  body('name.firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('First name must contain only letters and spaces'),
+  
+  body('name.lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Last name must contain only letters and spaces'),
+  
+  body('email')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  
+  body('mobileNumber')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Mobile number must be exactly 10 digits'),
+  
+  body('gender')
+    .optional()
+    .isIn(['Male', 'Female', 'Other'])
+    .withMessage('Gender must be Male, Female, or Other'),
+  
+  body('profilePhotoUrl')
+    .optional()
+    .isURL()
+    .withMessage('Profile photo URL must be a valid URL'),
+  
+  // Professional Information
+  body('role')
+    .optional()
+    .isIn(['placement_director'])
+    .withMessage('Role must be placement_director'),
+  
+  body('department')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Department must be between 2 and 100 characters'),
+  
+  body('designation')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Designation must be between 2 and 100 characters'),
+  
+  body('dateOfJoining')
+    .optional()
+    .isISO8601()
+    .withMessage('Date of joining must be a valid date'),
+  
+  body('officeRoomNo')
+    .optional()
+    .isLength({ min: 1, max: 20 })
+    .withMessage('Office room number must be between 1 and 20 characters'),
+  
+  body('officialEmail')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid official email address'),
+  
+  body('alternateMobile')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Alternate mobile number must be exactly 10 digits'),
+  
+  body('reportingTo')
+    .optional()
+    .matches(/^[0-9a-fA-F]{24}$/)
+    .withMessage('Reporting to must be a valid ObjectId'),
+  
+  body('yearsOfExperience')
+    .optional()
+    .isInt({ min: 0, max: 50 })
+    .withMessage('Years of experience must be between 0 and 50'),
+  
+  body('resumeUrl')
+    .optional()
+    .isURL()
+    .withMessage('Resume URL must be a valid URL'),
+  
+  body('responsibilitiesText')
+    .optional()
+    .isLength({ max: 2000 })
+    .withMessage('Responsibilities text cannot exceed 2000 characters'),
+  
+  body('communicationPreferences')
+    .optional()
+    .isArray()
+    .withMessage('Communication preferences must be an array'),
+  
+  body('communicationPreferences.*')
+    .optional()
+    .isIn(['email', 'sms', 'portal'])
+    .withMessage('Communication preference must be email, sms, or portal'),
+  
+  // Contact Information
+  body('contact.alternatePhone')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Alternate phone must be exactly 10 digits'),
+  
+  body('contact.emergencyContact')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Emergency contact must be exactly 10 digits'),
+  
+  body('contact.address.street')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Street address cannot exceed 200 characters'),
+  
+  body('contact.address.city')
+    .optional()
+    .isLength({ max: 50 })
+    .withMessage('City cannot exceed 50 characters'),
+  
+  body('contact.address.state')
+    .optional()
+    .isLength({ max: 50 })
+    .withMessage('State cannot exceed 50 characters'),
+  
+  body('contact.address.pincode')
+    .optional()
+    .matches(/^[0-9]{6}$/)
+    .withMessage('Pincode must be exactly 6 digits'),
+  
+  body('contact.address.country')
+    .optional()
+    .isLength({ max: 50 })
+    .withMessage('Country cannot exceed 50 characters'),
+  
+  // System Information
+  body('status')
+    .optional()
+    .isIn(['active', 'inactive', 'deleted'])
+    .withMessage('Status must be active, inactive, or deleted'),
+  
+  body('authProvider')
+    .optional()
+    .isIn(['local', 'google', 'microsoft', 'other'])
+    .withMessage('Auth provider must be local, google, microsoft, or other'),
+];
+
 // ID parameter validation
 exports.validateObjectId = (paramName = 'id') => [
   body(paramName)

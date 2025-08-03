@@ -131,6 +131,10 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         // Show Administrator Profile only for administrators
         return isAdministrator;
       
+      case 'placement-director-profile':
+        // Show Placement Director Profile only for placement directors
+        return user.role === 'placement_director';
+      
       default:
         // Show all other routes by default
         return true;
