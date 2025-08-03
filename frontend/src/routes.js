@@ -43,6 +43,7 @@ import RTL from "layouts/rtl";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 import ProfilePage from "layouts/profile/ProfilePage";
+import StudentProfile from "pages/StudentProfile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -122,6 +123,18 @@ const routes = [
     component: (
       <ProtectedRoute>
         <ProfilePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Student Profile",
+    key: "student-profile",
+    icon: <Icon fontSize="small">school</Icon>,
+    route: "/student-profile",
+    component: (
+      <ProtectedRoute requiredRoles={['student']}>
+        <StudentProfile />
       </ProtectedRoute>
     ),
   },

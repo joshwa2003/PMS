@@ -119,6 +119,13 @@ const userSchema = new mongoose.Schema({
     enum: ['read', 'write', 'delete', 'admin', 'manage_users', 'manage_jobs', 'view_reports']
   }],
   
+  // Student Profile Reference
+  studentProfile: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Student',
+    default: null
+  },
+  
   // Timestamps
   lastLogin: {
     type: Date,

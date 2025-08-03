@@ -167,6 +167,12 @@ export default function App() {
                 {configsButton}
               </>
             )}
+            {layout === "student-profile" && (
+              <>
+                <Configurator />
+                {configsButton}
+              </>
+            )}
             {layout === "vr" && <Configurator />}
             <Routes>
               {getRoutes(routes)}
@@ -187,6 +193,12 @@ export default function App() {
                 onMouseEnter={handleOnMouseEnter}
                 onMouseLeave={handleOnMouseLeave}
               />
+              <Configurator />
+              {configsButton}
+            </>
+          )}
+          {layout === "student-profile" && (
+            <>
               <Configurator />
               {configsButton}
             </>

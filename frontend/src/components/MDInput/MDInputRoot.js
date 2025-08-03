@@ -67,5 +67,38 @@ export default styled(TextField)(({ theme, ownerState }) => {
     pointerEvents: disabled ? "none" : "auto",
     ...(error && errorStyles()),
     ...(success && successStyles()),
+    
+    // Consistent sizing for all input types
+    "& .MuiOutlinedInput-root": {
+      minHeight: pxToRem(45),
+      "& input": {
+        height: pxToRem(20),
+        padding: `${pxToRem(12)} ${pxToRem(14)}`,
+      },
+      "& .MuiSelect-select": {
+        height: pxToRem(20),
+        padding: `${pxToRem(12)} ${pxToRem(14)}`,
+        display: "flex",
+        alignItems: "center",
+      },
+      "& fieldset": {
+        borderColor: grey[300],
+      },
+      "&:hover fieldset": {
+        borderColor: grey[400],
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: palette.info.main,
+        borderWidth: "2px",
+      },
+    },
+    
+    // Ensure consistent label positioning
+    "& .MuiInputLabel-root": {
+      transform: "translate(14px, 16px) scale(1)",
+      "&.MuiInputLabel-shrink": {
+        transform: "translate(14px, -9px) scale(0.75)",
+      },
+    },
   };
 });
