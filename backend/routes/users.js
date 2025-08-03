@@ -20,6 +20,7 @@ const {
 } = require('../middleware/auth');
 
 const {
+  validateProfileUpdate,
   validateUserUpdate,
   validateUserSearch,
   validateObjectId
@@ -56,7 +57,7 @@ router.post('/search',
 
 // Update own profile
 router.put('/profile', 
-  validateUserUpdate,
+  validateProfileUpdate,
   updateProfile
 );
 

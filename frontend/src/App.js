@@ -173,6 +173,12 @@ export default function App() {
                 {configsButton}
               </>
             )}
+            {layout === "administrator-profile" && (
+              <>
+                <Configurator />
+                {configsButton}
+              </>
+            )}
             {layout === "vr" && <Configurator />}
             <Routes>
               {getRoutes(routes)}
@@ -198,6 +204,12 @@ export default function App() {
             </>
           )}
           {layout === "student-profile" && (
+            <>
+              <Configurator />
+              {configsButton}
+            </>
+          )}
+          {layout === "administrator-profile" && (
             <>
               <Configurator />
               {configsButton}

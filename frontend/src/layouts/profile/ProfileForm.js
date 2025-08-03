@@ -44,8 +44,24 @@ function ProfileForm() {
     
     switch (userData.role) {
       case 'admin':
+      case 'director':
+      case 'staff':
+      case 'hod':
+        // Administrator fields
         roleData.employeeId = userData.employeeId || "";
         roleData.designation = userData.designation || "";
+        roleData.mobileNumber = userData.mobileNumber || "";
+        roleData.gender = userData.gender || "";
+        roleData.profilePhotoUrl = userData.profilePhotoUrl || "";
+        roleData.status = userData.status || "active";
+        roleData.dateOfJoining = userData.dateOfJoining || "";
+        roleData.registrationDate = userData.registrationDate || "";
+        roleData.lastLoginAt = userData.lastLoginAt || "";
+        roleData.authProvider = userData.authProvider || "local";
+        roleData.accessLevel = userData.accessLevel || "admin";
+        roleData.officeLocation = userData.officeLocation || "";
+        roleData.createdBy = userData.createdBy || "";
+        roleData.adminNotes = userData.adminNotes || "";
         break;
       case 'placement_director':
         roleData.employeeId = userData.employeeId || "";

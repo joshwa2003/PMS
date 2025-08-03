@@ -124,11 +124,23 @@ exports.validateProfileUpdate = [
     .isURL()
     .withMessage('Profile picture must be a valid URL'),
   
+  // Student-specific fields
   body('cgpa')
     .optional()
     .isFloat({ min: 0, max: 10 })
     .withMessage('CGPA must be between 0 and 10'),
   
+  body('studentId')
+    .optional()
+    .isLength({ min: 6, max: 20 })
+    .withMessage('Student ID must be between 6 and 20 characters'),
+  
+  body('batch')
+    .optional()
+    .matches(/^(20\d{2})-(20\d{2})$/)
+    .withMessage('Batch must be in format YYYY-YYYY (e.g., 2020-2024)'),
+  
+  // Alumni-specific fields
   body('currentCompany')
     .optional()
     .isLength({ max: 100 })
@@ -138,6 +150,53 @@ exports.validateProfileUpdate = [
     .optional()
     .isLength({ max: 100 })
     .withMessage('Current position cannot exceed 100 characters'),
+  
+  body('graduationYear')
+    .optional()
+    .isInt({ min: 1990, max: new Date().getFullYear() })
+    .withMessage('Invalid graduation year'),
+  
+  // Staff/Administrator-specific fields
+  body('employeeId')
+    .optional()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Employee ID must be between 3 and 20 characters'),
+  
+  body('designation')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Designation must be between 2 and 100 characters'),
+  
+  body('mobileNumber')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Mobile number must be exactly 10 digits'),
+  
+  body('gender')
+    .optional()
+    .isIn(['Male', 'Female', 'Other'])
+    .withMessage('Gender must be Male, Female, or Other'),
+  
+  body('profilePhotoUrl')
+    .optional()
+    .isURL()
+    .withMessage('Profile photo URL must be a valid URL'),
+  
+  body('dateOfJoining')
+    .optional()
+    .isISO8601()
+    .withMessage('Date of joining must be a valid date'),
+  
+  body('officeLocation')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Office location must be between 2 and 100 characters'),
+  
+  // Department validation
+  body('department')
+    .optional()
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .withMessage('Invalid department specified'),
 ];
 
 // Change password validation

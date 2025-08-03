@@ -95,6 +95,74 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Administrator-specific fields
+  mobileNumber: {
+    type: String,
+    trim: true,
+    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
+  },
+  gender: {
+    type: String,
+    trim: true,
+    enum: ['Male', 'Female', 'Other']
+  },
+  profilePhotoUrl: {
+    type: String,
+    trim: true
+  },
+  dateOfJoining: {
+    type: Date
+  },
+  officeLocation: {
+    type: String,
+    trim: true
+  },
+  
+  // Contact information
+  contact: {
+    alternatePhone: {
+      type: String,
+      trim: true,
+      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit alternate phone number']
+    },
+    emergencyContact: {
+      type: String,
+      trim: true,
+      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit emergency contact number']
+    },
+    address: {
+      street: {
+        type: String,
+        trim: true
+      },
+      city: {
+        type: String,
+        trim: true
+      },
+      state: {
+        type: String,
+        trim: true
+      },
+      pincode: {
+        type: String,
+        trim: true,
+        match: [/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode']
+      },
+      country: {
+        type: String,
+        trim: true,
+        default: 'India'
+      }
+    }
+  },
+  
+  // Administrative notes
+  adminNotes: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Administrative notes cannot exceed 1000 characters']
+  },
+  
   // Profile Information
   profilePicture: {
     type: String,

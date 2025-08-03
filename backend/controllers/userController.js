@@ -165,10 +165,16 @@ exports.updateProfile = async (req, res) => {
 
     // Define fields that can be updated by user themselves
     const profileAllowedFields = [
-      'firstName', 'lastName', 'phone', 'bio', 'profilePicture',
-      'cgpa', 'currentCompany', 'currentPosition',
-      'studentId', 'batch', 'employeeId', 'designation',
-      'graduationYear'
+      'firstName', 'lastName', 'phone', 'bio', 'profilePicture', 'department',
+      // Student fields
+      'cgpa', 'studentId', 'batch',
+      // Alumni fields
+      'currentCompany', 'currentPosition', 'graduationYear',
+      // Staff/Administrator fields
+      'employeeId', 'designation', 'mobileNumber', 'gender', 'profilePhotoUrl',
+      'dateOfJoining', 'officeLocation',
+      // Contact information and administrative notes
+      'contact', 'adminNotes'
     ];
 
     const profileUpdates = {};
@@ -201,6 +207,14 @@ exports.updateProfile = async (req, res) => {
         profilePicture: updatedProfile.profilePicture,
         bio: updatedProfile.bio,
         updatedAt: updatedProfile.updatedAt,
+        // Administrator-specific fields
+        mobileNumber: updatedProfile.mobileNumber,
+        gender: updatedProfile.gender,
+        profilePhotoUrl: updatedProfile.profilePhotoUrl,
+        dateOfJoining: updatedProfile.dateOfJoining,
+        officeLocation: updatedProfile.officeLocation,
+        contact: updatedProfile.contact,
+        adminNotes: updatedProfile.adminNotes,
         // Role-specific fields
         ...(updatedProfile.role === 'student' && {
           studentId: updatedProfile.studentId,

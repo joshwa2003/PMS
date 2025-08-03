@@ -11,6 +11,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const studentRoutes = require('./routes/students');
+const administratorRoutes = require('./routes/administrators');
+const administratorProfileRoutes = require('./routes/administratorProfiles');
 
 const app = express();
 
@@ -57,6 +59,8 @@ const API_VERSION = process.env.API_VERSION || 'v1';
 app.use(`/api/${API_VERSION}/auth`, authRoutes);
 app.use(`/api/${API_VERSION}/users`, userRoutes);
 app.use(`/api/${API_VERSION}/students`, studentRoutes);
+app.use(`/api/${API_VERSION}/administrators`, administratorRoutes);
+app.use(`/api/${API_VERSION}/administrator-profiles`, administratorProfileRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

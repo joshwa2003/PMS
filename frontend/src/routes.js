@@ -44,6 +44,7 @@ import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 import ProfilePage from "layouts/profile/ProfilePage";
 import StudentProfile from "pages/StudentProfile";
+import AdministratorProfile from "pages/AdministratorProfile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -135,6 +136,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['student']}>
         <StudentProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Administrator Profile",
+    key: "administrator-profile",
+    icon: <Icon fontSize="small">admin_panel_settings</Icon>,
+    route: "/administrator-profile",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'director', 'staff', 'hod']}>
+        <AdministratorProfile />
       </ProtectedRoute>
     ),
   },

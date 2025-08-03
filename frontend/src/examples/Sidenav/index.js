@@ -103,8 +103,42 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     return () => window.removeEventListener("resize", handleMiniSidenav);
   }, [dispatch, location]);
 
-  // Render all the routes from the routes.js (All the visible items on the Sidenav)
-  const renderRoutes = routes.map(({ type, name, icon, title, noCollapse, key, href, route }) => {
+  // Filter routes based on user role
+  const filteredRoutes = routes.filter(({ key }) => {
+    if (!user) return true; // Show all routes if no user (shouldn't happen in protected routes)
+    
+    // Define role groups
+    const systemAdminRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff'];
+    const administratorRoles = ['admin', 'director', 'staff', 'hod'];
+    const studentRoles = ['student'];
+    
+    // Check user role
+    const isSystemAdmin = systemAdminRoles.includes(user.role);
+    const isAdministrator = administratorRoles.includes(user.role);
+    const isStudent = studentRoles.includes(user.role);
+    
+    // Role-based filtering logic
+    switch (key) {
+      case 'profile':
+        // Hide Profile for System Administrators, show for others
+        return !isSystemAdmin;
+      
+      case 'student-profile':
+        // Hide Student Profile for System Administrators, show for students and others
+        return !isSystemAdmin;
+      
+      case 'administrator-profile':
+        // Show Administrator Profile only for administrators
+        return isAdministrator;
+      
+      default:
+        // Show all other routes by default
+        return true;
+    }
+  });
+
+  // Render all the filtered routes from the routes.js (All the visible items on the Sidenav)
+  const renderRoutes = filteredRoutes.map(({ type, name, icon, title, noCollapse, key, href, route }) => {
     let returnValue;
 
     if (type === "collapse") {
