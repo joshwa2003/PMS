@@ -47,6 +47,7 @@ import StudentProfile from "pages/StudentProfile";
 import AdministratorProfile from "pages/AdministratorProfile";
 import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
+import DepartmentHODProfile from "pages/DepartmentHODProfile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -174,6 +175,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['placement_staff']}>
         <PlacementStaffProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Department HOD Profile",
+    key: "department-hod-profile",
+    icon: <Icon fontSize="small">school</Icon>,
+    route: "/department-hod-profile",
+    component: (
+      <ProtectedRoute requiredRoles={['department_hod']}>
+        <DepartmentHODProfile />
       </ProtectedRoute>
     ),
   },
