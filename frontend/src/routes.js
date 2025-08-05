@@ -48,6 +48,7 @@ import AdministratorProfile from "pages/AdministratorProfile";
 import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
+import StaffManagement from "pages/StaffManagement";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -175,6 +176,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['placement_staff']}>
         <PlacementStaffProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Staff Management",
+    key: "staff-management",
+    icon: <Icon fontSize="small">group_add</Icon>,
+    route: "/staff-management",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <StaffManagement />
       </ProtectedRoute>
     ),
   },

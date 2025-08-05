@@ -8,7 +8,11 @@ const {
   getUsersByRole,
   getUsersByDepartment,
   searchUsers,
-  getUserStats
+  getUserStats,
+  createStaff,
+  getAllStaff,
+  updateStaff,
+  deleteStaff
 } = require('../controllers/userController');
 
 const { 
@@ -23,7 +27,10 @@ const {
   validateProfileUpdate,
   validateUserUpdate,
   validateUserSearch,
-  validateObjectId
+  validateObjectId,
+  validateStaffCreation,
+  validateStaffUpdate,
+  validateStaffStatusUpdate
 } = require('../middleware/validation');
 
 const router = express.Router();
@@ -35,6 +42,39 @@ router.use(protect);
 router.get('/', authorize('admin', 'placement_director'), getAllUsers);
 router.get('/stats', authorize('admin', 'placement_director'), getUserStats);
 router.delete('/:id', authorize('admin'), validateObjectId('id'), deleteUser);
+
+// Staff management routes (Admin and Placement Director)
+router.post('/staff', 
+  authorize('admin', 'placement_director'), 
+  validateStaffCreation,
+  createStaff
+);
+
+router.get('/staff', 
+  authorize('admin', 'placement_director'), 
+  getAllStaff
+);
+
+// Status update route (separate from full staff update)
+router.patch('/staff/:id/status', 
+  authorize('admin', 'placement_director'), 
+  validateObjectId('id'),
+  validateStaffStatusUpdate,
+  updateStaff
+);
+
+router.put('/staff/:id', 
+  authorize('admin', 'placement_director'), 
+  validateObjectId('id'),
+  validateStaffUpdate,
+  updateStaff
+);
+
+router.delete('/staff/:id', 
+  authorize('admin'), 
+  validateObjectId('id'),
+  deleteStaff
+);
 
 // Admin and placement staff routes
 router.get('/role/:role', 

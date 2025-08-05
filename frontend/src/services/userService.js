@@ -139,6 +139,64 @@ class UserService {
     }
   }
 
+  // Staff management methods
+  async createStaff(staffData) {
+    try {
+      const response = await api.post('/users/staff', staffData);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to create staff member');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllStaff(params = {}) {
+    try {
+      const queryParams = new URLSearchParams(params).toString();
+      const response = await api.get(`/users/staff?${queryParams}`);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to fetch staff members');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateStaff(staffId, staffData) {
+    try {
+      const response = await api.put(`/users/staff/${staffId}`, staffData);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to update staff member');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteStaff(staffId) {
+    try {
+      const response = await api.delete(`/users/staff/${staffId}`);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to delete staff member');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Role-specific user fetching methods
   async getStudents(params = {}) {
     return this.getUsersByRole('student', params);

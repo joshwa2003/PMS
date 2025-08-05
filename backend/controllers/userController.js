@@ -592,6 +592,331 @@ exports.searchUsers = async (req, res) => {
   }
 };
 
+// @desc    Create staff member (Admin and Placement Director only)
+// @route   POST /api/v1/users/staff
+// @access  Private (Admin, Placement Director)
+exports.createStaff = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      role,
+      department,
+      designation,
+      employeeId,
+      phone,
+      adminNotes
+    } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Check if employeeId already exists
+    if (employeeId) {
+      const existingEmployee = await User.findOne({ employeeId });
+      if (existingEmployee) {
+        return res.status(400).json({
+          success: false,
+          message: 'Employee ID already exists'
+        });
+      }
+    }
+
+    // Validate staff role
+    const validStaffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+    if (!validStaffRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid staff role specified'
+      });
+    }
+
+    // Generate default password (can be changed later)
+    const defaultPassword = `Staff@${Math.random().toString(36).slice(-6)}`;
+
+    // Create staff user
+    const staffData = {
+      firstName,
+      lastName,
+      email,
+      password: defaultPassword,
+      role,
+      department,
+      designation,
+      employeeId,
+      phone,
+      adminNotes,
+      permissions: User.getRolePermissions(role),
+      isActive: true,
+      isVerified: false // Staff needs to verify their account
+    };
+
+    const staff = await User.create(staffData);
+
+    // Remove password from response
+    staff.password = undefined;
+
+    res.status(201).json({
+      success: true,
+      message: 'Staff member created successfully',
+      staff: {
+        id: staff._id,
+        firstName: staff.firstName,
+        lastName: staff.lastName,
+        fullName: staff.fullName,
+        email: staff.email,
+        role: staff.role,
+        department: staff.department,
+        designation: staff.designation,
+        employeeId: staff.employeeId,
+        phone: staff.phone,
+        isActive: staff.isActive,
+        isVerified: staff.isVerified,
+        createdAt: staff.createdAt,
+        adminNotes: staff.adminNotes
+      },
+      defaultPassword // Include in response for admin to share with staff
+    });
+  } catch (error) {
+    console.error('Create staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating staff member',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Get all staff members (Admin and Placement Director only)
+// @route   GET /api/v1/users/staff
+// @access  Private (Admin, Placement Director)
+exports.getAllStaff = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+
+    // Build filter for staff roles
+    const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+    const filter = { role: { $in: staffRoles } };
+
+    // Add additional filters
+    if (req.query.role && staffRoles.includes(req.query.role)) {
+      filter.role = req.query.role;
+    }
+    if (req.query.department) filter.department = req.query.department;
+    if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
+    if (req.query.isVerified !== undefined) filter.isVerified = req.query.isVerified === 'true';
+
+    // Get staff with pagination
+    const staff = await User.find(filter)
+      .select('-password')
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit);
+
+    // Get total count for pagination
+    const totalStaff = await User.countDocuments(filter);
+    const totalPages = Math.ceil(totalStaff / limit);
+
+    res.status(200).json({
+      success: true,
+      count: staff.length,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalStaff,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      },
+      staff: staff.map(member => ({
+        id: member._id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        fullName: member.fullName,
+        email: member.email,
+        role: member.role,
+        department: member.department,
+        designation: member.designation,
+        employeeId: member.employeeId,
+        phone: member.phone,
+        isActive: member.isActive,
+        isVerified: member.isVerified,
+        lastLogin: member.lastLogin,
+        createdAt: member.createdAt,
+        adminNotes: member.adminNotes
+      }))
+    });
+  } catch (error) {
+    console.error('Get all staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching staff members',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Update staff member (Admin and Placement Director only)
+// @route   PUT /api/v1/users/staff/:id
+// @access  Private (Admin, Placement Director)
+exports.updateStaff = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const staff = await User.findById(req.params.id);
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff member not found'
+      });
+    }
+
+    // Verify it's a staff member
+    const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+    if (!staffRoles.includes(staff.role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is not a staff member'
+      });
+    }
+
+    // Define fields that can be updated
+    const allowedFields = [
+      'firstName', 'lastName', 'phone', 'department', 'designation',
+      'employeeId', 'isActive', 'isVerified', 'adminNotes'
+    ];
+
+    const updates = {};
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updates[key] = req.body[key];
+      }
+    });
+
+    // Check if employeeId is being updated and doesn't conflict
+    if (updates.employeeId && updates.employeeId !== staff.employeeId) {
+      const existingEmployee = await User.findOne({ 
+        employeeId: updates.employeeId,
+        _id: { $ne: staff._id }
+      });
+      if (existingEmployee) {
+        return res.status(400).json({
+          success: false,
+          message: 'Employee ID already exists'
+        });
+      }
+    }
+
+    const updatedStaff = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff member updated successfully',
+      staff: {
+        id: updatedStaff._id,
+        firstName: updatedStaff.firstName,
+        lastName: updatedStaff.lastName,
+        fullName: updatedStaff.fullName,
+        email: updatedStaff.email,
+        role: updatedStaff.role,
+        department: updatedStaff.department,
+        designation: updatedStaff.designation,
+        employeeId: updatedStaff.employeeId,
+        phone: updatedStaff.phone,
+        isActive: updatedStaff.isActive,
+        isVerified: updatedStaff.isVerified,
+        updatedAt: updatedStaff.updatedAt,
+        adminNotes: updatedStaff.adminNotes
+      }
+    });
+  } catch (error) {
+    console.error('Update staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating staff member',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Delete staff member (Admin only)
+// @route   DELETE /api/v1/users/staff/:id
+// @access  Private (Admin only)
+exports.deleteStaff = async (req, res) => {
+  try {
+    const staff = await User.findById(req.params.id);
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: 'Staff member not found'
+      });
+    }
+
+    // Verify it's a staff member
+    const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+    if (!staffRoles.includes(staff.role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is not a staff member'
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (staff._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account'
+      });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff member deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting staff member',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 // @desc    Get user statistics
 // @route   GET /api/v1/users/stats
 // @access  Private (Admin, Placement Director)
@@ -642,6 +967,14 @@ exports.getUserStats = async (req, res) => {
       lastLogin: { $gte: sevenDaysAgo }
     });
 
+    // Get staff statistics
+    const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+    const totalStaff = await User.countDocuments({ role: { $in: staffRoles } });
+    const activeStaff = await User.countDocuments({ 
+      role: { $in: staffRoles }, 
+      isActive: true 
+    });
+
     res.status(200).json({
       success: true,
       stats: {
@@ -652,6 +985,8 @@ exports.getUserStats = async (req, res) => {
         unverifiedUsers,
         recentRegistrations,
         recentlyActiveUsers,
+        totalStaff,
+        activeStaff,
         usersByRole: usersByRole.reduce((acc, item) => {
           acc[item._id] = item.count;
           return acc;

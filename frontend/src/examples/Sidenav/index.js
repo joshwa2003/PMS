@@ -138,6 +138,14 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       case 'placement-staff-profile':
         // Show Placement Staff Profile only for placement staff
         return user.role === 'placement_staff';
+
+      case 'department-hod-profile':
+        // Show Department HOD Profile only for department HODs
+        return user.role === 'department_hod';
+
+      case 'staff-management':
+        // Show Staff Management only for admin and placement director
+        return user.role === 'admin' || user.role === 'placement_director';
       
       default:
         // Show all other routes by default

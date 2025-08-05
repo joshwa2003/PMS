@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 
 // Common validation rules
 const emailValidation = body('email')
@@ -464,9 +464,127 @@ exports.validatePlacementDirectorProfileUpdate = [
     .withMessage('Auth provider must be local, google, microsoft, or other'),
 ];
 
+// Staff creation validation
+exports.validateStaffCreation = [
+  body('firstName')
+    .trim()
+    .notEmpty()
+    .withMessage('First name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters'),
+  
+  body('lastName')
+    .trim()
+    .notEmpty()
+    .withMessage('Last name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters'),
+  
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  
+  body('role')
+    .notEmpty()
+    .withMessage('Role is required')
+    .isIn(['placement_staff', 'department_hod', 'other_staff'])
+    .withMessage('Invalid staff role specified'),
+  
+  body('department')
+    .notEmpty()
+    .withMessage('Department is required')
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .withMessage('Invalid department specified'),
+  
+  body('designation')
+    .trim()
+    .notEmpty()
+    .withMessage('Designation is required')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Designation must be between 2 and 100 characters'),
+  
+  body('employeeId')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Employee ID must be between 3 and 20 characters'),
+  
+  body('phone')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Phone number must be exactly 10 digits'),
+  
+  body('adminNotes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Admin notes cannot exceed 1000 characters')
+];
+
+// Staff update validation
+exports.validateStaffUpdate = [
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters'),
+  
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters'),
+  
+  body('department')
+    .optional()
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .withMessage('Invalid department specified'),
+  
+  body('designation')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Designation must be between 2 and 100 characters'),
+  
+  body('employeeId')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Employee ID must be between 3 and 20 characters'),
+  
+  body('phone')
+    .optional()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Phone number must be exactly 10 digits'),
+  
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive must be a boolean value'),
+  
+  body('isVerified')
+    .optional()
+    .isBoolean()
+    .withMessage('isVerified must be a boolean value'),
+  
+  body('adminNotes')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Admin notes cannot exceed 1000 characters')
+];
+
+// Staff status update validation
+exports.validateStaffStatusUpdate = [
+  body('isActive')
+    .isBoolean()
+    .withMessage('isActive must be a boolean value'),
+];
+
 // ID parameter validation
 exports.validateObjectId = (paramName = 'id') => [
-  body(paramName)
+  param(paramName)
     .matches(/^[0-9a-fA-F]{24}$/)
     .withMessage(`Invalid ${paramName} format`),
 ];
