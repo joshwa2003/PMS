@@ -10,6 +10,7 @@ const {
   searchUsers,
   getUserStats,
   createStaff,
+  createBulkStaff,
   getAllStaff,
   updateStaff,
   deleteStaff
@@ -48,6 +49,11 @@ router.post('/staff',
   authorize('admin', 'placement_director'), 
   validateStaffCreation,
   createStaff
+);
+
+router.post('/staff/bulk', 
+  authorize('admin', 'placement_director'), 
+  createBulkStaff
 );
 
 router.get('/staff', 

@@ -703,6 +703,161 @@ exports.createStaff = async (req, res) => {
   }
 };
 
+// @desc    Create multiple staff members at once (Admin and Placement Director only)
+// @route   POST /api/v1/users/staff/bulk
+// @access  Private (Admin, Placement Director)
+exports.createBulkStaff = async (req, res) => {
+  try {
+    const { staffData } = req.body;
+
+    if (!staffData || !Array.isArray(staffData) || staffData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff data array is required and cannot be empty'
+      });
+    }
+
+    if (staffData.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create more than 100 staff members at once'
+      });
+    }
+
+    const createdStaff = [];
+    const failedStaff = [];
+    const validStaffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+
+    // Process each staff member
+    for (let i = 0; i < staffData.length; i++) {
+      const staffMember = staffData[i];
+      const rowNumber = i + 1;
+
+      try {
+        // Validate required fields (only firstName, lastName, email are required)
+        if (!staffMember.firstName || !staffMember.lastName || !staffMember.email) {
+          failedStaff.push({
+            rowNumber,
+            data: staffMember,
+            error: 'Missing required fields: firstName, lastName, email'
+          });
+          continue;
+        }
+
+        // Validate staff role if provided
+        if (staffMember.role && !validStaffRoles.includes(staffMember.role)) {
+          failedStaff.push({
+            rowNumber,
+            data: staffMember,
+            error: 'Invalid staff role. Must be: placement_staff, department_hod, or other_staff'
+          });
+          continue;
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: staffMember.email });
+        if (existingUser) {
+          failedStaff.push({
+            rowNumber,
+            data: staffMember,
+            error: `User with email ${staffMember.email} already exists`
+          });
+          continue;
+        }
+
+        // Check if employeeId already exists (if provided)
+        if (staffMember.employeeId) {
+          const existingEmployee = await User.findOne({ employeeId: staffMember.employeeId });
+          if (existingEmployee) {
+            failedStaff.push({
+              rowNumber,
+              data: staffMember,
+              error: `Employee ID ${staffMember.employeeId} already exists`
+            });
+            continue;
+          }
+        }
+
+        // Generate default password
+        const defaultPassword = `Staff@${Math.random().toString(36).slice(-6)}`;
+
+        // Create staff user data with defaults for optional fields
+        const role = staffMember.role || 'other_staff';
+        const department = staffMember.department || 'OTHER';
+        
+        const newStaffData = {
+          firstName: staffMember.firstName.trim(),
+          lastName: staffMember.lastName.trim(),
+          email: staffMember.email.trim().toLowerCase(),
+          password: defaultPassword,
+          role: role,
+          department: department,
+          designation: staffMember.designation?.trim() || '',
+          employeeId: staffMember.employeeId?.trim() || '',
+          phone: staffMember.phone?.toString().trim() || '',
+          adminNotes: staffMember.adminNotes?.trim() || '',
+          permissions: User.getRolePermissions(role),
+          isActive: staffMember.isActive !== undefined ? staffMember.isActive : true,
+          isVerified: staffMember.isVerified !== undefined ? staffMember.isVerified : false
+        };
+
+        // Create the staff member
+        const staff = await User.create(newStaffData);
+
+        // Remove password from response
+        staff.password = undefined;
+
+        createdStaff.push({
+          id: staff._id,
+          firstName: staff.firstName,
+          lastName: staff.lastName,
+          fullName: staff.fullName,
+          email: staff.email,
+          role: staff.role,
+          department: staff.department,
+          designation: staff.designation,
+          employeeId: staff.employeeId,
+          phone: staff.phone,
+          isActive: staff.isActive,
+          isVerified: staff.isVerified,
+          createdAt: staff.createdAt,
+          adminNotes: staff.adminNotes,
+          defaultPassword // Include for admin reference
+        });
+
+      } catch (error) {
+        console.error(`Error creating staff member at row ${rowNumber}:`, error);
+        failedStaff.push({
+          rowNumber,
+          data: staffMember,
+          error: error.message || 'Failed to create staff member'
+        });
+      }
+    }
+
+    // Return results
+    res.status(201).json({
+      success: true,
+      message: `Bulk staff creation completed. ${createdStaff.length} created, ${failedStaff.length} failed.`,
+      results: {
+        totalProcessed: staffData.length,
+        successCount: createdStaff.length,
+        failureCount: failedStaff.length,
+        createdStaff,
+        failedStaff
+      }
+    });
+
+  } catch (error) {
+    console.error('Bulk create staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating bulk staff members',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 // @desc    Get all staff members (Admin and Placement Director only)
 // @route   GET /api/v1/users/staff
 // @access  Private (Admin, Placement Director)
@@ -758,6 +913,7 @@ exports.getAllStaff = async (req, res) => {
         designation: member.designation,
         employeeId: member.employeeId,
         phone: member.phone,
+        profilePicture: member.profilePicture, // Include profile picture
         isActive: member.isActive,
         isVerified: member.isVerified,
         lastLogin: member.lastLogin,

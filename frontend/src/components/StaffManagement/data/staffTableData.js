@@ -24,13 +24,13 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import { useState } from "react";
 
 // Default avatar for staff members without profile pictures
-const defaultAvatar = "https://via.placeholder.com/40x40/2196F3/FFFFFF?text=";
+const defaultAvatar = "https://ui-avatars.com/api/?name=";
 
 export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
       <MDAvatar 
-        src={image || `${defaultAvatar}${name?.charAt(0) || 'S'}`} 
+        src={image || `${defaultAvatar}${encodeURIComponent(name || 'Staff')}&size=40&background=2196F3&color=ffffff`} 
         name={name} 
         size="sm" 
       />

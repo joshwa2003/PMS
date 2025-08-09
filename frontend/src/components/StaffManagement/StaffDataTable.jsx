@@ -20,7 +20,9 @@ import {
   Select,
   MenuItem,
   Chip,
-  Tooltip
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import { 
   Close as CloseIcon, 
@@ -30,7 +32,10 @@ import {
   Clear as ClearIcon,
   Refresh as RefreshIcon,
   Sort as SortIcon,
-  FilterList as FilterListIcon
+  FilterList as FilterListIcon,
+  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon,
+  Pages as PagesIcon
 } from '@mui/icons-material';
 
 // S.A. Engineering College React components
@@ -39,7 +44,10 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
 // S.A. Engineering College React example components
-import DataTable from "examples/Tables/DataTable";
+import CustomDataTable from "./CustomDataTable";
+
+// Advanced Pagination Component
+import AdvancedPagination from './AdvancedPagination';
 
 // Data
 import staffTableData from "./data/staffTableData";
@@ -53,6 +61,9 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     staff,
     loading,
     error,
+    displayMode,
+    itemsPerPage,
+    pagination,
     fetchStaff,
     deleteStaff,
     getRoleDisplayName,
@@ -60,7 +71,11 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     formatLastLogin,
     getAvailableRoles,
     getAvailableDepartments,
-    updateStaffStatus
+    updateStaffStatus,
+    toggleDisplayMode,
+    changeItemsPerPage,
+    handlePageChange,
+    handleFilterChange: contextHandleFilterChange
   } = useStaffManagement();
 
   const { user } = useAuth();
@@ -81,66 +96,48 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     status: ''
   });
   const [sortOrder, setSortOrder] = useState('asc');
-  const [filteredStaff, setFilteredStaff] = useState([]);
 
   // Fetch staff on component mount
   useEffect(() => {
     fetchStaff();
-  }, [fetchStaff]);
-
-  // Filter and search staff
-  useEffect(() => {
-    let filtered = [...staff];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(staffMember =>
-        staffMember.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        staffMember.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        staffMember.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply role filter
-    if (filters.role) {
-      filtered = filtered.filter(staffMember => staffMember.role === filters.role);
-    }
-
-    // Apply department filter
-    if (filters.department) {
-      filtered = filtered.filter(staffMember => staffMember.department === filters.department);
-    }
-
-    // Apply status filter
-    if (filters.status) {
-      const isActive = filters.status === 'active';
-      filtered = filtered.filter(staffMember => staffMember.isActive === isActive);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      const nameA = a.fullName?.toLowerCase() || '';
-      const nameB = b.fullName?.toLowerCase() || '';
-      if (sortOrder === 'asc') {
-        return nameA.localeCompare(nameB);
-      } else {
-        return nameB.localeCompare(nameA);
-      }
-    });
-
-    setFilteredStaff(filtered);
-  }, [staff, searchTerm, filters, sortOrder]);
+  }, []);
 
   // Handler functions
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
+    const newSearchTerm = event.target.value;
+    setSearchTerm(newSearchTerm);
+    
+    // Update context filters for server-side filtering
+    const contextFilters = {
+      searchTerm: newSearchTerm,
+      role: filters.role,
+      department: filters.department,
+      isActive: filters.status === 'active' ? 'true' : filters.status === 'inactive' ? 'false' : ''
+    };
+    
+    // Use context's handleFilterChange for server-side filtering
+    contextHandleFilterChange(contextFilters);
   };
 
   const handleFilterChange = (filterType) => (event) => {
+    const newValue = event.target.value;
     setFilters(prev => ({
       ...prev,
-      [filterType]: event.target.value
+      [filterType]: newValue
     }));
+    
+    // Update context filters for server-side filtering
+    const contextFilters = {
+      searchTerm: searchTerm,
+      role: filterType === 'role' ? newValue : filters.role,
+      department: filterType === 'department' ? newValue : filters.department,
+      isActive: filterType === 'status' ? 
+        (newValue === 'active' ? 'true' : newValue === 'inactive' ? 'false' : '') :
+        (filters.status === 'active' ? 'true' : filters.status === 'inactive' ? 'false' : '')
+    };
+    
+    // Use context's handleFilterChange for server-side filtering
+    contextHandleFilterChange(contextFilters);
   };
 
   const handleClearFilters = () => {
@@ -149,6 +146,14 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
       role: '',
       department: '',
       status: ''
+    });
+    
+    // Clear context filters for server-side filtering
+    contextHandleFilterChange({
+      searchTerm: '',
+      role: '',
+      department: '',
+      isActive: ''
     });
   };
 
@@ -159,6 +164,16 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
 
   const handleSortToggle = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const handleDisplayModeChange = (event, newMode) => {
+    if (newMode !== null && newMode !== displayMode) {
+      toggleDisplayMode();
+    }
+  };
+
+  const handleItemsPerPageChange = (event) => {
+    changeItemsPerPage(parseInt(event.target.value));
   };
 
   const getActiveFiltersCount = () => {
@@ -242,9 +257,9 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   const availableRoles = getAvailableRoles ? getAvailableRoles() : [];
   const availableDepartments = getAvailableDepartments ? getAvailableDepartments() : [];
 
-  // Get table data using filtered staff
+  // Get table data using staff from context (server-side filtered)
   const { columns, rows } = staffTableData(
-    filteredStaff,
+    staff,
     handleViewDetails,
     handleEditStaff,
     canDelete ? handleDeleteStaff : null,
@@ -474,12 +489,37 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             </Box>
           )}
 
-          {/* Results Summary */}
-          <Box mt={2}>
+          {/* Results Summary and Display Controls */}
+          <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
-              Showing {filteredStaff.length} of {staff.length} staff members
+              {displayMode === 'paginated' 
+                ? `Showing ${staff.length} of ${pagination.totalStaff} staff members • Page ${pagination.currentPage} of ${pagination.totalPages}`
+                : `Showing ${staff.length} staff members`
+              }
               {getActiveFiltersCount() > 0 && ' (filtered)'}
             </Typography>
+            
+            {/* Display Mode Controls */}
+            <Box display="flex" alignItems="center" gap={2}>
+              {/* Display Mode Toggle */}
+              <ToggleButtonGroup
+                value={displayMode}
+                exclusive
+                onChange={handleDisplayModeChange}
+                size="small"
+                sx={{ height: '32px' }}
+              >
+                <ToggleButton value="all" sx={{ px: 2 }}>
+                  <ViewListIcon sx={{ mr: 1, fontSize: '1rem' }} />
+                  Show All
+                </ToggleButton>
+                <ToggleButton value="paginated" sx={{ px: 2 }}>
+                  <PagesIcon sx={{ mr: 1, fontSize: '1rem' }} />
+                  Paginated
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+            </Box>
           </Box>
         </MDBox>
 
@@ -514,14 +554,33 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
         </MDBox>
 
         <MDBox pt={3}>
-          <DataTable
+          <CustomDataTable
             table={{ columns, rows }}
             isSorted={false}
-            entriesPerPage={false}
-            showTotalEntries={false}
             noEndBorder
-            canSearch={false}
           />
+          
+          {/* Advanced Pagination Controls (always show in paginated mode) */}
+          {displayMode === 'paginated' && (
+            <Box mt={3} mb={2}>
+              <AdvancedPagination
+                currentPage={pagination.currentPage}
+                totalPages={Math.max(1, pagination.totalPages)}
+                totalItems={pagination.totalStaff}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={changeItemsPerPage}
+                onRefresh={handleRefresh}
+                loading={loading}
+                showItemsPerPage={true}
+                showTotalInfo={true}
+                showRefresh={true}
+                itemsPerPageOptions={[5, 10, 25, 50, 100]}
+                marginPagesDisplayed={2}
+                pageRangeDisplayed={5}
+              />
+            </Box>
+          )}
         </MDBox>
       </Card>
 

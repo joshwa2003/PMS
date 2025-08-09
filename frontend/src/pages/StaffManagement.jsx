@@ -6,14 +6,16 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   Box
 } from '@mui/material';
 import {
   PersonAdd as PersonAddIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  CloudUpload as UploadIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 import Footer from 'examples/Footer';
@@ -23,6 +25,7 @@ import MDButton from 'components/MDButton';
 import CreateStaffForm from 'components/StaffManagement/CreateStaffForm';
 import StaffDataTable from 'components/StaffManagement/StaffDataTable';
 import EditStaffForm from 'components/StaffManagement/EditStaffForm';
+import BulkStaffUploadModal from 'components/StaffManagement/BulkStaffUploadModal';
 import { StaffManagementProvider } from 'context/StaffManagementContext';
 import { useAuth } from 'context/AuthContext';
 
@@ -30,6 +33,7 @@ const StaffManagementContent = () => {
   const { user } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -43,6 +47,60 @@ const StaffManagementContent = () => {
 
   const handleCloseCreateDialog = () => {
     setCreateDialogOpen(false);
+  };
+
+  const handleOpenBulkUploadDialog = () => {
+    setBulkUploadDialogOpen(true);
+  };
+
+  const handleCloseBulkUploadDialog = () => {
+    setBulkUploadDialogOpen(false);
+  };
+
+  const handleBulkUploadSuccess = (response) => {
+    const createdCount = response.results?.createdStaff?.length || response.results?.successCount || 0;
+    setSnackbar({
+      open: true,
+      message: `Successfully uploaded ${createdCount} staff members!`,
+      severity: 'success'
+    });
+    setBulkUploadDialogOpen(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    // Create template data with only required headers
+    const templateData = [
+      {
+        'First Name': 'John',
+        'Last Name': 'Smith',
+        'Email': 'john.smith@college.edu'
+      }
+    ];
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+
+    // Set column widths for better formatting
+    const columnWidths = [
+      { wch: 15 }, // First Name
+      { wch: 15 }, // Last Name
+      { wch: 30 }  // Email
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Template');
+
+    // Generate and download the file
+    const fileName = `Staff_Template_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    setSnackbar({
+      open: true,
+      message: 'Excel template downloaded successfully!',
+      severity: 'success'
+    });
   };
 
   const handleStaffCreated = (response) => {
@@ -122,7 +180,7 @@ const StaffManagementContent = () => {
         <MDBox mb={3}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              {/* Header with Add Staff Button */}
+              {/* Header with Action Buttons */}
               <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <MDBox>
                   <MDTypography variant="h4" fontWeight="medium" mb={1}>
@@ -133,14 +191,34 @@ const StaffManagementContent = () => {
                   </MDTypography>
                 </MDBox>
                 
-                <MDButton
-                  variant="gradient"
-                  color="success"
-                  startIcon={<PersonAddIcon />}
-                  onClick={handleOpenCreateDialog}
-                >
-                  Add Staff
-                </MDButton>
+                <MDBox display="flex" gap={2}>
+                  <MDButton
+                    variant="outlined"
+                    color="info"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadTemplate}
+                  >
+                    Download Excel Format
+                  </MDButton>
+                  
+                  <MDButton
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<UploadIcon />}
+                    onClick={handleOpenBulkUploadDialog}
+                  >
+                    Upload Excel Sheet
+                  </MDButton>
+                  
+                  <MDButton
+                    variant="gradient"
+                    color="success"
+                    startIcon={<PersonAddIcon />}
+                    onClick={handleOpenCreateDialog}
+                  >
+                    Add Staff
+                  </MDButton>
+                </MDBox>
               </MDBox>
 
               {/* Staff List */}
@@ -217,6 +295,13 @@ const StaffManagementContent = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Staff Upload Dialog */}
+      <BulkStaffUploadModal
+        open={bulkUploadDialogOpen}
+        onClose={handleCloseBulkUploadDialog}
+        onSuccess={handleBulkUploadSuccess}
+      />
 
       {/* Success/Error Snackbar */}
       <Snackbar

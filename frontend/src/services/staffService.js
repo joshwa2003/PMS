@@ -16,6 +16,21 @@ class StaffService {
     }
   }
 
+  // Create multiple staff members at once (Admin and Placement Director only)
+  async createBulkStaff(staffDataArray) {
+    try {
+      const response = await api.post('/users/staff/bulk', { staffData: staffDataArray });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to create bulk staff members');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get all staff members (Admin and Placement Director only)
   async getAllStaff(params = {}) {
     try {

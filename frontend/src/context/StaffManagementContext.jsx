@@ -22,7 +22,9 @@ const initialState = {
     searchTerm: ''
   },
   sortBy: 'createdAt',
-  sortOrder: 'desc'
+  sortOrder: 'desc',
+  displayMode: 'all', // 'all' or 'paginated'
+  itemsPerPage: 10 // Used when displayMode is 'paginated'
 };
 
 // Action types
@@ -38,6 +40,8 @@ const actionTypes = {
   SET_PAGINATION: 'SET_PAGINATION',
   SET_FILTERS: 'SET_FILTERS',
   SET_SORT: 'SET_SORT',
+  SET_DISPLAY_MODE: 'SET_DISPLAY_MODE',
+  SET_ITEMS_PER_PAGE: 'SET_ITEMS_PER_PAGE',
   RESET_STATE: 'RESET_STATE'
 };
 
@@ -124,6 +128,18 @@ const staffManagementReducer = (state, action) => {
         sortOrder: action.payload.sortOrder
       };
 
+    case actionTypes.SET_DISPLAY_MODE:
+      return {
+        ...state,
+        displayMode: action.payload
+      };
+
+    case actionTypes.SET_ITEMS_PER_PAGE:
+      return {
+        ...state,
+        itemsPerPage: action.payload
+      };
+
     case actionTypes.RESET_STATE:
       return initialState;
 
@@ -181,6 +197,14 @@ export const StaffManagementProvider = ({ children }) => {
     dispatch({ type: actionTypes.SET_SORT, payload: { sortBy, sortOrder } });
   }, []);
 
+  const setDisplayMode = useCallback((mode) => {
+    dispatch({ type: actionTypes.SET_DISPLAY_MODE, payload: mode });
+  }, []);
+
+  const setItemsPerPage = useCallback((itemsPerPage) => {
+    dispatch({ type: actionTypes.SET_ITEMS_PER_PAGE, payload: itemsPerPage });
+  }, []);
+
   const resetState = useCallback(() => {
     dispatch({ type: actionTypes.RESET_STATE });
   }, []);
@@ -192,13 +216,21 @@ export const StaffManagementProvider = ({ children }) => {
       clearError();
 
       const queryParams = {
-        page: state.pagination.currentPage,
-        limit: 10,
         sortBy: state.sortBy,
         sortOrder: state.sortOrder,
         ...state.filters,
         ...params
       };
+
+      // Add pagination parameters based on display mode
+      if (state.displayMode === 'paginated') {
+        queryParams.page = params.page || state.pagination.currentPage;
+        queryParams.limit = params.limit || state.itemsPerPage;
+      } else {
+        // For 'all' mode, use a very high limit to get all records
+        queryParams.page = 1;
+        queryParams.limit = 1000; // High limit to get all staff
+      }
 
       // Remove empty filters
       Object.keys(queryParams).forEach(key => {
@@ -214,7 +246,7 @@ export const StaffManagementProvider = ({ children }) => {
     } catch (error) {
       setError(error.message || 'Failed to fetch staff members');
     }
-  }, [state.pagination.currentPage, state.sortBy, state.sortOrder, state.filters]);
+  }, [state.sortBy, state.sortOrder, state.filters, state.displayMode, state.pagination.currentPage, state.itemsPerPage]);
 
   const createStaff = useCallback(async (staffData) => {
     try {
@@ -228,6 +260,27 @@ export const StaffManagementProvider = ({ children }) => {
       return response;
     } catch (error) {
       setError(error.message || 'Failed to create staff member');
+      throw error;
+    }
+  }, []);
+
+  const createBulkStaff = useCallback(async (staffDataArray) => {
+    try {
+      setLoading(true);
+      clearError();
+
+      const response = await staffService.createBulkStaff(staffDataArray);
+      
+      // Add all created staff to the state
+      if (response.results && response.results.createdStaff) {
+        response.results.createdStaff.forEach(staff => {
+          dispatch({ type: actionTypes.ADD_STAFF, payload: staff });
+        });
+      }
+      
+      return response;
+    } catch (error) {
+      setError(error.message || 'Failed to create bulk staff members');
       throw error;
     }
   }, []);
@@ -314,9 +367,13 @@ export const StaffManagementProvider = ({ children }) => {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-    setPagination({ ...state.pagination, currentPage: 1 });
-    fetchStaff({ ...newFilters, page: 1 });
-  }, [state.pagination, fetchStaff]);
+    if (state.displayMode === 'paginated') {
+      setPagination({ ...state.pagination, currentPage: 1 });
+      fetchStaff({ ...newFilters, page: 1 });
+    } else {
+      fetchStaff({ ...newFilters });
+    }
+  }, [state.pagination, state.displayMode, fetchStaff]);
 
   const handleSortChange = useCallback((sortBy, sortOrder) => {
     setSort(sortBy, sortOrder);
@@ -339,6 +396,34 @@ export const StaffManagementProvider = ({ children }) => {
     handleFilterChange(clearedFilters);
   }, [handleFilterChange]);
 
+  // Toggle between display modes
+  const toggleDisplayMode = useCallback(() => {
+    const newMode = state.displayMode === 'all' ? 'paginated' : 'all';
+    setDisplayMode(newMode);
+    // Reset to first page when switching to paginated mode
+    if (newMode === 'paginated') {
+      setPagination({ ...state.pagination, currentPage: 1 });
+      // Fetch with pagination parameters
+      setTimeout(() => {
+        fetchStaff({ page: 1, limit: state.itemsPerPage });
+      }, 0);
+    } else {
+      // Fetch all records
+      setTimeout(() => {
+        fetchStaff();
+      }, 0);
+    }
+  }, [state.displayMode, state.pagination, state.itemsPerPage, fetchStaff]);
+
+  // Change items per page (for paginated mode)
+  const changeItemsPerPage = useCallback((newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setPagination({ ...state.pagination, currentPage: 1 });
+    setTimeout(() => {
+      fetchStaff({ page: 1, limit: newItemsPerPage });
+    }, 0);
+  }, [state.pagination, fetchStaff]);
+
   // Context value
   const contextValue = {
     // State
@@ -354,6 +439,7 @@ export const StaffManagementProvider = ({ children }) => {
     // API functions
     fetchStaff,
     createStaff,
+    createBulkStaff,
     updateStaff,
     updateStaffStatus,
     deleteStaff,
@@ -366,6 +452,10 @@ export const StaffManagementProvider = ({ children }) => {
     handleSortChange,
     searchStaff,
     clearFilters,
+    toggleDisplayMode,
+    changeItemsPerPage,
+    setDisplayMode,
+    setItemsPerPage,
     
     // Service utilities
     formatStaffData: staffService.formatStaffData,
