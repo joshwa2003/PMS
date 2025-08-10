@@ -194,6 +194,13 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
+  // Created By (for tracking who created this user)
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
   // Timestamps
   lastLogin: {
     type: Date,

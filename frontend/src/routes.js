@@ -49,6 +49,7 @@ import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
 import StaffManagement from "pages/StaffManagement";
+import StudentManagement from "pages/StudentManagement";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -188,6 +189,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
         <StaffManagement />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Student Management",
+    key: "student-management",
+    icon: <Icon fontSize="small">school</Icon>,
+    route: "/student-management",
+    component: (
+      <ProtectedRoute requiredRoles={['placement_staff']}>
+        <StudentManagement />
       </ProtectedRoute>
     ),
   },
