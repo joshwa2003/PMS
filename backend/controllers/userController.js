@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const emailService = require('../services/emailService');
 
 // @desc    Get all users
 // @route   GET /api/v1/users
@@ -672,6 +673,20 @@ exports.createStaff = async (req, res) => {
     // Remove password from response
     staff.password = undefined;
 
+    // Send welcome email to the staff member
+    try {
+      const emailResult = await emailService.sendStaffWelcomeEmail(staff, defaultPassword);
+      
+      if (emailResult.success) {
+        console.log(`Welcome email sent successfully to ${staff.email}`);
+      } else {
+        console.error(`Failed to send welcome email to ${staff.email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error(`Error sending welcome email to ${staff.email}:`, emailError);
+      // Don't fail the staff creation if email fails
+    }
+
     res.status(201).json({
       success: true,
       message: 'Staff member created successfully',
@@ -835,6 +850,19 @@ exports.createBulkStaff = async (req, res) => {
       }
     }
 
+    // Send welcome emails to all successfully created staff members
+    let emailResults = null;
+    if (createdStaff.length > 0) {
+      try {
+        console.log(`Sending welcome emails to ${createdStaff.length} staff members...`);
+        emailResults = await emailService.sendBulkStaffWelcomeEmails(createdStaff);
+        console.log(`Email sending completed. Sent: ${emailResults.totalSent}, Failed: ${emailResults.totalFailed}`);
+      } catch (emailError) {
+        console.error('Error sending bulk welcome emails:', emailError);
+        // Don't fail the staff creation if email fails
+      }
+    }
+
     // Return results
     res.status(201).json({
       success: true,
@@ -844,7 +872,13 @@ exports.createBulkStaff = async (req, res) => {
         successCount: createdStaff.length,
         failureCount: failedStaff.length,
         createdStaff,
-        failedStaff
+        failedStaff,
+        emailResults: emailResults ? {
+          totalEmailsSent: emailResults.totalSent,
+          totalEmailsFailed: emailResults.totalFailed,
+          emailSuccessful: emailResults.successful,
+          emailFailed: emailResults.failed
+        } : null
       }
     });
 
