@@ -50,6 +50,8 @@ import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
 import StaffManagement from "pages/StaffManagement";
 import StudentManagement from "pages/StudentManagement";
+import CourseCategoryManagement from "pages/CourseCategoryManagement";
+import DepartmentManagement from "pages/DepartmentManagement";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 
@@ -201,6 +203,30 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['placement_staff']}>
         <StudentManagement />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Course Categories",
+    key: "course-category-management",
+    icon: <Icon fontSize="small">category</Icon>,
+    route: "/course-category-management",
+    component: (
+      <ProtectedRoute requiredRoles={['admin']}>
+        <CourseCategoryManagement />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Department Management",
+    key: "department-management",
+    icon: <Icon fontSize="small">business</Icon>,
+    route: "/department-management",
+    component: (
+      <ProtectedRoute requiredRoles={['admin']}>
+        <DepartmentManagement />
       </ProtectedRoute>
     ),
   },
