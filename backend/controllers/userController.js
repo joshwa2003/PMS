@@ -732,10 +732,10 @@ exports.createBulkStaff = async (req, res) => {
       });
     }
 
-    if (staffData.length > 100) {
+    if (staffData.length > 1000) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot create more than 100 staff members at once'
+        message: 'Cannot create more than 1000 staff members at once'
       });
     }
 
@@ -1102,6 +1102,103 @@ exports.deleteStaff = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while deleting staff member',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Delete multiple staff members (Admin only)
+// @route   DELETE /api/v1/users/staff/bulk
+// @access  Private (Admin only)
+exports.deleteBulkStaff = async (req, res) => {
+  try {
+    const { staffIds } = req.body;
+
+    if (!staffIds || !Array.isArray(staffIds) || staffIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Staff IDs array is required and cannot be empty'
+      });
+    }
+
+    // Removed the 100 staff member limit for bulk deletion
+
+    const deletedStaff = [];
+    const failedStaff = [];
+    const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
+
+    // Process each staff member
+    for (let i = 0; i < staffIds.length; i++) {
+      const staffId = staffIds[i];
+
+      try {
+        const staff = await User.findById(staffId);
+
+        if (!staff) {
+          failedStaff.push({
+            staffId,
+            error: 'Staff member not found'
+          });
+          continue;
+        }
+
+        // Verify it's a staff member
+        if (!staffRoles.includes(staff.role)) {
+          failedStaff.push({
+            staffId,
+            error: 'User is not a staff member'
+          });
+          continue;
+        }
+
+        // Prevent admin from deleting themselves
+        if (staff._id.toString() === req.user._id.toString()) {
+          failedStaff.push({
+            staffId,
+            error: 'You cannot delete your own account'
+          });
+          continue;
+        }
+
+        await User.findByIdAndDelete(staffId);
+
+        deletedStaff.push({
+          id: staff._id,
+          firstName: staff.firstName,
+          lastName: staff.lastName,
+          fullName: staff.fullName,
+          email: staff.email,
+          role: staff.role,
+          department: staff.department
+        });
+
+      } catch (error) {
+        console.error(`Error deleting staff member ${staffId}:`, error);
+        failedStaff.push({
+          staffId,
+          error: error.message || 'Failed to delete staff member'
+        });
+      }
+    }
+
+    // Return results
+    res.status(200).json({
+      success: true,
+      message: `Bulk staff deletion completed. ${deletedStaff.length} deleted, ${failedStaff.length} failed.`,
+      results: {
+        totalProcessed: staffIds.length,
+        successCount: deletedStaff.length,
+        failureCount: failedStaff.length,
+        deletedStaff,
+        failedStaff
+      }
+    });
+
+  } catch (error) {
+    console.error('Bulk delete staff error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting bulk staff members',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

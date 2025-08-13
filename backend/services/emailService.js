@@ -708,6 +708,8 @@ PMS Administration Team
   // Send welcome email to a single student
   async sendStudentWelcomeEmail(studentData, password) {
     try {
+      console.log(`📧 Attempting to send welcome email to student: ${studentData.email}`);
+      
       if (!this.transporter) {
         throw new Error('Email transporter not initialized');
       }
@@ -721,8 +723,18 @@ PMS Administration Team
           address: process.env.SMTP_EMAIL || 'noreply@saec.edu.in'
         },
         to: email,
-        subject: `🎓 Welcome to PMS - Your Student Account is Ready!`,
+        subject: `Welcome to PMS - Your Student Account is Ready!`, // Removed emoji to avoid spam filters
         html: htmlContent,
+        // Enhanced deliverability headers
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'high',
+          'X-Mailer': 'PMS-System',
+          'Reply-To': process.env.SMTP_EMAIL || 'noreply@saec.edu.in'
+        },
+        // Add message tracking
+        messageId: `<pms-student-${studentData.studentId}-${Date.now()}@saec.edu.in>`,
         // Plain text fallback
         text: `
 Welcome to PMS - Placement Management System!
@@ -756,22 +768,48 @@ Placement Office Team
         `
       };
 
+      console.log(`📤 Sending email with options:`, {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
+
       const result = await this.transporter.sendMail(mailOptions);
-      console.log(`Welcome email sent successfully to student ${email}:`, result.messageId);
+      console.log(`✅ Welcome email sent successfully to student ${email}:`, result.messageId);
+      console.log(`📊 Email result details:`, {
+        accepted: result.accepted,
+        rejected: result.rejected,
+        pending: result.pending,
+        response: result.response
+      });
       
       return {
         success: true,
         messageId: result.messageId,
-        email: email
+        email: email,
+        result: result
       };
 
     } catch (error) {
-      console.error(`Error sending welcome email to student ${studentData.email}:`, error);
+      console.error(`❌ Error sending welcome email to student ${studentData.email}:`, error);
+      console.error('📋 Error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode,
+        stack: error.stack
+      });
       
       return {
         success: false,
         error: error.message,
-        email: studentData.email
+        email: studentData.email,
+        errorDetails: {
+          code: error.code,
+          command: error.command,
+          response: error.response,
+          responseCode: error.responseCode
+        }
       };
     }
   }
@@ -834,6 +872,12 @@ Placement Office Team
   // Send a test email
   async sendTestEmail(toEmail) {
     try {
+      console.log(`🧪 Sending test email to: ${toEmail}`);
+      
+      if (!this.transporter) {
+        throw new Error('Email transporter not initialized');
+      }
+
       const mailOptions = {
         from: {
           name: 'PMS - Placement Management System',
@@ -846,8 +890,14 @@ Placement Office Team
           <h2 style="color: #2196F3;">PMS Email Test</h2>
           <p>This is a test email from the Placement Management System.</p>
           <p>If you received this email, the email configuration is working correctly.</p>
+          <p><strong>Test Details:</strong></p>
+          <ul>
+            <li>From: ${process.env.SMTP_EMAIL}</li>
+            <li>To: ${toEmail}</li>
+            <li>Sent at: ${new Date().toLocaleString()}</li>
+          </ul>
           <p style="color: #666; font-size: 14px; margin-top: 30px;">
-            Sent at: ${new Date().toLocaleString()}
+            This is an automated test email. Please do not reply.
           </p>
         </div>
         `,
@@ -857,23 +907,114 @@ PMS Email Configuration Test
 This is a test email from the Placement Management System.
 If you received this email, the email configuration is working correctly.
 
-Sent at: ${new Date().toLocaleString()}
+Test Details:
+- From: ${process.env.SMTP_EMAIL}
+- To: ${toEmail}
+- Sent at: ${new Date().toLocaleString()}
+
+This is an automated test email. Please do not reply.
         `
       };
 
+      console.log(`📤 Sending test email with options:`, {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
+
       const result = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Test email sent successfully:`, result.messageId);
+      console.log(`📊 Test email result details:`, {
+        accepted: result.accepted,
+        rejected: result.rejected,
+        pending: result.pending,
+        response: result.response
+      });
+
       return {
         success: true,
         messageId: result.messageId,
-        message: 'Test email sent successfully'
+        message: 'Test email sent successfully',
+        result: result
       };
 
     } catch (error) {
+      console.error(`❌ Error sending test email:`, error);
+      console.error('📋 Test email error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode,
+        stack: error.stack
+      });
+
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        errorDetails: {
+          code: error.code,
+          command: error.command,
+          response: error.response,
+          responseCode: error.responseCode
+        }
       };
     }
+  }
+
+  // Detailed SMTP connection test
+  async testSMTPConnection() {
+    try {
+      console.log('🔍 Testing SMTP connection...');
+      
+      if (!this.transporter) {
+        throw new Error('Email transporter not initialized');
+      }
+
+      // Test the connection
+      const isConnected = await this.transporter.verify();
+      console.log('✅ SMTP connection test successful');
+      
+      return {
+        success: true,
+        message: 'SMTP connection is working correctly',
+        connectionDetails: {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          user: process.env.SMTP_EMAIL
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ SMTP connection test failed:', error);
+      console.error('📋 Connection error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode
+      });
+
+      return {
+        success: false,
+        error: error.message,
+        errorDetails: {
+          code: error.code,
+          command: error.command,
+          response: error.response,
+          responseCode: error.responseCode
+        }
+      };
+    }
+  }
+
+  // Get email service status
+  getEmailServiceStatus() {
+    return {
+      transporterInitialized: !!this.transporter,
+      smtpEmail: process.env.SMTP_EMAIL || 'Not configured',
+      smtpPasswordConfigured: !!(process.env.SMTP_PASSWORD && process.env.SMTP_PASSWORD.length > 0),
+      smtpPasswordLength: process.env.SMTP_PASSWORD ? process.env.SMTP_PASSWORD.length : 0
+    };
   }
 }
 

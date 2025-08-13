@@ -22,7 +22,11 @@ import {
   Chip,
   Tooltip,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Checkbox,
+  Toolbar,
+  Fade,
+  Collapse
 } from '@mui/material';
 import { 
   Close as CloseIcon, 
@@ -35,7 +39,9 @@ import {
   FilterList as FilterListIcon,
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
-  Pages as PagesIcon
+  Pages as PagesIcon,
+  DeleteSweep as DeleteSweepIcon,
+  SelectAll as SelectAllIcon
 } from '@mui/icons-material';
 
 // S.A. Engineering College React components
@@ -64,8 +70,12 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     displayMode,
     itemsPerPage,
     pagination,
+    selectedStaff: contextSelectedStaff,
+    selectAll,
+    bulkOperationLoading,
     fetchStaff,
     deleteStaff,
+    deleteBulkStaff,
     getRoleDisplayName,
     getDepartmentDisplayName,
     formatLastLogin,
@@ -75,7 +85,11 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     toggleDisplayMode,
     changeItemsPerPage,
     handlePageChange,
-    handleFilterChange: contextHandleFilterChange
+    handleFilterChange: contextHandleFilterChange,
+    toggleStaffSelection,
+    toggleSelectAll,
+    clearSelection,
+    getSelectedStaffData
   } = useStaffManagement();
 
   const { user } = useAuth();
@@ -87,6 +101,9 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState(null);
+
+  // Bulk delete confirmation dialog state
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -214,6 +231,40 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     }
   };
 
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (contextSelectedStaff.length === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  // Confirm bulk delete
+  const handleBulkDeleteConfirm = async () => {
+    if (contextSelectedStaff.length === 0) return;
+
+    try {
+      const selectedStaffData = getSelectedStaffData();
+      await deleteBulkStaff(contextSelectedStaff);
+      setBulkDeleteDialogOpen(false);
+      
+      if (onStaffDeleted) {
+        const staffNames = selectedStaffData.map(s => s.fullName).join(', ');
+        onStaffDeleted(`${contextSelectedStaff.length} staff members (${staffNames})`);
+      }
+    } catch (error) {
+      // Error handled by context
+    }
+  };
+
+  // Cancel bulk delete
+  const handleBulkDeleteCancel = () => {
+    setBulkDeleteDialogOpen(false);
+  };
+
+  // Handle select all checkbox in header
+  const handleSelectAllChange = () => {
+    toggleSelectAll();
+  };
+
   // Confirm delete
   const handleDeleteConfirm = async () => {
     if (staffToDelete) {
@@ -263,7 +314,12 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     handleViewDetails,
     handleEditStaff,
     canDelete ? handleDeleteStaff : null,
-    handleToggleStatus
+    handleToggleStatus,
+    // Pass selection props for checkboxes
+    canDelete ? {
+      selectedStaff: contextSelectedStaff,
+      toggleStaffSelection: toggleStaffSelection
+    } : null
   );
 
   if (loading) {
@@ -497,6 +553,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                 : `Showing ${staff.length} staff members`
               }
               {getActiveFiltersCount() > 0 && ' (filtered)'}
+              {contextSelectedStaff.length > 0 && ` • ${contextSelectedStaff.length} selected`}
             </Typography>
             
             {/* Display Mode Controls */}
@@ -523,6 +580,56 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
           </Box>
         </MDBox>
 
+        {/* Bulk Actions Toolbar - Show when items are selected */}
+        <Collapse in={contextSelectedStaff.length > 0}>
+          <Box mx={2} mt={2}>
+            <Toolbar
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                borderRadius: '12px',
+                minHeight: '64px !important',
+                px: 2
+              }}
+            >
+              <Box display="flex" alignItems="center" flex={1}>
+                <Checkbox
+                  checked={selectAll}
+                  indeterminate={contextSelectedStaff.length > 0 && contextSelectedStaff.length < staff.length}
+                  onChange={handleSelectAllChange}
+                  sx={{ 
+                    color: 'white',
+                    '&.Mui-checked': { color: 'white' },
+                    '&.MuiCheckbox-indeterminate': { color: 'white' }
+                  }}
+                />
+                <Typography variant="h6" sx={{ ml: 1 }}>
+                  {contextSelectedStaff.length} staff member{contextSelectedStaff.length !== 1 ? 's' : ''} selected
+                </Typography>
+              </Box>
+              
+              <Box display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Clear Selection">
+                  <IconButton onClick={clearSelection} sx={{ color: 'white' }}>
+                    <ClearIcon />
+                  </IconButton>
+                </Tooltip>
+                {canDelete && (
+                  <Tooltip title="Delete Selected">
+                    <IconButton 
+                      onClick={handleBulkDelete} 
+                      disabled={bulkOperationLoading}
+                      sx={{ color: 'white' }}
+                    >
+                      <DeleteSweepIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </Toolbar>
+          </Box>
+        </Collapse>
+
         {/* Blue Header Bar */}
         <MDBox
           mx={2}
@@ -535,9 +642,24 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
           coloredShadow="info"
         >
           <MDBox display="flex" justifyContent="space-between" alignItems="center">
-            <MDTypography variant="h6" color="white">
-              Staff Members Table
-            </MDTypography>
+            <Box display="flex" alignItems="center">
+              {canDelete && staff.length > 0 && (
+                <Checkbox
+                  checked={selectAll}
+                  indeterminate={contextSelectedStaff.length > 0 && contextSelectedStaff.length < staff.length}
+                  onChange={handleSelectAllChange}
+                  sx={{ 
+                    color: 'white',
+                    '&.Mui-checked': { color: 'white' },
+                    '&.MuiCheckbox-indeterminate': { color: 'white' },
+                    mr: 2
+                  }}
+                />
+              )}
+              <MDTypography variant="h6" color="white">
+                Staff Members Table
+              </MDTypography>
+            </Box>
             <Box display="flex" alignItems="center" gap={1}>
               <Tooltip title="Refresh">
                 <IconButton onClick={handleRefresh} disabled={loading} sx={{ color: 'white' }}>
@@ -1040,6 +1162,75 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             disabled={loading}
           >
             {loading ? 'Deleting...' : 'Delete Staff'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={bulkDeleteDialogOpen}
+        onClose={handleBulkDeleteCancel}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="medium">
+            Delete Multiple Staff Members
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          <Typography variant="body1" mb={2}>
+            Are you sure you want to delete <strong>{contextSelectedStaff.length} staff member{contextSelectedStaff.length !== 1 ? 's' : ''}</strong>?
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary" mb={3}>
+            This action cannot be undone. All selected staff members will lose access to the system immediately.
+          </Typography>
+
+          <Box 
+            sx={{ 
+              backgroundColor: 'error.light', 
+              color: 'error.contrastText',
+              p: 2, 
+              borderRadius: 1,
+              mb: 2,
+              maxHeight: '300px',
+              overflow: 'auto'
+            }}
+          >
+            <Typography variant="body2" fontWeight="medium" mb={2}>
+              Staff Members to be deleted:
+            </Typography>
+            {getSelectedStaffData().map((staff, index) => (
+              <Box key={staff.id} mb={1}>
+                <Typography variant="body2">
+                  {index + 1}. <strong>{staff.fullName}</strong> ({staff.email})
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ ml: 2, opacity: 0.8 }}>
+                  {getRoleDisplayName(staff.role)} • {getDepartmentDisplayName(staff.department)}
+                  {staff.employeeId && ` • ID: ${staff.employeeId}`}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        
+        <DialogActions>
+          <Button 
+            onClick={handleBulkDeleteCancel}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleBulkDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={bulkOperationLoading}
+            startIcon={<DeleteSweepIcon />}
+          >
+            {bulkOperationLoading ? 'Deleting...' : `Delete ${contextSelectedStaff.length} Staff Members`}
           </Button>
         </DialogActions>
       </Dialog>

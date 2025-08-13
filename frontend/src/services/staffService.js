@@ -92,6 +92,23 @@ class StaffService {
     }
   }
 
+  // Delete multiple staff members (Admin only)
+  async deleteBulkStaff(staffIds) {
+    try {
+      const response = await api.delete('/users/staff/bulk', {
+        data: { staffIds }
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to delete staff members');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get staff by role
   async getStaffByRole(role, params = {}) {
     try {

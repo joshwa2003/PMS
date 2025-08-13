@@ -24,7 +24,11 @@ const initialState = {
   sortBy: 'createdAt',
   sortOrder: 'desc',
   displayMode: 'all', // 'all' or 'paginated'
-  itemsPerPage: 10 // Used when displayMode is 'paginated'
+  itemsPerPage: 10, // Used when displayMode is 'paginated'
+  // Selection state for bulk operations
+  selectedStaff: [], // Array of selected staff IDs
+  selectAll: false, // Whether all staff are selected
+  bulkOperationLoading: false // Loading state for bulk operations
 };
 
 // Action types
@@ -37,11 +41,16 @@ const actionTypes = {
   ADD_STAFF: 'ADD_STAFF',
   UPDATE_STAFF: 'UPDATE_STAFF',
   DELETE_STAFF: 'DELETE_STAFF',
+  DELETE_BULK_STAFF: 'DELETE_BULK_STAFF',
   SET_PAGINATION: 'SET_PAGINATION',
   SET_FILTERS: 'SET_FILTERS',
   SET_SORT: 'SET_SORT',
   SET_DISPLAY_MODE: 'SET_DISPLAY_MODE',
   SET_ITEMS_PER_PAGE: 'SET_ITEMS_PER_PAGE',
+  SET_SELECTED_STAFF: 'SET_SELECTED_STAFF',
+  SET_SELECT_ALL: 'SET_SELECT_ALL',
+  CLEAR_SELECTION: 'CLEAR_SELECTION',
+  SET_BULK_OPERATION_LOADING: 'SET_BULK_OPERATION_LOADING',
   RESET_STATE: 'RESET_STATE'
 };
 
@@ -105,6 +114,18 @@ const staffManagementReducer = (state, action) => {
         ...state,
         staff: state.staff.filter(member => member.id !== action.payload),
         currentStaff: state.currentStaff?.id === action.payload ? null : state.currentStaff,
+        selectedStaff: state.selectedStaff.filter(id => id !== action.payload),
+        loading: false,
+        error: null
+      };
+
+    case actionTypes.DELETE_BULK_STAFF:
+      return {
+        ...state,
+        staff: state.staff.filter(member => !action.payload.includes(member.id)),
+        selectedStaff: [],
+        selectAll: false,
+        bulkOperationLoading: false,
         loading: false,
         error: null
       };
@@ -138,6 +159,33 @@ const staffManagementReducer = (state, action) => {
       return {
         ...state,
         itemsPerPage: action.payload
+      };
+
+    case actionTypes.SET_SELECTED_STAFF:
+      return {
+        ...state,
+        selectedStaff: action.payload
+      };
+
+    case actionTypes.SET_SELECT_ALL:
+      return {
+        ...state,
+        selectAll: action.payload,
+        // Only modify selectedStaff when explicitly selecting all, not when deselecting all
+        selectedStaff: action.payload ? state.staff.map(member => member.id) : state.selectedStaff
+      };
+
+    case actionTypes.CLEAR_SELECTION:
+      return {
+        ...state,
+        selectedStaff: [],
+        selectAll: false
+      };
+
+    case actionTypes.SET_BULK_OPERATION_LOADING:
+      return {
+        ...state,
+        bulkOperationLoading: action.payload
       };
 
     case actionTypes.RESET_STATE:
@@ -315,6 +363,23 @@ export const StaffManagementProvider = ({ children }) => {
     }
   }, []);
 
+  const deleteBulkStaff = useCallback(async (staffIds) => {
+    try {
+      dispatch({ type: actionTypes.SET_BULK_OPERATION_LOADING, payload: true });
+      clearError();
+
+      const response = await staffService.deleteBulkStaff(staffIds);
+      
+      dispatch({ type: actionTypes.DELETE_BULK_STAFF, payload: staffIds });
+      
+      return response;
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_BULK_OPERATION_LOADING, payload: false });
+      setError(error.message || 'Failed to delete staff members');
+      throw error;
+    }
+  }, []);
+
   const updateStaffStatus = useCallback(async (staffId, isActive) => {
     try {
       setLoading(true);
@@ -424,6 +489,63 @@ export const StaffManagementProvider = ({ children }) => {
     }, 0);
   }, [state.pagination, fetchStaff]);
 
+  // Selection management functions
+  const setSelectedStaff = useCallback((selectedIds) => {
+    dispatch({ type: actionTypes.SET_SELECTED_STAFF, payload: selectedIds });
+  }, []);
+
+  const setSelectAll = useCallback((selectAll) => {
+    dispatch({ type: actionTypes.SET_SELECT_ALL, payload: selectAll });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    dispatch({ type: actionTypes.CLEAR_SELECTION });
+  }, []);
+
+  const toggleStaffSelection = useCallback((staffId) => {
+    const isSelected = state.selectedStaff.includes(staffId);
+    let newSelectedStaff;
+    
+    if (isSelected) {
+      newSelectedStaff = state.selectedStaff.filter(id => id !== staffId);
+    } else {
+      newSelectedStaff = [...state.selectedStaff, staffId];
+    }
+    
+    setSelectedStaff(newSelectedStaff);
+    
+    // Update selectAll state based on whether all staff are selected
+    const allSelected = newSelectedStaff.length === state.staff.length && state.staff.length > 0;
+    
+    // Update selectAll state without affecting the selectedStaff array
+    if (allSelected && !state.selectAll) {
+      // If all items are now selected and selectAll was false, set it to true
+      dispatch({ type: actionTypes.SET_SELECT_ALL, payload: true });
+    } else if (!allSelected && state.selectAll) {
+      // If not all items are selected and selectAll was true, set it to false
+      // But don't clear the selectedStaff array - that's handled above
+      dispatch({ 
+        type: actionTypes.SET_SELECT_ALL, 
+        payload: false 
+      });
+    }
+  }, [state.selectedStaff, state.staff.length, state.selectAll]);
+
+  const toggleSelectAll = useCallback(() => {
+    const newSelectAll = !state.selectAll;
+    if (newSelectAll) {
+      // Select all items
+      setSelectAll(true);
+    } else {
+      // Deselect all items
+      dispatch({ type: actionTypes.CLEAR_SELECTION });
+    }
+  }, [state.selectAll]);
+
+  const getSelectedStaffData = useCallback(() => {
+    return state.staff.filter(member => state.selectedStaff.includes(member.id));
+  }, [state.staff, state.selectedStaff]);
+
   // Context value
   const contextValue = {
     // State
@@ -443,6 +565,7 @@ export const StaffManagementProvider = ({ children }) => {
     updateStaff,
     updateStaffStatus,
     deleteStaff,
+    deleteBulkStaff,
     getStaffByRole,
     getStaffByDepartment,
     
@@ -456,6 +579,14 @@ export const StaffManagementProvider = ({ children }) => {
     changeItemsPerPage,
     setDisplayMode,
     setItemsPerPage,
+    
+    // Selection functions
+    setSelectedStaff,
+    setSelectAll,
+    clearSelection,
+    toggleStaffSelection,
+    toggleSelectAll,
+    getSelectedStaffData,
     
     // Service utilities
     formatStaffData: staffService.formatStaffData,

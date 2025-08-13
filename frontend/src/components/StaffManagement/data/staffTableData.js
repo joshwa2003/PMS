@@ -21,12 +21,13 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import { useState } from "react";
 
 // Default avatar for staff members without profile pictures
 const defaultAvatar = "https://ui-avatars.com/api/?name=";
 
-export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus) {
+export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus, selectionProps = null) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
       <MDAvatar 
@@ -209,44 +210,85 @@ export default function staffTableData(staff, onViewDetails, onEditStaff, onDele
     });
   };
 
-  return {
-    columns: [
-      { Header: "staff member", accessor: "staffMember", width: "45%", align: "left" },
-      { Header: "role", accessor: "role", align: "left" },
-      { Header: "contact", accessor: "contact", align: "left" },
-      { Header: "status", accessor: "status", align: "center" },
-      { Header: "joined", accessor: "joined", align: "center" },
-      { Header: "action", accessor: "action", align: "center" },
-    ],
+  // Selection checkbox component
+  const SelectionCheckbox = ({ staffMember }) => {
+    if (!selectionProps) return null;
+    
+    const { selectedStaff, toggleStaffSelection } = selectionProps;
+    const isSelected = selectedStaff.includes(staffMember.id);
+    
+    return (
+      <Checkbox
+        checked={isSelected}
+        onChange={() => toggleStaffSelection(staffMember.id)}
+        size="small"
+        sx={{ 
+          color: 'text.secondary',
+          '&.Mui-checked': {
+            color: 'primary.main'
+          }
+        }}
+      />
+    );
+  };
 
-    rows: staff.map((staffMember) => ({
-      staffMember: (
-        <StaffMember
-          image={staffMember.profilePicture}
-          name={staffMember.fullName}
-          email={staffMember.email}
-          employeeId={staffMember.employeeId}
-        />
-      ),
-      role: (
-        <Role
-          role={staffMember.role}
-          department={staffMember.department}
-        />
-      ),
-      contact: (
-        <Contact
-          email={staffMember.email}
-          phone={staffMember.phone}
-        />
-      ),
-      status: getStatusBadge(staffMember),
-      joined: (
-        <MDTypography component="span" variant="caption" color="text" fontWeight="medium">
-          {formatJoinDate(staffMember.createdAt)}
-        </MDTypography>
-      ),
-      action: <ActionMenu staffMember={staffMember} />,
-    })),
+  // Build columns array based on whether selection is enabled
+  const columns = [];
+  
+  // Add selection column if selection props are provided
+  if (selectionProps) {
+    columns.push({ Header: "", accessor: "selection", width: "5%", align: "center" });
+  }
+  
+  // Add standard columns
+  columns.push(
+    { Header: "staff member", accessor: "staffMember", width: selectionProps ? "40%" : "45%", align: "left" },
+    { Header: "role", accessor: "role", align: "left" },
+    { Header: "contact", accessor: "contact", align: "left" },
+    { Header: "status", accessor: "status", align: "center" },
+    { Header: "joined", accessor: "joined", align: "center" },
+    { Header: "action", accessor: "action", align: "center" }
+  );
+
+  return {
+    columns,
+    rows: staff.map((staffMember) => {
+      const row = {
+        staffMember: (
+          <StaffMember
+            image={staffMember.profilePicture}
+            name={staffMember.fullName}
+            email={staffMember.email}
+            employeeId={staffMember.employeeId}
+          />
+        ),
+        role: (
+          <Role
+            role={staffMember.role}
+            department={staffMember.department}
+          />
+        ),
+        contact: (
+          <Contact
+            email={staffMember.email}
+            phone={staffMember.phone}
+          />
+        ),
+        status: getStatusBadge(staffMember),
+        joined: (
+          <MDTypography component="span" variant="caption" color="text" fontWeight="medium">
+            {formatJoinDate(staffMember.createdAt)}
+          </MDTypography>
+        ),
+        action: <ActionMenu staffMember={staffMember} />,
+      };
+
+      // Add selection checkbox if selection props are provided
+      if (selectionProps) {
+        row.selection = <SelectionCheckbox staffMember={staffMember} />;
+      }
+
+      return row;
+    }),
   };
 }

@@ -207,9 +207,11 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
     setStep(3);
     setUploadProgress(0);
 
+    let progressInterval;
+
     try {
       // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
             clearInterval(progressInterval);
@@ -219,11 +221,20 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
         });
       }, 200);
 
-      const response = await createBulkStaff(uploadedData);
+      // Set a timeout for the upload operation
+      const uploadPromise = createBulkStaff(uploadedData);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Upload timeout - operation took too long')), 60000); // 60 second timeout
+      });
+
+      const response = await Promise.race([uploadPromise, timeoutPromise]);
       
-      clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
       setUploadProgress(100);
 
+      // Show success message
       setTimeout(() => {
         if (onSuccess) {
           onSuccess(response);
@@ -233,12 +244,21 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
 
     } catch (error) {
       console.error('Bulk upload error:', error);
+      
+      // Clear progress interval if it exists
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      
       setStep(2); // Go back to preview step
+      setUploadProgress(0); // Reset progress
       
       // More specific error handling
       let errorMessage = 'Error uploading staff data. Please try again.';
       
-      if (error.response) {
+      if (error.message === 'Upload timeout - operation took too long') {
+        errorMessage = 'Upload is taking longer than expected. The staff members may have been created successfully. Please check the staff list and try again if needed.';
+      } else if (error.response) {
         // Server responded with error status
         if (error.response.status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
@@ -574,7 +594,7 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
         {step === 3 && (
           <Box textAlign="center" py={4}>
             <Typography variant="h6" mb={3}>
-              Uploading Staff Data...
+              {uploadProgress === 100 ? 'Upload Complete!' : 'Uploading Staff Data...'}
             </Typography>
             <LinearProgress 
               variant="determinate" 
@@ -584,6 +604,11 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
             <Typography variant="body2" color="text.secondary">
               {uploadProgress}% Complete
             </Typography>
+            {uploadProgress < 100 && (
+              <Typography variant="caption" color="text.secondary" display="block" mt={2}>
+                This may take a few moments for large uploads...
+              </Typography>
+            )}
           </Box>
         )}
       </DialogContent>
@@ -631,6 +656,23 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
               Add {validCount} Staff Members
             </MDButton>
           </>
+        )}
+        
+        {step === 3 && (
+          <Button 
+            onClick={handleClose} 
+            variant="outlined"
+            sx={{ 
+              color: '#1976d2', 
+              borderColor: '#1976d2',
+              '&:hover': {
+                backgroundColor: '#f3f7ff',
+                borderColor: '#1976d2'
+              }
+            }}
+          >
+            {uploadProgress === 100 ? 'Close' : 'Cancel'}
+          </Button>
         )}
       </DialogActions>
     </Dialog>

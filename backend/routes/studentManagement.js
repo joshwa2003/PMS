@@ -6,7 +6,10 @@ const {
   getStudentsForPlacementStaff,
   getStudentStatsForPlacementStaff,
   updateStudentStatus,
-  deleteStudent
+  deleteStudent,
+  testEmailConfiguration,
+  sendTestEmail,
+  resendWelcomeEmail
 } = require('../controllers/studentManagementController');
 
 // Middleware
@@ -52,5 +55,20 @@ router.put('/students/:id/status', auth, requirePlacementStaff, updateStudentSta
 // @route   DELETE /api/student-management/students/:id
 // @access  Private (Placement Staff only)
 router.delete('/students/:id', auth, requirePlacementStaff, deleteStudent);
+
+// @desc    Test email configuration
+// @route   GET /api/student-management/test-email-config
+// @access  Private (Placement Staff only)
+router.get('/test-email-config', auth, requirePlacementStaff, testEmailConfiguration);
+
+// @desc    Send test email
+// @route   POST /api/student-management/send-test-email
+// @access  Private (Placement Staff only)
+router.post('/send-test-email', auth, requirePlacementStaff, sendTestEmail);
+
+// @desc    Resend welcome email to student
+// @route   POST /api/student-management/students/:id/resend-email
+// @access  Private (Placement Staff only)
+router.post('/students/:id/resend-email', auth, requirePlacementStaff, resendWelcomeEmail);
 
 module.exports = router;

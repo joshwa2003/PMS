@@ -115,8 +115,12 @@ const createStudent = async (req, res) => {
 
     // Send welcome email
     try {
-      await emailService.sendStudentWelcomeEmail(studentData, tempPassword);
-      console.log(`Welcome email sent to student: ${email}`);
+      const emailResult = await emailService.sendStudentWelcomeEmail(studentData, tempPassword);
+      console.log(`Welcome email result for student ${email}:`, emailResult);
+      
+      if (!emailResult.success) {
+        console.error(`Failed to send welcome email to ${email}:`, emailResult.error);
+      }
     } catch (emailError) {
       console.error('Error sending welcome email:', emailError);
       // Don't fail the student creation if email fails
@@ -723,11 +727,161 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+// @desc    Test email configuration
+// @route   GET /api/student-management/test-email-config
+// @access  Private (Placement Staff only)
+const testEmailConfiguration = async (req, res) => {
+  try {
+    console.log('🧪 Testing email configuration...');
+    
+    // Test SMTP connection
+    const connectionTest = await emailService.testSMTPConnection();
+    
+    // Get email service status
+    const serviceStatus = emailService.getEmailServiceStatus();
+    
+    res.json({
+      success: true,
+      message: 'Email configuration test completed',
+      connectionTest,
+      serviceStatus,
+      recommendations: [
+        'Check if Gmail 2FA is enabled',
+        'Verify app password is correctly set',
+        'Ensure SMTP_EMAIL and SMTP_PASSWORD are in .env file',
+        'Check spam/junk folder for test emails'
+      ]
+    });
+
+  } catch (error) {
+    console.error('Error testing email configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error testing email configuration',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// @desc    Send test email
+// @route   POST /api/student-management/send-test-email
+// @access  Private (Placement Staff only)
+const sendTestEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is required'
+      });
+    }
+
+    console.log(`🧪 Sending test email to: ${email}`);
+    
+    const result = await emailService.sendTestEmail(email);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test email sent successfully',
+        result
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to send test email',
+        error: result.error,
+        errorDetails: result.errorDetails
+      });
+    }
+
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error sending test email',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// @desc    Resend welcome email to student
+// @route   POST /api/student-management/students/:id/resend-email
+// @access  Private (Placement Staff only)
+const resendWelcomeEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the student
+    const student = await User.findOne({
+      _id: id,
+      role: 'student',
+      createdBy: req.user.id // Ensure placement staff can only resend emails for their own students
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found or you do not have permission to resend email for this student'
+      });
+    }
+
+    // Generate a new temporary password
+    const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
+    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
+    // Update the student's password
+    student.password = hashedPassword;
+    await student.save();
+
+    // Prepare student data for email
+    const studentData = {
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      studentId: student.studentId
+    };
+
+    console.log(`📧 Resending welcome email to student: ${student.email}`);
+    
+    // Send welcome email
+    const emailResult = await emailService.sendStudentWelcomeEmail(studentData, tempPassword);
+    
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: 'Welcome email resent successfully',
+        emailResult,
+        newPassword: tempPassword
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to resend welcome email',
+        error: emailResult.error,
+        errorDetails: emailResult.errorDetails
+      });
+    }
+
+  } catch (error) {
+    console.error('Error resending welcome email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error resending welcome email',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   createStudent,
   createBulkStudents,
   getStudentsForPlacementStaff,
   getStudentStatsForPlacementStaff,
   updateStudentStatus,
-  deleteStudent
+  deleteStudent,
+  testEmailConfiguration,
+  sendTestEmail,
+  resendWelcomeEmail
 };

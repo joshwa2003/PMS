@@ -13,7 +13,8 @@ const {
   createBulkStaff,
   getAllStaff,
   updateStaff,
-  deleteStaff
+  deleteStaff,
+  deleteBulkStaff
 } = require('../controllers/userController');
 
 const { 
@@ -74,6 +75,11 @@ router.put('/staff/:id',
   validateObjectId('id'),
   validateStaffUpdate,
   updateStaff
+);
+
+router.delete('/staff/bulk', 
+  authorize('admin'), 
+  deleteBulkStaff
 );
 
 router.delete('/staff/:id', 
