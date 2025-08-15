@@ -54,6 +54,7 @@ import CourseCategoryManagement from "pages/CourseCategoryManagement";
 import DepartmentManagement from "pages/DepartmentManagement";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
 
 // Protected Route Component
 import ProtectedRoute from "components/ProtectedRoute";
@@ -257,6 +258,14 @@ const routes = [
     icon: <Icon fontSize="small">assignment</Icon>,
     route: "/authentication/sign-up",
     component: <SignUp />,
+  },
+  // First login routes (hidden from sidebar)
+  {
+    type: "route",
+    name: "First Login Password Reset",
+    key: "first-login-password-reset",
+    route: "/authentication/first-login-password-reset",
+    component: <FirstLoginPasswordReset />,
   },
 ];
 

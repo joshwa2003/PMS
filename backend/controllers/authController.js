@@ -2,6 +2,9 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
 
+// Constants
+const STAFF_ROLES = ['placement_staff', 'department_hod', 'other_staff'];
+
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -164,7 +167,37 @@ exports.login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    sendTokenResponse(user, 200, res);
+    // Check if staff user needs first login setup
+    const needsFirstLogin = STAFF_ROLES.includes(user.role) && user.isFirstLogin;
+    const needsDepartmentSelection = STAFF_ROLES.includes(user.role) && (!user.department || user.department === null);
+
+    // Send token response with first login status
+    const token = generateToken(user._id);
+    
+    // Remove password from output
+    user.password = undefined;
+    
+    res.status(200).json({
+      success: true,
+      token,
+      needsFirstLogin,
+      needsDepartmentSelection,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        isFirstLogin: user.isFirstLogin,
+        permissions: User.getRolePermissions(user.role),
+        profilePicture: user.profilePicture,
+        lastLogin: user.lastLogin
+      }
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -368,6 +401,182 @@ exports.logout = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during logout',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Check if user needs first login setup
+// @route   GET /api/v1/auth/first-login-check
+// @access  Private
+exports.checkFirstLogin = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is staff and needs first login setup
+    const needsFirstLogin = STAFF_ROLES.includes(user.role) && user.isFirstLogin;
+    const needsDepartmentSelection = STAFF_ROLES.includes(user.role) && (!user.department || user.department === null);
+
+    res.status(200).json({
+      success: true,
+      needsFirstLogin,
+      needsDepartmentSelection,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        isFirstLogin: user.isFirstLogin
+      }
+    });
+  } catch (error) {
+    console.error('Check first login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during first login check',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Set initial password for first login
+// @route   PUT /api/v1/auth/set-initial-password
+// @access  Private
+exports.setInitialPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { newPassword, confirmPassword } = req.body;
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match'
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is staff and needs first login setup
+    if (!STAFF_ROLES.includes(user.role) || !user.isFirstLogin) {
+      return res.status(400).json({
+        success: false,
+        message: 'First login setup not required for this user'
+      });
+    }
+
+    // Update password and mark first login as complete
+    user.password = newPassword;
+    user.isFirstLogin = false;
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    // For staff roles, always require department selection after password reset
+    const needsDepartmentSelection = STAFF_ROLES.includes(user.role) && (!user.department || user.department === null);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password set successfully',
+      needsDepartmentSelection: needsDepartmentSelection
+    });
+  } catch (error) {
+    console.error('Set initial password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password setup',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Select department for staff
+// @route   PUT /api/v1/auth/select-department
+// @access  Private
+exports.selectDepartment = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { department } = req.body;
+
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is staff
+    if (!STAFF_ROLES.includes(user.role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Department selection not required for this user role'
+      });
+    }
+
+    // Validate department
+    const validDepartments = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'];
+    if (!validDepartments.includes(department)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid department selected'
+      });
+    }
+
+    // Update user department
+    user.department = department;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Department selected successfully',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        isFirstLogin: user.isFirstLogin
+      }
+    });
+  } catch (error) {
+    console.error('Select department error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during department selection',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

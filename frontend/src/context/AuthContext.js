@@ -177,6 +177,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // First login functions
+  const checkFirstLogin = async () => {
+    try {
+      const response = await authService.checkFirstLogin();
+      return response;
+    } catch (error) {
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
+      throw error;
+    }
+  };
+
+  const setInitialPassword = async (newPassword, confirmPassword) => {
+    try {
+      const response = await authService.setInitialPassword(newPassword, confirmPassword);
+      return response;
+    } catch (error) {
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
+      throw error;
+    }
+  };
+
+
   // Clear error function
   const clearError = () => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
@@ -235,6 +257,10 @@ export const AuthProvider = ({ children }) => {
     updateProfilePicture,
     changePassword,
     clearError,
+
+    // First login actions
+    checkFirstLogin,
+    setInitialPassword,
 
     // Role-based access control
     hasRole,

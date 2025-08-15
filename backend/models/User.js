@@ -182,6 +182,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isFirstLogin: {
+    type: Boolean,
+    default: false
+  },
   permissions: [{
     type: String,
     enum: ['read', 'write', 'delete', 'admin', 'manage_users', 'manage_jobs', 'view_reports']

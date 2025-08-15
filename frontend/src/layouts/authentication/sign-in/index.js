@@ -103,7 +103,13 @@ function Basic() {
         throw new Error("Please fill in all fields");
       }
 
-      await login(formData.email, formData.password);
+      const response = await login(formData.email, formData.password);
+      
+      // Check if user needs first login setup
+      if (response.needsFirstLogin) {
+        navigate("/authentication/first-login-password-reset");
+        return;
+      }
       
       // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {

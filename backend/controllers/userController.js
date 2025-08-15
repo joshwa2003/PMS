@@ -648,8 +648,8 @@ exports.createStaff = async (req, res) => {
       });
     }
 
-    // Generate default password (can be changed later)
-    const defaultPassword = `Staff@${Math.random().toString(36).slice(-6)}`;
+    // Set default password to "Staff@123" for all staff
+    const defaultPassword = "Staff@123";
 
     // Create staff user
     const staffData = {
@@ -665,7 +665,8 @@ exports.createStaff = async (req, res) => {
       adminNotes,
       permissions: User.getRolePermissions(role),
       isActive: true,
-      isVerified: false // Staff needs to verify their account
+      isVerified: false, // Staff needs to verify their account
+      isFirstLogin: true // Mark as first login to force password change
     };
 
     const staff = await User.create(staffData);
@@ -793,12 +794,11 @@ exports.createBulkStaff = async (req, res) => {
           }
         }
 
-        // Generate default password
-        const defaultPassword = `Staff@${Math.random().toString(36).slice(-6)}`;
+        // Set default password to "Staff@123" for all staff
+        const defaultPassword = "Staff@123";
 
         // Create staff user data with defaults for optional fields
         const role = staffMember.role || 'other_staff';
-        const department = staffMember.department || 'OTHER';
         
         const newStaffData = {
           firstName: staffMember.firstName.trim(),
@@ -813,7 +813,8 @@ exports.createBulkStaff = async (req, res) => {
           adminNotes: staffMember.adminNotes?.trim() || '',
           permissions: User.getRolePermissions(role),
           isActive: staffMember.isActive !== undefined ? staffMember.isActive : true,
-          isVerified: staffMember.isVerified !== undefined ? staffMember.isVerified : false
+          isVerified: staffMember.isVerified !== undefined ? staffMember.isVerified : false,
+          isFirstLogin: true // Mark as first login to force password change
         };
 
         // Create the staff member

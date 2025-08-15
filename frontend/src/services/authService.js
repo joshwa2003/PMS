@@ -103,6 +103,40 @@ class AuthService {
     }
   }
 
+  // Check if user needs first login setup
+  async checkFirstLogin() {
+    try {
+      const response = await api.get('/auth/first-login-check');
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to check first login status');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Set initial password for first login
+  async setInitialPassword(newPassword, confirmPassword) {
+    try {
+      const response = await api.put('/auth/set-initial-password', {
+        newPassword,
+        confirmPassword
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to set initial password');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
   // Check if user is authenticated
   isAuthenticated() {
     const token = localStorage.getItem('pms_token');

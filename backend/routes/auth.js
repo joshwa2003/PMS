@@ -5,7 +5,9 @@ const {
   getMe,
   updateProfile,
   changePassword,
-  logout
+  logout,
+  checkFirstLogin,
+  setInitialPassword,
 } = require('../controllers/authController');
 
 const { protect, rateLimitLogin } = require('../middleware/auth');
@@ -27,5 +29,9 @@ router.get('/me', protect, getMe);
 router.put('/profile', protect, validateProfileUpdate, updateProfile);
 router.put('/change-password', protect, validateChangePassword, changePassword);
 router.post('/logout', protect, logout);
+
+// First login routes
+router.get('/first-login-check', protect, checkFirstLogin);
+router.put('/set-initial-password', protect, setInitialPassword);
 
 module.exports = router;
