@@ -57,6 +57,7 @@ const DepartmentStaffList = () => {
     toggleStaffSelection,
     selectAllStaff,
     clearSelectedStaff,
+    setSelectedStaff,
     setFilters,
     clearFilters,
     openModal,
@@ -83,6 +84,8 @@ const DepartmentStaffList = () => {
 
   // Handle role assignment
   const handleAssignRole = (staffMember) => {
+    // Set the selected staff as an array with one item (required by RoleAssignmentModal)
+    setSelectedStaff([staffMember]);
     setSelectedStaffForMenu(staffMember);
     openModal('roleAssignment');
     handleMenuClose();
@@ -90,6 +93,8 @@ const DepartmentStaffList = () => {
 
   // Handle view details
   const handleViewDetails = (staffMember) => {
+    // Set the selected staff as an array with one item (required by StaffDetailsModal)
+    setSelectedStaff([staffMember]);
     setSelectedStaffForMenu(staffMember);
     openModal('staffDetails');
     handleMenuClose();
