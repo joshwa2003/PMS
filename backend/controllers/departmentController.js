@@ -11,7 +11,8 @@ const getAllDepartments = async (req, res) => {
       page = 1, 
       limit = 10, 
       search = '', 
-      isActive = '' 
+      isActive = '',
+      all = false 
     } = req.query;
 
     // Build filter object
@@ -31,10 +32,17 @@ const getAllDepartments = async (req, res) => {
 
     console.log('🔍 Filter applied:', filter);
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    console.log('📄 Pagination - Skip:', skip, 'Limit:', parseInt(limit));
+    // Calculate pagination - if all=true, fetch all departments
+    let skip, actualLimit;
+    if (all === 'true' || all === true) {
+      skip = 0;
+      actualLimit = 0; // 0 means no limit in MongoDB
+      console.log('📄 Fetching ALL departments (no pagination)');
+    } else {
+      skip = (parseInt(page) - 1) * parseInt(limit);
+      actualLimit = parseInt(limit);
+      console.log('📄 Pagination - Skip:', skip, 'Limit:', actualLimit);
+    }
 
     // Get departments with safer populate operations
     let departments;
@@ -62,7 +70,7 @@ const getAllDepartments = async (req, res) => {
         })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(actualLimit || undefined) // Use actualLimit, undefined means no limit
         .lean(); // Use lean() for better performance
 
       console.log('✅ Departments found:', departments.length);
@@ -73,7 +81,7 @@ const getAllDepartments = async (req, res) => {
       departments = await Department.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(actualLimit || undefined) // Use actualLimit, undefined means no limit
         .lean();
       
       console.log('⚠️ Fallback: Retrieved departments without populate:', departments.length);
@@ -81,9 +89,9 @@ const getAllDepartments = async (req, res) => {
 
     // Get total count for pagination
     const totalDepartments = await Department.countDocuments(filter);
-    const totalPages = Math.ceil(totalDepartments / parseInt(limit));
+    const totalPages = all === 'true' || all === true ? 1 : Math.ceil(totalDepartments / parseInt(limit));
 
-    console.log('📊 Pagination info - Total:', totalDepartments, 'Pages:', totalPages);
+    console.log('📊 Pagination info - Total:', totalDepartments, 'Pages:', totalPages, 'All mode:', all === 'true' || all === true);
 
     res.status(200).json({
       success: true,

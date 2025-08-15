@@ -52,6 +52,8 @@ import StaffManagement from "pages/StaffManagement";
 import StudentManagement from "pages/StudentManagement";
 import CourseCategoryManagement from "pages/CourseCategoryManagement";
 import DepartmentManagement from "pages/DepartmentManagement";
+import DepartmentStaffManagement from "pages/DepartmentStaffManagement";
+import DepartmentsOverview from "pages/DepartmentsOverview";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -233,6 +235,24 @@ const routes = [
   },
   {
     type: "collapse",
+    name: "Departments",
+    key: "departments",
+    icon: <Icon fontSize="small">account_tree</Icon>,
+    collapse: [
+      {
+        name: "All Departments",
+        key: "all-departments",
+        route: "/departments",
+        component: (
+          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+            <DepartmentsOverview />
+          </ProtectedRoute>
+        ),
+      }
+    ],
+  },
+  {
+    type: "collapse",
     name: "Department HOD Profile",
     key: "department-hod-profile",
     icon: <Icon fontSize="small">school</Icon>,
@@ -240,6 +260,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['department_hod']}>
         <DepartmentHODProfile />
+      </ProtectedRoute>
+    ),
+  },
+  // Department Staff Management (hidden from sidebar - accessed via departments)
+  {
+    type: "route",
+    name: "Department Staff Management",
+    key: "department-staff-management",
+    route: "/department-staff/:departmentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <DepartmentStaffManagement />
       </ProtectedRoute>
     ),
   },

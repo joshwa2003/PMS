@@ -13,11 +13,61 @@ const departmentService = {
     }
   },
 
+  // Get all departments without pagination
+  getAllDepartmentsNoPagination: async (params = {}) => {
+    try {
+      const response = await api.get(API_BASE_URL, { 
+        params: { ...params, all: true } 
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   // Get single department
   getDepartment: async (id) => {
     try {
       const response = await api.get(`${API_BASE_URL}/${id}`);
       return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Get department by code
+  getDepartmentByCode: async (departmentCode) => {
+    try {
+      // Use search parameter to find department by code
+      const response = await api.get(API_BASE_URL, { 
+        params: { search: departmentCode, all: true } 
+      });
+      
+      // Handle different response structures
+      let departments = [];
+      if (response.data.success && response.data.data && response.data.data.departments) {
+        departments = response.data.data.departments;
+      } else if (response.data.departments) {
+        departments = response.data.departments;
+      } else if (response.data.success && Array.isArray(response.data)) {
+        departments = response.data;
+      }
+      
+      if (departments.length > 0) {
+        // Find exact match by code (case insensitive)
+        const department = departments.find(dept => 
+          dept.code.toLowerCase() === departmentCode.toLowerCase()
+        );
+        
+        if (department) {
+          return {
+            success: true,
+            department: department
+          };
+        }
+      }
+      
+      throw new Error('Department not found');
     } catch (error) {
       throw error.response?.data || error;
     }

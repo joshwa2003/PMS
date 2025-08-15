@@ -149,6 +149,50 @@ export const DepartmentProvider = ({ children }) => {
     }
   }, [state.pagination.currentPage, state.filters.search, state.filters.isActive]);
 
+  // Fetch all departments without pagination
+  const fetchAllDepartments = useCallback(async (params = {}) => {
+    dispatch({ type: actionTypes.SET_LOADING, payload: true });
+    dispatch({ type: actionTypes.CLEAR_ERROR });
+
+    try {
+      const finalParams = {
+        search: state.filters.search,
+        isActive: state.filters.isActive,
+        ...params
+      };
+
+      const response = await departmentService.getAllDepartmentsNoPagination(finalParams);
+      
+      // Handle different response structures
+      let departments = [];
+      
+      if (response && response.data && response.data.departments) {
+        // Structure: { data: { departments: [...] } }
+        departments = response.data.departments;
+      } else if (response && response.departments) {
+        // Structure: { departments: [...] }
+        departments = response.departments;
+      }
+      
+      const formattedDepartments = departments.map(
+        departmentService.formatDepartmentData
+      );
+
+      dispatch({ type: actionTypes.SET_DEPARTMENTS, payload: formattedDepartments });
+      
+      // Update pagination to reflect all departments
+      dispatch({ type: actionTypes.SET_PAGINATION, payload: {
+        currentPage: 1,
+        totalPages: 1,
+        totalDepartments: departments.length,
+        hasNextPage: false,
+        hasPrevPage: false
+      }});
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_ERROR, payload: error.message || 'Failed to fetch departments' });
+    }
+  }, [state.filters.search, state.filters.isActive]);
+
 
   // Create new department
   const createDepartment = useCallback(async (departmentData) => {
@@ -361,6 +405,7 @@ export const DepartmentProvider = ({ children }) => {
 
     // Actions
     fetchDepartments,
+    fetchAllDepartments,
     createDepartment,
     updateDepartment,
     deleteDepartment,

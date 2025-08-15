@@ -54,7 +54,38 @@ const EditStaffForm = ({ staff, onSuccess, onCancel }) => {
   const [validationErrors, setValidationErrors] = useState([]);
 
   const availableRoles = getAvailableRoles();
-  const availableDepartments = getAvailableDepartments();
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
+
+  // Load available departments
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        setDepartmentsLoading(true);
+        const departments = await getAvailableDepartments();
+        setAvailableDepartments(departments || []);
+      } catch (error) {
+        console.error('Error loading departments:', error);
+        // Fallback to sync method if async fails
+        const fallbackDepartments = [
+          { value: 'CSE', label: 'Computer Science & Engineering' },
+          { value: 'ECE', label: 'Electronics & Communication Engineering' },
+          { value: 'EEE', label: 'Electrical & Electronics Engineering' },
+          { value: 'MECH', label: 'Mechanical Engineering' },
+          { value: 'CIVIL', label: 'Civil Engineering' },
+          { value: 'IT', label: 'Information Technology' },
+          { value: 'ADMIN', label: 'Administration' },
+          { value: 'HR', label: 'Human Resources' },
+          { value: 'OTHER', label: 'Other' }
+        ];
+        setAvailableDepartments(fallbackDepartments);
+      } finally {
+        setDepartmentsLoading(false);
+      }
+    };
+
+    loadDepartments();
+  }, [getAvailableDepartments]);
 
   // Initialize form data with staff information
   useEffect(() => {
@@ -250,6 +281,7 @@ const EditStaffForm = ({ staff, onSuccess, onCancel }) => {
                 value={formData.department}
                 onChange={handleInputChange('department')}
                 label="Department"
+                disabled={departmentsLoading}
               >
                 {availableDepartments.map((dept) => (
                   <MenuItem key={dept.value} value={dept.value}>

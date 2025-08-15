@@ -14,7 +14,14 @@ const {
   getAllStaff,
   updateStaff,
   deleteStaff,
-  deleteBulkStaff
+  deleteBulkStaff,
+  assignStaffRole,
+  getStaffByDepartment,
+  getImportHistory,
+  getImportHistoryDetails,
+  rollbackBulkImport,
+  getImportStats,
+  getAvailableDepartments
 } = require('../controllers/userController');
 
 const { 
@@ -34,6 +41,8 @@ const {
   validateStaffUpdate,
   validateStaffStatusUpdate
 } = require('../middleware/validation');
+
+const { body } = require('express-validator');
 
 const router = express.Router();
 
@@ -86,6 +95,58 @@ router.delete('/staff/:id',
   authorize('admin'), 
   validateObjectId('id'),
   deleteStaff
+);
+
+// @desc    Assign role to staff and trigger welcome email
+// @route   POST /api/v1/users/staff/:id/assign-role
+// @access  Private (Admin, Placement Director)
+router.post('/staff/:id/assign-role',
+  authorize('admin', 'placement_director'),
+  validateObjectId('id'),
+  [
+    body('role')
+      .isIn(['placement_staff', 'department_hod', 'other_staff'])
+      .withMessage('Invalid staff role')
+  ],
+  assignStaffRole
+);
+
+// @desc    Get staff by department
+// @route   GET /api/v1/users/staff/department/:departmentId
+// @access  Private (Admin, Placement Director)
+router.get('/staff/department/:departmentId',
+  authorize('admin', 'placement_director'),
+  validateObjectId('departmentId'),
+  getStaffByDepartment
+);
+
+// Import history routes
+router.get('/import-history', 
+  authorize('admin', 'placement_director'), 
+  getImportHistory
+);
+
+router.get('/import-history/:id', 
+  authorize('admin', 'placement_director'), 
+  validateObjectId('id'),
+  getImportHistoryDetails
+);
+
+router.post('/import-history/:id/rollback', 
+  authorize('admin'), 
+  validateObjectId('id'),
+  rollbackBulkImport
+);
+
+router.get('/import-stats', 
+  authorize('admin', 'placement_director'), 
+  getImportStats
+);
+
+// Get available departments for bulk upload
+router.get('/departments', 
+  authorize('admin', 'placement_director'), 
+  getAvailableDepartments
 );
 
 // Admin and placement staff routes

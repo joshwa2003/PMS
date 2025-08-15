@@ -37,6 +37,7 @@ import MDButton from "components/MDButton";
 
 // S.A. Engineering College React example components
 import DataTable from "examples/Tables/DataTable";
+import AdvancedPagination from "components/StaffManagement/AdvancedPagination";
 
 // Components
 import PlacementStaffAssignmentModal from './PlacementStaffAssignmentModal';
@@ -50,12 +51,14 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
     departments,
     loading,
     error,
+    pagination,
     fetchDepartments,
     deleteDepartment,
     getDepartmentStatusColor,
     getDepartmentStatusText,
     getPlacementStaffDisplayName,
-    formatCreationDate
+    formatCreationDate,
+    handlePageChange
   } = useDepartment();
 
   const { user } = useAuth();
@@ -76,7 +79,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Fetch departments on component mount
+  // Fetch departments on component mount with pagination
   useEffect(() => {
     fetchDepartments();
   }, [fetchDepartments]);
@@ -156,20 +159,6 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
 
   const canDelete = user?.role === 'admin';
 
-  // Filter departments based on search and status
-  const filteredDepartments = departments.filter(department => {
-    const matchesSearch = !searchTerm || 
-      department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      department.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (department.description && department.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = !statusFilter || 
-      (statusFilter === 'active' && department.isActive) ||
-      (statusFilter === 'inactive' && !department.isActive);
-
-    return matchesSearch && matchesStatus;
-  });
-
   // Create table data
   const columns = [
     { Header: "Department", accessor: "department", width: "25%", align: "left" },
@@ -181,7 +170,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
     { Header: "Actions", accessor: "actions", width: "10%", align: "center" }
   ];
 
-  const rows = filteredDepartments.map((department) => ({
+  const rows = departments.map((department) => ({
     department: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
         <MDBox ml={2} lineHeight={1}>
@@ -383,7 +372,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
           {/* Results Summary */}
           <MDBox mt={2}>
             <Typography variant="body2" color="text.secondary">
-              Showing {filteredDepartments.length} of {departments.length} departments
+              Showing {departments.length} of {pagination.totalDepartments} departments • Page {pagination.currentPage} of {pagination.totalPages}
             </Typography>
           </MDBox>
         </MDBox>
@@ -410,6 +399,26 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             isSorted={false}
             noEndBorder
           />
+          
+          {/* Advanced Pagination */}
+          {pagination.totalDepartments > 0 && (
+            <MDBox mt={3}>
+              <AdvancedPagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalDepartments}
+                itemsPerPage={10}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={() => {
+                  // Keep items per page fixed at 10 for now
+                }}
+                onRefresh={handleRefresh}
+                loading={loading}
+                showItemsPerPage={false}
+                showRefresh={true}
+              />
+            </MDBox>
+          )}
         </MDBox>
       </Card>
 

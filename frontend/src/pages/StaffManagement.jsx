@@ -67,40 +67,94 @@ const StaffManagementContent = () => {
     setBulkUploadDialogOpen(false);
   };
 
-  const handleDownloadTemplate = () => {
-    // Create template data with only required headers
-    const templateData = [
-      {
-        'First Name': 'John',
-        'Last Name': 'Smith',
-        'Email': 'john.smith@college.edu'
+  const handleDownloadTemplate = async () => {
+    try {
+      // Fetch available departments dynamically using the api service
+      let departmentCodes = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT']; // Default fallback
+      
+      try {
+        const response = await fetch('/api/v1/users/departments', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.departments) {
+            departmentCodes = data.departments.map(dept => dept.code);
+          }
+        } else {
+          console.warn('Failed to fetch departments, using defaults');
+        }
+      } catch (apiError) {
+        console.warn('Error fetching departments, using defaults:', apiError);
       }
-    ];
 
-    // Create workbook and worksheet
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
+      // Create template data with only 4 columns: First Name, Last Name, Department, Email
+      const templateData = [
+        {
+          'First Name': 'John',
+          'Last Name': 'Smith',
+          'Department': departmentCodes[0] || 'CSE',
+          'Email': 'john.smith@college.edu'
+        }
+      ];
 
-    // Set column widths for better formatting
-    const columnWidths = [
-      { wch: 15 }, // First Name
-      { wch: 15 }, // Last Name
-      { wch: 30 }  // Email
-    ];
-    worksheet['!cols'] = columnWidths;
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Template');
+      // Set column widths for better formatting (only 4 columns)
+      const columnWidths = [
+        { wch: 15 }, // First Name
+        { wch: 15 }, // Last Name
+        { wch: 12 }, // Department
+        { wch: 30 }  // Email
+      ];
+      worksheet['!cols'] = columnWidths;
 
-    // Generate and download the file
-    const fileName = `Staff_Template_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+      // Add validation sheet with department codes
+      const validationData = [
+        { 'Valid Department Codes': 'Available Codes' },
+        ...departmentCodes.map(code => ({ 'Valid Department Codes': code })),
+        { 'Valid Department Codes': '' },
+        { 'Valid Department Codes': 'Required Fields:' },
+        { 'Valid Department Codes': 'First Name*' },
+        { 'Valid Department Codes': 'Last Name*' },
+        { 'Valid Department Codes': 'Department*' },
+        { 'Valid Department Codes': 'Email*' },
+        { 'Valid Department Codes': '' },
+        { 'Valid Department Codes': 'Note: Only these 4 columns are required' },
+        { 'Valid Department Codes': 'Other fields will be set to defaults' }
+      ];
 
-    setSnackbar({
-      open: true,
-      message: 'Excel template downloaded successfully!',
-      severity: 'success'
-    });
+      const validationSheet = XLSX.utils.json_to_sheet(validationData);
+      validationSheet['!cols'] = [{ wch: 25 }];
+
+      // Add both sheets to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Template');
+      XLSX.utils.book_append_sheet(workbook, validationSheet, 'Validation Info');
+
+      // Generate and download the file
+      const fileName = `Staff_Template_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      setSnackbar({
+        open: true,
+        message: 'Enhanced Excel template downloaded successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      setSnackbar({
+        open: true,
+        message: 'Error downloading template. Please try again.',
+        severity: 'error'
+      });
+    }
   };
 
   const handleStaffCreated = (response) => {

@@ -214,8 +214,40 @@ class StaffService {
     return roleNames[role] || role;
   }
 
-  // Get department display name
-  getDepartmentDisplayName(department) {
+  // Get department display name (dynamic version)
+  async getDepartmentDisplayName(department) {
+    try {
+      const departments = await this.getAvailableDepartments();
+      const foundDept = departments.find(dept => 
+        dept.value === department || 
+        dept.code === department ||
+        dept.value === department?.toUpperCase() ||
+        dept.value === department?.toLowerCase()
+      );
+      if (foundDept) {
+        return foundDept.label || foundDept.name;
+      }
+    } catch (error) {
+      console.error('Error fetching departments for display name:', error);
+    }
+    
+    // Fallback to hardcoded mapping
+    const departmentNames = {
+      CSE: 'Computer Science & Engineering',
+      ECE: 'Electronics & Communication Engineering',
+      EEE: 'Electrical & Electronics Engineering',
+      MECH: 'Mechanical Engineering',
+      CIVIL: 'Civil Engineering',
+      IT: 'Information Technology',
+      ADMIN: 'Administration',
+      HR: 'Human Resources',
+      OTHER: 'Other'
+    };
+    return departmentNames[department] || department;
+  }
+
+  // Synchronous version for backward compatibility
+  getDepartmentDisplayNameSync(department) {
     const departmentNames = {
       CSE: 'Computer Science & Engineering',
       ECE: 'Electronics & Communication Engineering',
@@ -261,8 +293,69 @@ class StaffService {
     return `${Math.ceil(diffDays / 365)} years ago`;
   }
 
-  // Validate staff data
-  validateStaffData(staffData, isUpdate = false) {
+  // Validate staff data with dynamic department validation
+  async validateStaffData(staffData, isUpdate = false) {
+    const errors = [];
+
+    if (!isUpdate || staffData.firstName) {
+      if (!staffData.firstName || staffData.firstName.trim().length < 2) {
+        errors.push('First name must be at least 2 characters long');
+      }
+    }
+
+    if (!isUpdate || staffData.lastName) {
+      if (!staffData.lastName || staffData.lastName.trim().length < 2) {
+        errors.push('Last name must be at least 2 characters long');
+      }
+    }
+
+    if (!isUpdate || staffData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!staffData.email || !emailRegex.test(staffData.email)) {
+        errors.push('Please provide a valid email address');
+      }
+    }
+
+    if (!isUpdate && !staffData.role) {
+      errors.push('Role is required');
+    }
+
+    // Dynamic department validation
+    if (!isUpdate && !staffData.department) {
+      errors.push('Department is required');
+    } else if (staffData.department) {
+      try {
+        const availableDepartments = await this.getAvailableDepartments();
+        const validDepartmentCodes = availableDepartments.map(dept => dept.code);
+        if (!validDepartmentCodes.includes(staffData.department)) {
+          errors.push(`Invalid department code. Valid codes are: ${validDepartmentCodes.join(', ')}`);
+        }
+      } catch (error) {
+        console.error('Error validating department:', error);
+        errors.push('Unable to validate department. Please try again.');
+      }
+    }
+
+    if (!isUpdate && !staffData.designation) {
+      errors.push('Designation is required');
+    }
+
+    if (staffData.phone) {
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(staffData.phone)) {
+        errors.push('Phone number must be exactly 10 digits');
+      }
+    }
+
+    if (staffData.employeeId && staffData.employeeId.length < 3) {
+      errors.push('Employee ID must be at least 3 characters long');
+    }
+
+    return errors;
+  }
+
+  // Synchronous validation (fallback)
+  validateStaffDataSync(staffData, isUpdate = false) {
     const errors = [];
 
     if (!isUpdate || staffData.firstName) {
@@ -312,11 +405,113 @@ class StaffService {
 
   // Generate employee ID suggestion
   generateEmployeeIdSuggestion(department, role) {
-    const deptCode = department.substring(0, 3).toUpperCase();
+    const deptCode = (department || 'UNK').substring(0, 3).toUpperCase();
     const roleCode = role === 'placement_staff' ? 'PS' : 
                     role === 'department_hod' ? 'HOD' : 'OS';
     const randomNum = Math.floor(Math.random() * 999) + 1;
     return `${deptCode}${roleCode}${randomNum.toString().padStart(3, '0')}`;
+  }
+
+  // Role assignment methods
+  async assignRole(staffId, role, assignedBy) {
+    try {
+      const response = await api.post(`/users/staff/${staffId}/assign-role`, {
+        role,
+        assignedBy
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to assign role');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Bulk role assignment
+  async assignBulkRoles(assignments) {
+    try {
+      const results = [];
+      
+      for (const assignment of assignments) {
+        try {
+          const result = await this.assignRole(
+            assignment.staffId, 
+            assignment.role, 
+            assignment.assignedBy
+          );
+          results.push({
+            staffId: assignment.staffId,
+            success: true,
+            result
+          });
+        } catch (error) {
+          results.push({
+            staffId: assignment.staffId,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+      
+      return {
+        success: true,
+        results,
+        totalProcessed: assignments.length,
+        successCount: results.filter(r => r.success).length,
+        failureCount: results.filter(r => !r.success).length
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Generate Excel template with dynamic departments
+  async generateExcelTemplate() {
+    try {
+      const departments = await this.getAvailableDepartments();
+      const departmentCodes = departments.map(dept => dept.code).join(', ');
+      
+      // Create template data
+      const templateData = {
+        headers: [
+          'First Name*',
+          'Last Name*', 
+          'Department*',
+          'Email*',
+          'Phone',
+          'Employee ID',
+          'Designation',
+          'Admin Notes'
+        ],
+        sampleData: [
+          [
+            'John',
+            'Doe',
+            departments[0]?.code || 'CSE',
+            'john.doe@example.com',
+            '9876543210',
+            'CSE001',
+            'Assistant Professor',
+            'Sample staff member'
+          ]
+        ],
+        validationNotes: [
+          '* Required fields',
+          `Valid Department Codes: ${departmentCodes}`,
+          'Phone: 10-digit number',
+          'Employee ID: Minimum 3 characters',
+          'Role will be assigned later through the system'
+        ]
+      };
+      
+      return templateData;
+    } catch (error) {
+      console.error('Error generating Excel template:', error);
+      throw error;
+    }
   }
 
   // Get available roles for staff creation
@@ -328,8 +523,28 @@ class StaffService {
     ];
   }
 
-  // Get available departments
-  getAvailableDepartments() {
+  // Get available departments (dynamic)
+  async getAvailableDepartments() {
+    try {
+      const response = await api.get('/departments');
+      if (response.success && response.departments) {
+        return response.departments.map(dept => ({
+          value: dept.code,
+          label: `${dept.name} (${dept.code})`,
+          id: dept._id,
+          name: dept.name,
+          code: dept.code
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      return [];
+    }
+  }
+
+  // Get available departments synchronously (fallback)
+  getAvailableDepartmentsSync() {
     return [
       { value: 'CSE', label: 'Computer Science & Engineering' },
       { value: 'ECE', label: 'Electronics & Communication Engineering' },

@@ -320,18 +320,25 @@ export const StaffManagementProvider = ({ children }) => {
       const response = await staffService.createBulkStaff(staffDataArray);
       
       // Add all created staff to the state
-      if (response.results && response.results.createdStaff) {
+      // The backend returns created staff in response.results.createdStaff
+      if (response.results && response.results.createdStaff && Array.isArray(response.results.createdStaff)) {
+        // Add each staff member to the state
         response.results.createdStaff.forEach(staff => {
           dispatch({ type: actionTypes.ADD_STAFF, payload: staff });
         });
       }
+      
+      // Also refresh the staff list to ensure we have the latest data
+      setTimeout(() => {
+        fetchStaff();
+      }, 100);
       
       return response;
     } catch (error) {
       setError(error.message || 'Failed to create bulk staff members');
       throw error;
     }
-  }, []);
+  }, [fetchStaff]);
 
   const updateStaff = useCallback(async (staffId, staffData) => {
     try {
@@ -591,7 +598,7 @@ export const StaffManagementProvider = ({ children }) => {
     // Service utilities
     formatStaffData: staffService.formatStaffData,
     getRoleDisplayName: staffService.getRoleDisplayName,
-    getDepartmentDisplayName: staffService.getDepartmentDisplayName,
+    getDepartmentDisplayName: staffService.getDepartmentDisplayNameSync, // Use sync version
     getStaffStatusColor: staffService.getStaffStatusColor,
     getStaffStatusText: staffService.getStaffStatusText,
     formatLastLogin: staffService.formatLastLogin,

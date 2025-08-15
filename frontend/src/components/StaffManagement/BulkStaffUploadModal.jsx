@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -34,6 +34,7 @@ import MDAvatar from 'components/MDAvatar';
 import MDBadge from 'components/MDBadge';
 import DataTable from 'examples/Tables/DataTable';
 import { useStaffManagement } from 'context/StaffManagementContext';
+import api from 'services/api';
 
 const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
   const { createBulkStaff, loading } = useStaffManagement();
@@ -43,14 +44,17 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
   const [validationResults, setValidationResults] = useState([]);
   const [step, setStep] = useState(1); // 1: Upload, 2: Preview, 3: Processing
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [validDepartmentCodes, setValidDepartmentCodes] = useState([]);
+  const [currentFile, setCurrentFile] = useState(null);
 
-  // Expected Excel columns (only first 3 are required)
+  // Expected Excel columns (Department is now required and positioned before Email)
   const expectedColumns = [
     'First Name',
     'Last Name', 
+    'Department',
     'Email',
     'Role',
-    'Department',
     'Designation',
     'Employee ID',
     'Phone'
@@ -62,17 +66,35 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
     'Other Staff': 'other_staff'
   };
 
-  const departmentMapping = {
-    'Computer Science Engineering': 'CSE',
-    'Electronics & Communication Engineering': 'ECE',
-    'Electrical & Electronics Engineering': 'EEE',
-    'Mechanical Engineering': 'MECH',
-    'Civil Engineering': 'CIVIL',
-    'Information Technology': 'IT',
-    'Administration': 'ADMIN',
-    'Human Resources': 'HR',
-    'Other': 'OTHER'
-  };
+  // Fetch available departments on component mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await api.get('/users/departments');
+        if (response.success && response.departments) {
+          setAvailableDepartments(response.departments);
+          setValidDepartmentCodes(response.departments.map(dept => dept.code));
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        // Fallback to default departments
+        const defaultDepartments = [
+          { code: 'CSE', name: 'Computer Science & Engineering' },
+          { code: 'ECE', name: 'Electronics & Communication Engineering' },
+          { code: 'EEE', name: 'Electrical & Electronics Engineering' },
+          { code: 'MECH', name: 'Mechanical Engineering' },
+          { code: 'CIVIL', name: 'Civil Engineering' },
+          { code: 'IT', name: 'Information Technology' }
+        ];
+        setAvailableDepartments(defaultDepartments);
+        setValidDepartmentCodes(defaultDepartments.map(dept => dept.code));
+      }
+    };
+
+    if (open) {
+      fetchDepartments();
+    }
+  }, [open]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -107,6 +129,8 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
       alert('Please upload an Excel (.xlsx, .xls) or CSV (.csv) file');
       return;
     }
+
+    setCurrentFile(file);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -144,10 +168,19 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
       const errors = [];
       const warnings = [];
 
-      // Validate required fields (only First Name, Last Name, and Email)
-      if (!row['First Name']?.trim()) errors.push('First Name is required');
-      if (!row['Last Name']?.trim()) errors.push('Last Name is required');
-      if (!row['Email']?.trim()) errors.push('Email is required');
+      // Validate required fields (First Name, Last Name, Department, and Email are now required)
+      if (!row['First Name']?.trim()) {
+        errors.push('First Name is required');
+      }
+      if (!row['Last Name']?.trim()) {
+        errors.push('Last Name is required');
+      }
+      if (!row['Department']?.trim()) {
+        errors.push('Department is required');
+      }
+      if (!row['Email']?.trim()) {
+        errors.push('Email is required');
+      }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -155,29 +188,40 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
         errors.push('Invalid email format');
       }
 
+      // Validate department code
+      const departmentCode = row['Department']?.trim().toUpperCase();
+      if (departmentCode && !validDepartmentCodes.includes(departmentCode)) {
+        errors.push(`Invalid department code: ${departmentCode}. Valid codes are: ${validDepartmentCodes.join(', ')}`);
+      }
+
       // Validate phone number (if provided)
       if (row['Phone'] && !/^[0-9]{10}$/.test(row['Phone'].toString().trim())) {
         warnings.push('Phone number should be 10 digits');
       }
 
-      // Map role and department (optional fields)
-      const mappedRole = row['Role'] ? (roleMapping[row['Role']] || row['Role']?.toLowerCase().replace(/\s+/g, '_')) : 'other_staff';
-      const mappedDepartment = row['Department'] ? (departmentMapping[row['Department']] || row['Department']) : 'OTHER';
+      // Validate employee ID length (if provided)
+      if (row['Employee ID'] && row['Employee ID'].toString().trim().length < 3) {
+        warnings.push('Employee ID should be at least 3 characters');
+      }
 
-      // Only validate role if provided
-      if (row['Role'] && mappedRole && !['department_hod', 'placement_staff', 'other_staff'].includes(mappedRole)) {
+      // Map role (optional field with default)
+      const mappedRole = row['Role'] ? (roleMapping[row['Role']] || row['Role']?.toLowerCase().replace(/\s+/g, '_')) : 'other_staff';
+
+      // Validate role if provided
+      if (row['Role'] && !['department_hod', 'placement_staff', 'other_staff'].includes(mappedRole)) {
         errors.push('Invalid role. Must be: Department HOD, Placement Staff, or Other Staff');
       }
 
       const processedRow = {
         firstName: row['First Name']?.trim() || '',
         lastName: row['Last Name']?.trim() || '',
-        email: row['Email']?.trim() || '',
-        role: mappedRole || '',
-        department: mappedDepartment || '',
+        department: departmentCode || '',
+        email: row['Email']?.trim().toLowerCase() || '',
+        role: mappedRole || 'other_staff',
         designation: row['Designation']?.trim() || '',
-        employeeId: row['Employee ID']?.trim() || '',
+        employeeId: row['Employee ID']?.toString().trim() || '',
         phone: row['Phone']?.toString().trim() || '',
+        adminNotes: row['Admin Notes']?.trim() || '',
         isActive: true,
         isVerified: false
       };
@@ -221,8 +265,15 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
         });
       }, 200);
 
+      // Prepare data with file metadata for import history tracking
+      const uploadData = {
+        staffData: uploadedData,
+        fileName: currentFile?.name || 'bulk_staff_upload.xlsx',
+        fileSize: currentFile?.size || 0
+      };
+
       // Set a timeout for the upload operation
-      const uploadPromise = createBulkStaff(uploadedData);
+      const uploadPromise = createBulkStaff(uploadData.staffData);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Upload timeout - operation took too long')), 60000); // 60 second timeout
       });
@@ -289,6 +340,7 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
     setValidationResults([]);
     setUploadProgress(0);
     setDragActive(false);
+    setCurrentFile(null);
     onClose();
   };
 
@@ -307,6 +359,19 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
   };
 
   const getDepartmentDisplayName = (department) => {
+    // First try to find in dynamic departments
+    if (availableDepartments && availableDepartments.length > 0) {
+      const foundDept = availableDepartments.find(dept => 
+        dept.code === department || 
+        dept.code === department?.toUpperCase() ||
+        dept.code === department?.toLowerCase()
+      );
+      if (foundDept) {
+        return foundDept.name;
+      }
+    }
+    
+    // Fallback to hardcoded mapping for backward compatibility
     const departmentNames = {
       CSE: 'Computer Science & Engineering',
       ECE: 'Electronics & Communication Engineering',
@@ -482,10 +547,11 @@ const BulkStaffUploadModal = ({ open, onClose, onSuccess }) => {
               </Typography>
               <Typography variant="body2" component="div">
                 • Upload an Excel (.xlsx, .xls) or CSV file with staff data<br/>
-                • Required columns: First Name, Last Name, Email<br/>
-                • Optional columns: Role, Department, Designation, Employee ID, Phone<br/>
+                • Required columns: First Name, Last Name, Department, Email<br/>
+                • Optional columns: Role, Designation, Employee ID, Phone<br/>
+                • Department must be a valid code: {validDepartmentCodes.join(', ')}<br/>
                 • If Role is provided, it must be: Department HOD, Placement Staff, or Other Staff<br/>
-                • If Role/Department are not provided, defaults will be used (Other Staff/Other)
+                • If Role is not provided, default will be used (Other Staff)
               </Typography>
             </Alert>
 

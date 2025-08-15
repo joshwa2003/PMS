@@ -13,7 +13,7 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // react-router-dom components
 import { useLocation, NavLink } from "react-router-dom";
@@ -27,6 +27,10 @@ import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Icon from "@mui/material/Icon";
 import Avatar from "@mui/material/Avatar";
+import Collapse from "@mui/material/Collapse";
+import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -60,6 +64,9 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   // Auth context
   const { user } = useAuth();
 
+  // State for managing collapsible menus
+  const [openCollapse, setOpenCollapse] = useState({});
+
   let textColor = "white";
 
   if (transparentSidenav || (whiteSidenav && !darkMode)) {
@@ -81,6 +88,14 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       alumni: 'Alumni',
     };
     return roleNames[role] || role;
+  };
+
+  // Handle collapsible menu toggle
+  const handleCollapseToggle = (key) => {
+    setOpenCollapse(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   useEffect(() => {
@@ -146,6 +161,10 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       case 'staff-management':
         // Show Staff Management only for admin and placement director
         return user.role === 'admin' || user.role === 'placement_director';
+
+      case 'departments':
+        // Show Departments only for admin and placement director
+        return user.role === 'admin' || user.role === 'placement_director';
       
       default:
         // Show all other routes by default
@@ -154,30 +173,146 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   });
 
   // Render all the filtered routes from the routes.js (All the visible items on the Sidenav)
-  const renderRoutes = filteredRoutes.map(({ type, name, icon, title, noCollapse, key, href, route }) => {
+  const renderRoutes = filteredRoutes.map(({ type, name, icon, title, noCollapse, key, href, route, collapse }) => {
     let returnValue;
 
     if (type === "collapse") {
-      returnValue = href ? (
-        <Link
-          href={href}
-          key={key}
-          target="_blank"
-          rel="noreferrer"
-          sx={{ textDecoration: "none" }}
-        >
-          <SidenavCollapse
-            name={name}
-            icon={icon}
-            active={key === collapseName}
-            noCollapse={noCollapse}
-          />
-        </Link>
-      ) : (
-        <NavLink key={key} to={route}>
-          <SidenavCollapse name={name} icon={icon} active={key === collapseName} />
-        </NavLink>
-      );
+      // Handle collapsible menus with nested routes
+      if (collapse && Array.isArray(collapse)) {
+        const isOpen = openCollapse[key] || false;
+        
+        returnValue = (
+          <div key={key}>
+            {/* Main collapsible item */}
+            <ListItem component="li">
+              <MDBox
+                onClick={() => handleCollapseToggle(key)}
+                sx={(theme) => ({
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  margin: "0 8px",
+                  backgroundColor: transparentSidenav ? "transparent" : 
+                    whiteSidenav ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
+                  "&:hover": {
+                    backgroundColor: transparentSidenav ? "rgba(0,0,0,0.05)" : 
+                      whiteSidenav ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)",
+                  }
+                })}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: "36px",
+                    color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.6)" : "white"
+                  }}
+                >
+                  {typeof icon === "string" ? (
+                    <Icon sx={{ fontSize: "1.25rem" }}>{icon}</Icon>
+                  ) : (
+                    icon
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={name}
+                  sx={{
+                    "& .MuiListItemText-primary": {
+                      color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.8)" : "white",
+                      fontSize: "0.875rem",
+                      fontWeight: 400,
+                      opacity: miniSidenav ? 0 : 1,
+                      transition: "opacity 0.3s ease"
+                    }
+                  }}
+                />
+                <Icon
+                  sx={{
+                    color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.6)" : "white",
+                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.3s ease"
+                  }}
+                >
+                  expand_more
+                </Icon>
+              </MDBox>
+            </ListItem>
+            
+            {/* Nested items */}
+            <Collapse in={isOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {collapse.map((nestedRoute) => (
+                  <NavLink key={nestedRoute.key} to={nestedRoute.route} style={{ textDecoration: "none" }}>
+                    <ListItem component="li" sx={{ pl: 4 }}>
+                      <MDBox
+                        sx={(theme) => ({
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          margin: "0 8px",
+                          backgroundColor: location.pathname === nestedRoute.route ? 
+                            (transparentSidenav ? "rgba(0,0,0,0.1)" : 
+                             whiteSidenav ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)") : "transparent",
+                          "&:hover": {
+                            backgroundColor: transparentSidenav ? "rgba(0,0,0,0.05)" : 
+                              whiteSidenav ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
+                          }
+                        })}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            minWidth: "24px",
+                            color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.8)"
+                          }}
+                        >
+                          <Icon sx={{ fontSize: "1rem" }}>fiber_manual_record</Icon>
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={nestedRoute.name}
+                          sx={{
+                            "& .MuiListItemText-primary": {
+                              color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.9)",
+                              fontSize: "0.8125rem",
+                              fontWeight: location.pathname === nestedRoute.route ? 500 : 400,
+                              opacity: miniSidenav ? 0 : 1,
+                              transition: "opacity 0.3s ease"
+                            }
+                          }}
+                        />
+                      </MDBox>
+                    </ListItem>
+                  </NavLink>
+                ))}
+              </List>
+            </Collapse>
+          </div>
+        );
+      } else {
+        // Handle regular collapse items (existing functionality)
+        returnValue = href ? (
+          <Link
+            href={href}
+            key={key}
+            target="_blank"
+            rel="noreferrer"
+            sx={{ textDecoration: "none" }}
+          >
+            <SidenavCollapse
+              name={name}
+              icon={icon}
+              active={key === collapseName}
+              noCollapse={noCollapse}
+            />
+          </Link>
+        ) : (
+          <NavLink key={key} to={route}>
+            <SidenavCollapse name={name} icon={icon} active={key === collapseName} />
+          </NavLink>
+        );
+      }
     } else if (type === "title") {
       returnValue = (
         <MDTypography

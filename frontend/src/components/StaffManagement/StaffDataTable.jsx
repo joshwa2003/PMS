@@ -61,7 +61,7 @@ import staffTableData from "./data/staffTableData";
 // Context
 import { useStaffManagement } from 'context/StaffManagementContext';
 import { useAuth } from 'context/AuthContext';
-
+import staffService from '../../services/staffService';
 const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   const {
     staff,
@@ -94,6 +94,23 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
 
   const { user } = useAuth();
 
+  // State for available departments
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+
+  // Fetch departments on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const departments = await staffService.getAvailableDepartments();
+        setAvailableDepartments(departments);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        // Fallback to sync method
+        setAvailableDepartments(staffService.getAvailableDepartmentsSync());
+      }
+    };
+    fetchDepartments();
+  }, []);
   // Staff detail modal state
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -306,7 +323,6 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
 
   // Get available options for filters
   const availableRoles = getAvailableRoles ? getAvailableRoles() : [];
-  const availableDepartments = getAvailableDepartments ? getAvailableDepartments() : [];
 
   // Get table data using staff from context (server-side filtered)
   const { columns, rows } = staffTableData(
@@ -319,7 +335,9 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     canDelete ? {
       selectedStaff: contextSelectedStaff,
       toggleStaffSelection: toggleStaffSelection
-    } : null
+    } : null,
+    // Pass departments for dynamic department name resolution
+    availableDepartments
   );
 
   if (loading) {

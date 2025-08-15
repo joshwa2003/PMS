@@ -48,9 +48,16 @@ const userSchema = new mongoose.Schema({
   
   // Academic/Professional Information
   department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    default: null
+  },
+  
+  // Legacy department field for backward compatibility
+  departmentCode: {
     type: String,
     trim: true,
-    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER']
+    default: null
   },
   
   // Student-specific fields
@@ -205,6 +212,27 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
+  // Role Assignment Tracking
+  roleAssignedAt: {
+    type: Date,
+    default: null
+  },
+  roleAssignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
+  // Email Notification Tracking
+  emailSent: {
+    type: Boolean,
+    default: false
+  },
+  emailSentAt: {
+    type: Date,
+    default: null
+  },
+  
   // Timestamps
   lastLogin: {
     type: Date,
@@ -229,8 +257,11 @@ userSchema.virtual('fullName').get(function() {
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ department: 1 });
+userSchema.index({ departmentCode: 1 });
 userSchema.index({ studentId: 1 });
 userSchema.index({ employeeId: 1 });
+userSchema.index({ roleAssignedAt: 1 });
+userSchema.index({ emailSent: 1 });
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {

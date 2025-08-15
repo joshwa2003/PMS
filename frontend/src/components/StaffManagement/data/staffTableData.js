@@ -27,7 +27,7 @@ import { useState } from "react";
 // Default avatar for staff members without profile pictures
 const defaultAvatar = "https://ui-avatars.com/api/?name=";
 
-export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus, selectionProps = null) {
+export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus, selectionProps = null, departments = []) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
       <MDAvatar 
@@ -172,14 +172,52 @@ export default function staffTableData(staff, onViewDetails, onEditStaff, onDele
   };
 
   const getDepartmentDisplayName = (department) => {
+    // Handle both ObjectId and department code cases
+    if (!department) return 'Not Assigned';
+    
+    // If it looks like an ObjectId (24 character hex string), just return the department code
+    if (typeof department === 'string' && department.length === 24 && /^[0-9a-fA-F]{24}$/.test(department)) {
+      return department; // This will show the ObjectId until data is migrated
+    }
+    
+    // First try to find in dynamic departments
+    if (departments && departments.length > 0) {
+      const foundDept = departments.find(dept => 
+        dept.value === department || 
+        dept.code === department ||
+        dept.value === department?.toUpperCase() ||
+        dept.value === department?.toLowerCase()
+      );
+      if (foundDept) {
+        return foundDept.label || foundDept.name;
+      }
+    }
+    
+    // Fallback to hardcoded mapping for backward compatibility
     const departmentNames = {
+      CSE: 'Computer Science & Engineering',
+      ECE: 'Electronics & Communication Engineering', 
+      EEE: 'Electrical & Electronics Engineering',
+      MECH: 'Mechanical Engineering',
+      CIVIL: 'Civil Engineering',
+      IT: 'Information Technology',
+      MCA: 'Master of Computer Applications',
+      MBA: 'Master of Business Administration',
+      ADMIN: 'Administration',
+      HR: 'Human Resources',
+      OTHER: 'Other',
+      // Lowercase versions for backward compatibility
       cse: 'Computer Science & Engineering',
       ece: 'Electronics & Communication Engineering',
       eee: 'Electrical & Electronics Engineering',
       mech: 'Mechanical Engineering',
       civil: 'Civil Engineering',
       it: 'Information Technology',
-      administration: 'Administration',
+      mca: 'Master of Computer Applications',
+      mba: 'Master of Business Administration',
+      admin: 'Administration',
+      hr: 'Human Resources',
+      other: 'Other',
     };
     return departmentNames[department] || department;
   };
