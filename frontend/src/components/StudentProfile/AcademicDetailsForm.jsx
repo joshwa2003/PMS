@@ -1,9 +1,11 @@
 import React from 'react';
 import { useStudentProfile } from '../../context/StudentProfileContext';
+import { useAuth } from '../../context/AuthContext';
 
 // @mui material components
 import Grid from "@mui/material/Grid";
 import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
 
 // S.A. Engineering College React components
 import MDBox from "../MDBox";
@@ -23,6 +25,9 @@ function AcademicDetailsForm() {
     goToNextTab,
     goToPreviousTab
   } = useStudentProfile();
+
+  const { user } = useAuth();
+  const isStudent = user?.role === 'student';
 
   const handleInputChange = (field, value) => {
     updateFormData(field, value);
@@ -66,19 +71,39 @@ function AcademicDetailsForm() {
       </MDBox>
 
       <Grid container spacing={3}>
+        {/* Department Assignment Information for Students */}
+        {isStudent && (
+          <Grid item xs={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <MDTypography variant="body2" fontWeight="medium" mb={1}>
+                Department Assignment
+              </MDTypography>
+              <MDTypography variant="body2">
+                Your department was automatically assigned by the placement staff who created your account. 
+                This cannot be modified to ensure proper departmental organization and placement coordination.
+              </MDTypography>
+            </Alert>
+          </Grid>
+        )}
+
         {/* Department */}
         <Grid item xs={12} md={6}>
           <MDInput
-            select
+            select={!isStudent}
             label="Department"
             value={getFieldValue('academic.department') || ''}
-            onChange={(e) => handleInputChange('academic.department', e.target.value)}
+            onChange={isStudent ? undefined : (e) => handleInputChange('academic.department', e.target.value)}
             fullWidth
             required
             variant="outlined"
+            disabled={isStudent}
             error={hasFieldError('academic.department')}
-            helperText={getFieldError('academic.department')}
-            SelectProps={{
+            helperText={
+              isStudent 
+                ? "Department assigned by placement staff (cannot be modified)"
+                : getFieldError('academic.department')
+            }
+            SelectProps={!isStudent ? {
               native: false,
               MenuProps: {
                 PaperProps: {
@@ -87,9 +112,9 @@ function AcademicDetailsForm() {
                   },
                 },
               },
-            }}
+            } : undefined}
           >
-            {departmentOptions.map((option) => (
+            {!isStudent && departmentOptions.map((option) => (
               <MenuItem key={option} value={option}>
                 {option}
               </MenuItem>

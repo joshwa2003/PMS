@@ -21,7 +21,7 @@ const createStudent = async (req, res) => {
     }
 
     // Get placement staff's department from user record
-    const placementStaffUser = await User.findById(req.user.id);
+    const placementStaffUser = await User.findById(req.user.id).populate('department');
     if (!placementStaffUser) {
       return res.status(400).json({
         success: false,
@@ -29,7 +29,22 @@ const createStudent = async (req, res) => {
       });
     }
 
-    const staffDepartment = placementStaffUser.department || 'CSE'; // Default to CSE if no department
+    // Enhanced department retrieval logic to handle both ObjectId and string formats
+    let staffDepartment = 'CSE'; // Default fallback
+    
+    if (placementStaffUser.department) {
+      // If department is populated (ObjectId reference)
+      if (typeof placementStaffUser.department === 'object' && placementStaffUser.department.code) {
+        staffDepartment = placementStaffUser.department.code;
+      } else if (typeof placementStaffUser.department === 'string') {
+        staffDepartment = placementStaffUser.department;
+      }
+    } else if (placementStaffUser.departmentCode) {
+      // Fallback to legacy departmentCode field
+      staffDepartment = placementStaffUser.departmentCode;
+    }
+
+    console.log(`Placement staff ${placementStaffUser.email} from department: ${staffDepartment}`);
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -176,7 +191,7 @@ const createBulkStudents = async (req, res) => {
     }
 
     // Get placement staff's department from user record
-    const placementStaffUser = await User.findById(req.user.id);
+    const placementStaffUser = await User.findById(req.user.id).populate('department');
     if (!placementStaffUser) {
       return res.status(400).json({
         success: false,
@@ -184,7 +199,22 @@ const createBulkStudents = async (req, res) => {
       });
     }
 
-    const staffDepartment = placementStaffUser.department || 'CSE'; // Default to CSE if no department
+    // Enhanced department retrieval logic to handle both ObjectId and string formats
+    let staffDepartment = 'CSE'; // Default fallback
+    
+    if (placementStaffUser.department) {
+      // If department is populated (ObjectId reference)
+      if (typeof placementStaffUser.department === 'object' && placementStaffUser.department.code) {
+        staffDepartment = placementStaffUser.department.code;
+      } else if (typeof placementStaffUser.department === 'string') {
+        staffDepartment = placementStaffUser.department;
+      }
+    } else if (placementStaffUser.departmentCode) {
+      // Fallback to legacy departmentCode field
+      staffDepartment = placementStaffUser.departmentCode;
+    }
+
+    console.log(`Bulk creation - Placement staff ${placementStaffUser.email} from department: ${staffDepartment}`);
 
     const results = {
       successful: [],
@@ -193,6 +223,25 @@ const createBulkStudents = async (req, res) => {
       totalSuccessful: 0,
       totalFailed: 0
     };
+
+    // Pre-calculate starting student ID to avoid race conditions
+    const currentYear = new Date().getFullYear();
+    const studentIdPrefix = `${currentYear}STU`;
+    
+    // Get the last student ID once at the beginning
+    const lastStudent = await User.findOne(
+      { studentId: { $regex: `^${studentIdPrefix}` } },
+      {},
+      { sort: { studentId: -1 } }
+    );
+    
+    let startingNumber = 1;
+    if (lastStudent && lastStudent.studentId) {
+      const lastNumber = parseInt(lastStudent.studentId.replace(studentIdPrefix, ''));
+      startingNumber = lastNumber + 1;
+    }
+
+    console.log(`Starting bulk student creation. Last student ID: ${lastStudent?.studentId || 'None'}, Starting from: ${startingNumber}`);
 
     // Process each student
     for (let i = 0; i < studentData.length; i++) {
@@ -222,23 +271,22 @@ const createBulkStudents = async (req, res) => {
           continue;
         }
 
-        // Generate student ID
-        const currentYear = new Date().getFullYear();
-        const studentIdPrefix = `${currentYear}STU`;
-        
-        const lastStudent = await User.findOne(
-          { studentId: { $regex: `^${studentIdPrefix}` } },
-          {},
-          { sort: { studentId: -1 } }
-        );
-        
-        let nextNumber = results.successful.length + 1;
-        if (lastStudent && lastStudent.studentId) {
-          const lastNumber = parseInt(lastStudent.studentId.replace(studentIdPrefix, ''));
-          nextNumber = lastNumber + results.successful.length + 1;
+        // Generate sequential student ID (fixed logic)
+        const currentStudentNumber = startingNumber + results.successful.length;
+        const studentId = `${studentIdPrefix}${currentStudentNumber.toString().padStart(3, '0')}`;
+
+        console.log(`Creating student ${i + 1}/${studentData.length}: ${firstName} ${lastName} with ID: ${studentId}`);
+
+        // Check if this student ID already exists (additional safety check)
+        const existingStudentId = await User.findOne({ studentId: studentId });
+        if (existingStudentId) {
+          results.failed.push({
+            index: i + 1,
+            email: email,
+            error: `Student ID ${studentId} already exists. Please try again.`
+          });
+          continue;
         }
-        
-        const studentId = `${studentIdPrefix}${nextNumber.toString().padStart(3, '0')}`;
 
         // Generate temporary password
         const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
@@ -296,12 +344,31 @@ const createBulkStudents = async (req, res) => {
           defaultPassword: tempPassword
         });
 
+        console.log(`Successfully created student: ${firstName} ${lastName} (${studentId})`);
+
       } catch (error) {
         console.error(`Error creating student at index ${i}:`, error);
+        
+        // Provide more specific error messages
+        let errorMessage = 'Unknown error occurred';
+        if (error.code === 11000) {
+          // Duplicate key error
+          const field = Object.keys(error.keyPattern || {})[0];
+          if (field === 'studentId') {
+            errorMessage = `Student ID already exists. This might be due to concurrent requests.`;
+          } else if (field === 'email') {
+            errorMessage = `Email address already exists`;
+          } else {
+            errorMessage = `Duplicate ${field} detected`;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
         results.failed.push({
           index: i + 1,
           email: student.email || 'Unknown',
-          error: error.message || 'Unknown error occurred'
+          error: errorMessage
         });
       }
     }
@@ -309,13 +376,17 @@ const createBulkStudents = async (req, res) => {
     results.totalSuccessful = results.successful.length;
     results.totalFailed = results.failed.length;
 
+    console.log(`Bulk creation completed. Successful: ${results.totalSuccessful}, Failed: ${results.totalFailed}`);
+
     // Send bulk welcome emails for successful students
     if (results.successful.length > 0) {
       try {
+        console.log(`Sending welcome emails to ${results.successful.length} students...`);
         const emailResults = await emailService.sendBulkStudentWelcomeEmails(results.successful);
         console.log(`Bulk emails sent. Success: ${emailResults.totalSent}, Failed: ${emailResults.totalFailed}`);
       } catch (emailError) {
         console.error('Error sending bulk welcome emails:', emailError);
+        // Don't fail the entire operation if emails fail
       }
     }
 

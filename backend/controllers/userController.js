@@ -1111,6 +1111,7 @@ exports.getAllStaff = async (req, res) => {
         employeeId: member.employeeId,
         phone: member.phone,
         profilePicture: member.profilePicture, // Include profile picture
+        profilePhotoUrl: member.profilePhotoUrl, // Include profile photo URL for placement staff profiles
         isActive: member.isActive,
         isVerified: member.isVerified,
         lastLogin: member.lastLogin,
@@ -1613,6 +1614,7 @@ exports.getStaffByDepartment = async (req, res) => {
         employeeId: member.employeeId,
         phone: member.phone,
         profilePicture: member.profilePicture,
+        profilePhotoUrl: member.profilePhotoUrl, // Include profile photo URL for placement staff profiles
         isActive: member.isActive,
         isVerified: member.isVerified,
         emailSent: member.emailSent,

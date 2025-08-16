@@ -294,7 +294,7 @@ export default function staffTableData(staff, onViewDetails, onEditStaff, onDele
       const row = {
         staffMember: (
           <StaffMember
-            image={staffMember.profilePicture}
+            image={staffMember.profilePicture || staffMember.profilePhotoUrl}
             name={staffMember.fullName}
             email={staffMember.email}
             employeeId={staffMember.employeeId}

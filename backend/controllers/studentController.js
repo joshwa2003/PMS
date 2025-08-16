@@ -52,6 +52,15 @@ const updateStudentProfile = async (req, res) => {
       });
     }
 
+    // Prevent students from modifying their department
+    if (req.user.role === 'student' && req.body.academic && req.body.academic.department) {
+      console.log('Student attempted to modify department - blocked');
+      return res.status(403).json({
+        success: false,
+        message: 'Students cannot modify their department. Department is assigned by placement staff and cannot be changed.'
+      });
+    }
+
     const userId = req.user.id;
     let student = await Student.findOne({ userId });
 

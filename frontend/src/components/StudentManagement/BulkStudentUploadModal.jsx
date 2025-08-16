@@ -173,10 +173,24 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
+      // Show success message with details
+      const successMessage = response.results 
+        ? `Successfully created ${response.results.totalSuccessful} students. ${response.results.totalFailed > 0 ? `${response.results.totalFailed} failed.` : ''}`
+        : 'Students created successfully!';
+
       setTimeout(() => {
         if (onSuccess) {
           onSuccess(response);
         }
+        
+        // Show detailed results if there were any failures
+        if (response.results && response.results.totalFailed > 0) {
+          const failedDetails = response.results.failed.map(f => `Row ${f.index}: ${f.error}`).join('\n');
+          alert(`${successMessage}\n\nFailed entries:\n${failedDetails}`);
+        } else {
+          alert(successMessage);
+        }
+        
         handleClose();
       }, 1000);
 
@@ -189,6 +203,7 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
       
       // More specific error handling
       let errorMessage = 'Error uploading student data. Please try again.';
+      let showDetailedError = false;
       
       if (error.message && error.message.includes('timeout')) {
         errorMessage = 'Upload is taking longer than expected. This might be due to email sending. Please check if students were created and try again if needed.';
@@ -200,6 +215,21 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
           errorMessage = 'You do not have permission to create students.';
         } else if (error.response.status === 400) {
           errorMessage = error.response.data?.message || 'Invalid data provided.';
+          
+          // Check if there are detailed results in the error response
+          if (error.response.data?.results) {
+            showDetailedError = true;
+            const results = error.response.data.results;
+            errorMessage += `\n\nResults: ${results.totalSuccessful} successful, ${results.totalFailed} failed.`;
+            
+            if (results.failed && results.failed.length > 0) {
+              const failedDetails = results.failed.slice(0, 5).map(f => `Row ${f.index}: ${f.error}`).join('\n');
+              errorMessage += `\n\nFirst few errors:\n${failedDetails}`;
+              if (results.failed.length > 5) {
+                errorMessage += `\n... and ${results.failed.length - 5} more errors.`;
+              }
+            }
+          }
         } else if (error.response.status === 500) {
           errorMessage = 'Server error. Please try again later.';
         } else {
@@ -217,6 +247,15 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
       }
       
       alert(errorMessage);
+      
+      // If some students were created successfully, refresh the data
+      if (showDetailedError && error.response.data?.results?.totalSuccessful > 0) {
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess(error.response.data);
+          }
+        }, 2000);
+      }
     }
   };
 
