@@ -65,6 +65,7 @@ import ProtectedRoute from "components/ProtectedRoute";
 import Icon from "@mui/material/Icon";
 
 const routes = [
+  // 1. Dashboard
   {
     type: "collapse",
     name: "Dashboard",
@@ -77,18 +78,82 @@ const routes = [
       </ProtectedRoute>
     ),
   },
+  
+  // 2. User Management (with Staff Management nested inside)
   {
     type: "collapse",
     name: "User Management",
-    key: "tables",
+    key: "user-management",
     icon: <Icon fontSize="small">people</Icon>,
-    route: "/tables",
+    collapse: [
+      {
+        name: "Staff Management",
+        key: "staff-management",
+        route: "/staff-management",
+        component: (
+          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+            <StaffManagement />
+          </ProtectedRoute>
+        ),
+      }
+    ],
+  },
+  
+  // 3. Departments (with Course Categories, Department Management, All Departments nested inside)
+  {
+    type: "collapse",
+    name: "Departments",
+    key: "departments",
+    icon: <Icon fontSize="small">account_tree</Icon>,
+    collapse: [
+      {
+        name: "Course Categories",
+        key: "course-category-management",
+        route: "/course-category-management",
+        component: (
+          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+            <CourseCategoryManagement />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        name: "Department Management",
+        key: "department-management",
+        route: "/department-management",
+        component: (
+          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+            <DepartmentManagement />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        name: "All Departments",
+        key: "all-departments",
+        route: "/departments",
+        component: (
+          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+            <DepartmentsOverview />
+          </ProtectedRoute>
+        ),
+      }
+    ],
+  },
+  
+  // 4. Administrator Profile
+  {
+    type: "collapse",
+    name: "Administrator Profile",
+    key: "administrator-profile",
+    icon: <Icon fontSize="small">admin_panel_settings</Icon>,
+    route: "/administrator-profile",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff', 'department_hod']}>
-        <Tables />
+      <ProtectedRoute requiredRoles={['admin', 'director', 'staff', 'hod']}>
+        <AdministratorProfile />
       </ProtectedRoute>
     ),
   },
+
+  // Other existing routes (kept for functionality but may be hidden from sidebar based on role)
   {
     type: "collapse",
     name: "Job Management",
@@ -151,18 +216,6 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Administrator Profile",
-    key: "administrator-profile",
-    icon: <Icon fontSize="small">admin_panel_settings</Icon>,
-    route: "/administrator-profile",
-    component: (
-      <ProtectedRoute requiredRoles={['admin', 'director', 'staff', 'hod']}>
-        <AdministratorProfile />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    type: "collapse",
     name: "Placement Director Profile",
     key: "placement-director-profile",
     icon: <Icon fontSize="small">business_center</Icon>,
@@ -187,18 +240,6 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Staff Management",
-    key: "staff-management",
-    icon: <Icon fontSize="small">group_add</Icon>,
-    route: "/staff-management",
-    component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
-        <StaffManagement />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    type: "collapse",
     name: "Student Management",
     key: "student-management",
     icon: <Icon fontSize="small">school</Icon>,
@@ -208,48 +249,6 @@ const routes = [
         <StudentManagement />
       </ProtectedRoute>
     ),
-  },
-  {
-    type: "collapse",
-    name: "Course Categories",
-    key: "course-category-management",
-    icon: <Icon fontSize="small">category</Icon>,
-    route: "/course-category-management",
-    component: (
-      <ProtectedRoute requiredRoles={['admin']}>
-        <CourseCategoryManagement />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    type: "collapse",
-    name: "Department Management",
-    key: "department-management",
-    icon: <Icon fontSize="small">business</Icon>,
-    route: "/department-management",
-    component: (
-      <ProtectedRoute requiredRoles={['admin']}>
-        <DepartmentManagement />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    type: "collapse",
-    name: "Departments",
-    key: "departments",
-    icon: <Icon fontSize="small">account_tree</Icon>,
-    collapse: [
-      {
-        name: "All Departments",
-        key: "all-departments",
-        route: "/departments",
-        component: (
-          <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
-            <DepartmentsOverview />
-          </ProtectedRoute>
-        ),
-      }
-    ],
   },
   {
     type: "collapse",

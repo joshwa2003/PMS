@@ -319,7 +319,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
     return '🟢'; // Green circle for active
   };
 
-  const canDelete = user?.role === 'admin';
+  const canDelete = user?.role === 'admin' || user?.role === 'placement_director';
 
   // Get available options for filters
   const availableRoles = getAvailableRoles ? getAvailableRoles() : [];

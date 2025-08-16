@@ -10,7 +10,7 @@ const {
   uploadProfileImage
 } = require('../controllers/placementStaffProfileController');
 const { protect, authorize } = require('../middleware/auth');
-const { validateProfileUpdate } = require('../middleware/validation');
+const { validatePlacementStaffProfileUpdate } = require('../middleware/validation');
 
 // @route   GET /api/v1/placement-staff-profiles/profile
 // @desc    Get own placement staff profile
@@ -20,7 +20,7 @@ router.get('/profile', protect, getProfile);
 // @route   PUT /api/v1/placement-staff-profiles/profile
 // @desc    Update own placement staff profile
 // @access  Private
-router.put('/profile', protect, validateProfileUpdate, updateProfile);
+router.put('/profile', protect, validatePlacementStaffProfileUpdate, updateProfile);
 
 // @route   POST /api/v1/placement-staff-profiles/upload-profile-image
 // @desc    Upload placement staff profile image

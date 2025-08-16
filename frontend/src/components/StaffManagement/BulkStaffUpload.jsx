@@ -51,6 +51,15 @@ const BulkStaffUpload = ({ open, onClose, onSuccess }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [departments, setDepartments] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({
+    processed: 0,
+    total: 0,
+    success: 0,
+    failed: 0,
+    warnings: 0,
+    status: 'idle',
+    message: ''
+  });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -198,20 +207,71 @@ const BulkStaffUpload = ({ open, onClose, onSuccess }) => {
     if (!previewData.length) return;
 
     setUploading(true);
+    setValidationErrors([]); // Clear previous errors
+    setShowResults(false);
+    
+    // Reset progress state
+    setUploadProgress({
+      processed: 0,
+      total: previewData.length,
+      success: 0,
+      failed: 0,
+      warnings: 0,
+      status: 'starting',
+      message: `Preparing to upload ${previewData.length} staff members...`
+    });
+    
     try {
       // Remove row numbers from data before sending
       const cleanedData = previewData.map(({ row, ...staff }) => staff);
       
-      const response = await staffService.createBulkStaff(cleanedData);
+      // Progress callback function
+      const onProgress = (progressData) => {
+        setUploadProgress(progressData);
+        
+        // Auto-redirect to staff table when completed successfully
+        if (progressData.status === 'completed' && progressData.failed === 0) {
+          setTimeout(() => {
+            handleClose();
+            // Trigger success callback to refresh staff list
+            if (onSuccess) {
+              onSuccess({
+                successCount: progressData.success,
+                failureCount: progressData.failed,
+                warningCount: progressData.warnings
+              });
+            }
+          }, 2000); // Show success message for 2 seconds before closing
+        }
+      };
+      
+      const response = await staffService.createBulkStaff(cleanedData, onProgress);
       setUploadResults(response.results);
       setShowResults(true);
       
-      if (response.results.successCount > 0) {
-        onSuccess && onSuccess(response.results);
-      }
     } catch (error) {
-      console.error('Error uploading staff:', error);
-      setValidationErrors([error.message || 'Failed to upload staff data']);
+      console.error('Bulk upload error:', error);
+      
+      // Handle timeout errors specifically
+      if (error.message.includes('timeout') || error.message.includes('exceeded')) {
+        setValidationErrors([
+          'Upload is taking longer than expected. The staff members may have been created successfully.',
+          'Please check the staff list and try again if needed.',
+          'If you see the uploaded staff in the list, the upload was successful despite the timeout.'
+        ]);
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'timeout',
+          message: 'Upload timeout - please check staff list to verify results'
+        }));
+      } else {
+        setValidationErrors([error.message || 'Failed to upload staff data']);
+        setUploadProgress(prev => ({
+          ...prev,
+          status: 'error',
+          message: `Upload failed: ${error.message || 'Unknown error'}`
+        }));
+      }
     } finally {
       setUploading(false);
     }
@@ -255,6 +315,16 @@ const BulkStaffUpload = ({ open, onClose, onSuccess }) => {
     setUploadResults(null);
     setShowPreview(false);
     setShowResults(false);
+    setUploading(false);
+    setUploadProgress({
+      processed: 0,
+      total: 0,
+      success: 0,
+      failed: 0,
+      warnings: 0,
+      status: 'idle',
+      message: ''
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -360,9 +430,19 @@ const BulkStaffUpload = ({ open, onClose, onSuccess }) => {
           {/* Validation Errors */}
           {validationErrors.length > 0 && (
             <Box mb={3}>
-              <Alert severity="error">
+              <Alert 
+                severity={
+                  validationErrors.some(error => 
+                    typeof error === 'string' && 
+                    (error.includes('timeout') || error.includes('background'))
+                  ) ? "warning" : "error"
+                }
+              >
                 <Typography variant="body2" fontWeight="medium" gutterBottom>
-                  Validation Errors:
+                  {validationErrors.some(error => 
+                    typeof error === 'string' && 
+                    (error.includes('timeout') || error.includes('background'))
+                  ) ? "Upload Status:" : "Validation Errors:"}
                 </Typography>
                 {validationErrors.map((error, index) => (
                   <Typography key={index} variant="body2" component="div">
@@ -435,10 +515,76 @@ const BulkStaffUpload = ({ open, onClose, onSuccess }) => {
           {/* Upload Progress */}
           {uploading && (
             <Box mb={3}>
-              <Typography variant="body2" gutterBottom>
-                Uploading staff data...
-              </Typography>
-              <LinearProgress />
+              <Alert 
+                severity={
+                  uploadProgress.status === 'error' ? 'error' :
+                  uploadProgress.status === 'timeout' ? 'warning' :
+                  uploadProgress.status === 'completed' ? 'success' : 'info'
+                } 
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="body2" fontWeight="medium" gutterBottom>
+                  {uploadProgress.message || `Processing ${uploadProgress.processed}/${uploadProgress.total} staff members...`}
+                </Typography>
+                {uploadProgress.total > 0 && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Progress: {uploadProgress.processed}/{uploadProgress.total} 
+                    {uploadProgress.success > 0 && ` • ✅ ${uploadProgress.success} successful`}
+                    {uploadProgress.failed > 0 && ` • ❌ ${uploadProgress.failed} failed`}
+                    {uploadProgress.warnings > 0 && ` • ⚠️ ${uploadProgress.warnings} warnings`}
+                  </Typography>
+                )}
+                {uploadProgress.status === 'completed' && uploadProgress.failed === 0 && (
+                  <Typography variant="body2" sx={{ mt: 1, fontWeight: 'medium', color: 'success.main' }}>
+                    🎉 All staff members created successfully! Redirecting to staff list...
+                  </Typography>
+                )}
+                {uploadProgress.status === 'completed' && uploadProgress.failed > 0 && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Upload completed with some errors. Please review the results below.
+                  </Typography>
+                )}
+                {uploadProgress.status === 'timeout' && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Please check the staff list to verify if the upload was successful.
+                  </Typography>
+                )}
+              </Alert>
+              
+              {/* Progress Bar */}
+              {uploadProgress.total > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={(uploadProgress.processed / uploadProgress.total) * 100}
+                    sx={{ 
+                      height: 8, 
+                      borderRadius: 4,
+                      backgroundColor: 'grey.200',
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: 
+                          uploadProgress.status === 'error' ? 'error.main' :
+                          uploadProgress.status === 'completed' ? 'success.main' : 'primary.main'
+                      }
+                    }}
+                  />
+                  <Box display="flex" justifyContent="space-between" mt={1}>
+                    <Typography variant="caption" color="text.secondary">
+                      {uploadProgress.processed} of {uploadProgress.total} processed
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {Math.round((uploadProgress.processed / uploadProgress.total) * 100)}%
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Batch Information */}
+              {uploadProgress.batchInfo && (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  Processing batch {uploadProgress.batchInfo.currentBatch} of {uploadProgress.batchInfo.totalBatches}
+                </Typography>
+              )}
             </Box>
           )}
 

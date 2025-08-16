@@ -242,7 +242,7 @@ const StaffListTable = ({ onEditStaff, onStaffDeleted }) => {
     return `${staffMember.firstName?.charAt(0) || ''}${staffMember.lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
-  const canDelete = user?.role === 'admin';
+  const canDelete = user?.role === 'admin' || user?.role === 'placement_director';
 
   const renderFilterChips = () => {
     const chips = [];

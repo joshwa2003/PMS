@@ -124,8 +124,12 @@ exports.getProfile = async (req, res) => {
 // @access  Private (Own profile only)
 exports.updateProfile = async (req, res) => {
   try {
+    console.log('Update profile request received for user:', req.user._id);
+    console.log('Update data:', req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -139,6 +143,8 @@ exports.updateProfile = async (req, res) => {
     let profile = await PlacementStaffProfile.findByUserId(userId);
     
     if (!profile) {
+      console.log('Profile not found, creating new profile for user:', userId);
+      
       // For new profile creation, we need to ensure required fields have default values
       const user = await User.findById(userId);
       if (!user) {
@@ -148,20 +154,51 @@ exports.updateProfile = async (req, res) => {
         });
       }
 
-      // Create new profile with required defaults
+      // Create new profile with required defaults and merge with request body
       const profileData = {
         userId,
-        // Set defaults for required fields if not provided
+        employeeId: req.body.employeeId || user.employeeId || `EMP${Date.now()}`,
+        name: req.body.name || {
+          firstName: user.firstName || 'Staff',
+          lastName: user.lastName || 'Member'
+        },
+        email: req.body.email || user.email,
+        mobileNumber: req.body.mobileNumber || user.mobileNumber || user.phone || '0000000000',
+        gender: req.body.gender || user.gender || 'Other',
+        role: req.body.role || (user.role === 'placement_staff' ? 'staff' : 'other'),
         department: req.body.department || user.department || 'OTHER',
+        designation: req.body.designation || user.designation || 'Staff Coordinator',
         dateOfJoining: req.body.dateOfJoining || user.dateOfJoining || new Date(),
         officeLocation: req.body.officeLocation || user.officeLocation || 'Main Campus',
-        designation: req.body.designation || user.designation || 'Staff Coordinator',
-        role: user.role === 'placement_staff' ? 'staff' : 'other',
-        ...req.body
+        officialEmail: req.body.officialEmail || user.officialEmail || user.email,
+        experienceYears: req.body.experienceYears !== undefined ? req.body.experienceYears : (user.experienceYears || 0),
+        qualifications: req.body.qualifications || user.qualifications || [],
+        assignedStudents: req.body.assignedStudents || [],
+        responsibilitiesText: req.body.responsibilitiesText || user.responsibilitiesText || '',
+        trainingProgramsHandled: req.body.trainingProgramsHandled || user.trainingProgramsHandled || [],
+        languagesSpoken: req.body.languagesSpoken || user.languagesSpoken || [],
+        availabilityTimeSlots: req.body.availabilityTimeSlots || user.availabilityTimeSlots || [],
+        contact: req.body.contact || user.contact || {
+          alternatePhone: '',
+          emergencyContact: '',
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India'
+          }
+        },
+        adminNotes: req.body.adminNotes || user.adminNotes || '',
+        profilePhotoUrl: req.body.profilePhotoUrl || user.profilePhotoUrl || '',
+        createdBy: user._id,
+        lastLoginAt: user.lastLogin
       };
 
       profile = new PlacementStaffProfile(profileData);
+      console.log('Creating new profile with data:', profileData);
     } else {
+      console.log('Updating existing profile');
       // Update existing profile - only update provided fields
       Object.keys(req.body).forEach(key => {
         if (key === 'name' && typeof req.body[key] === 'object') {
@@ -180,38 +217,37 @@ exports.updateProfile = async (req, res) => {
     }
 
     // Use validateBeforeSave: false to skip validation for partial updates
+    console.log('Saving profile...');
     const updatedProfile = await profile.save({ validateBeforeSave: false });
+    console.log('Profile saved successfully');
 
     // Manually trigger profile completion calculation after save
     await updatedProfile.updateProfileCompletion();
 
-    // Prepare user update data - only include fields that exist in the profile
+    // Prepare user update data - only include fields that are compatible with User model
     const userUpdateData = {};
     if (updatedProfile.name?.firstName) userUpdateData.firstName = updatedProfile.name.firstName;
     if (updatedProfile.name?.lastName) userUpdateData.lastName = updatedProfile.name.lastName;
     if (updatedProfile.mobileNumber) userUpdateData.mobileNumber = updatedProfile.mobileNumber;
     if (updatedProfile.gender) userUpdateData.gender = updatedProfile.gender;
     if (updatedProfile.profilePhotoUrl) userUpdateData.profilePhotoUrl = updatedProfile.profilePhotoUrl;
-    if (updatedProfile.department) userUpdateData.department = updatedProfile.department;
+    // Note: Skip department field as User model expects ObjectId but PlacementStaffProfile uses string
+    // Store department code in departmentCode field instead
+    if (updatedProfile.department) userUpdateData.departmentCode = updatedProfile.department;
     if (updatedProfile.employeeId) userUpdateData.employeeId = updatedProfile.employeeId;
     if (updatedProfile.designation) userUpdateData.designation = updatedProfile.designation;
     if (updatedProfile.dateOfJoining) userUpdateData.dateOfJoining = updatedProfile.dateOfJoining;
     if (updatedProfile.officeLocation) userUpdateData.officeLocation = updatedProfile.officeLocation;
-    if (updatedProfile.officialEmail) userUpdateData.officialEmail = updatedProfile.officialEmail;
-    if (updatedProfile.experienceYears !== undefined) userUpdateData.experienceYears = updatedProfile.experienceYears;
-    if (updatedProfile.qualifications) userUpdateData.qualifications = updatedProfile.qualifications;
-    if (updatedProfile.responsibilitiesText) userUpdateData.responsibilitiesText = updatedProfile.responsibilitiesText;
-    if (updatedProfile.trainingProgramsHandled) userUpdateData.trainingProgramsHandled = updatedProfile.trainingProgramsHandled;
-    if (updatedProfile.languagesSpoken) userUpdateData.languagesSpoken = updatedProfile.languagesSpoken;
-    if (updatedProfile.availabilityTimeSlots) userUpdateData.availabilityTimeSlots = updatedProfile.availabilityTimeSlots;
     if (updatedProfile.contact) userUpdateData.contact = updatedProfile.contact;
     if (updatedProfile.adminNotes) userUpdateData.adminNotes = updatedProfile.adminNotes;
 
-    // Update the User model with available information
+    // Update the User model with compatible fields only
     if (Object.keys(userUpdateData).length > 0) {
+      console.log('Updating user model with:', userUpdateData);
       await User.findByIdAndUpdate(userId, userUpdateData);
     }
 
+    console.log('Profile update completed successfully');
     res.status(200).json({
       success: true,
       message: 'Placement staff profile updated successfully',
@@ -538,15 +574,19 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Check file type
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    try {
+      // Check file type
+      const allowedTypes = /jpeg|jpg|png|gif/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
+      }
+    } catch (error) {
+      cb(new Error('Invalid file format'));
     }
   }
 });
@@ -554,20 +594,109 @@ const upload = multer({
 // @desc    Upload placement staff profile image
 // @route   POST /api/v1/placement-staff-profiles/upload-profile-image
 // @access  Private (Own profile only)
-exports.uploadProfileImage = [
-  upload.single('profileImage'),
-  async (req, res) => {
+exports.uploadProfileImage = async (req, res) => {
+  // Apply multer middleware
+  upload.single('profileImage')(req, res, async (err) => {
     try {
+      // Handle multer errors
+      if (err) {
+        console.error('Multer error:', err);
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+              success: false,
+              message: 'File size too large. Maximum size is 5MB.'
+            });
+          }
+          return res.status(400).json({
+            success: false,
+            message: `File upload error: ${err.message}`
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload failed'
+        });
+      }
+
+      // Check if file was provided
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'No image file provided'
+          message: 'No image file provided. Please select an image file.'
         });
       }
 
       const userId = req.user._id;
+      console.log('Starting profile image upload for user:', userId);
+      console.log('File details:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+
+      // Ensure placement staff profile exists before uploading image
+      let profile = await PlacementStaffProfile.findOne({ userId });
       
-      // Upload to Supabase using the uploadProfileImage method
+      if (!profile) {
+        console.log('Profile not found, creating new profile for user:', userId);
+        
+        // Get user data to create profile
+        const user = await User.findById(userId);
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+
+        // Create new profile with minimal required data
+        profile = new PlacementStaffProfile({
+          userId: user._id,
+          employeeId: user.employeeId || `EMP${Date.now()}`,
+          name: {
+            firstName: user.firstName || 'Staff',
+            lastName: user.lastName || 'Member'
+          },
+          email: user.email,
+          mobileNumber: user.mobileNumber || user.phone || '0000000000',
+          gender: user.gender || 'Other',
+          role: user.role === 'placement_staff' ? 'staff' : 'other',
+          department: user.department || 'OTHER',
+          designation: user.designation || 'Staff Coordinator',
+          dateOfJoining: user.dateOfJoining || new Date(),
+          officeLocation: user.officeLocation || 'Main Campus',
+          officialEmail: user.officialEmail || user.email,
+          experienceYears: user.experienceYears || 0,
+          qualifications: user.qualifications || [],
+          assignedStudents: [],
+          responsibilitiesText: user.responsibilitiesText || '',
+          trainingProgramsHandled: user.trainingProgramsHandled || [],
+          languagesSpoken: user.languagesSpoken || [],
+          availabilityTimeSlots: user.availabilityTimeSlots || [],
+          contact: user.contact || {
+            alternatePhone: '',
+            emergencyContact: '',
+            address: {
+              street: '',
+              city: '',
+              state: '',
+              pincode: '',
+              country: 'India'
+            }
+          },
+          adminNotes: user.adminNotes || '',
+          createdBy: user._id,
+          lastLoginAt: user.lastLogin
+        });
+        
+        // Save with validation disabled initially
+        await profile.save({ validateBeforeSave: false });
+        console.log('New profile created successfully');
+      }
+      
+      // Upload to storage using the uploadProfileImage method
+      console.log('Uploading to storage service...');
       const uploadResult = await supabaseStorage.uploadProfileImage(
         req.file.buffer, 
         req.file.originalname, 
@@ -575,6 +704,7 @@ exports.uploadProfileImage = [
       );
 
       if (!uploadResult.success) {
+        console.error('Storage upload failed:', uploadResult.error);
         return res.status(500).json({
           success: false,
           message: uploadResult.error || 'Failed to upload image to storage'
@@ -582,19 +712,18 @@ exports.uploadProfileImage = [
       }
 
       const profilePhotoUrl = uploadResult.url;
+      console.log('Storage upload successful, URL:', profilePhotoUrl);
 
       // Update placement staff profile with new image URL
-      let profile = await PlacementStaffProfile.findOne({ userId });
-      
-      if (profile) {
-        profile.profilePhotoUrl = profilePhotoUrl;
-        await profile.save();
-      }
+      profile.profilePhotoUrl = profilePhotoUrl;
+      await profile.save({ validateBeforeSave: false });
+      console.log('Profile updated with new image URL');
 
       // Also update User model
       await User.findByIdAndUpdate(userId, {
         profilePhotoUrl: profilePhotoUrl
       });
+      console.log('User model updated with new image URL');
 
       res.status(200).json({
         success: true,
@@ -609,5 +738,5 @@ exports.uploadProfileImage = [
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  }
-];
+  });
+};

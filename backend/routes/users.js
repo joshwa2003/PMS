@@ -87,12 +87,12 @@ router.put('/staff/:id',
 );
 
 router.delete('/staff/bulk', 
-  authorize('admin'), 
+  authorize('admin', 'placement_director'), 
   deleteBulkStaff
 );
 
 router.delete('/staff/:id', 
-  authorize('admin'), 
+  authorize('admin', 'placement_director'), 
   validateObjectId('id'),
   deleteStaff
 );

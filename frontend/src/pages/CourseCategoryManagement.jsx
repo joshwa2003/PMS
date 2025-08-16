@@ -193,7 +193,7 @@ const CourseCategoryManagementContent = () => {
   };
 
   // Check if user has permission to access course category management
-  const hasPermission = user?.role === 'admin';
+  const hasPermission = user?.role === 'admin' || user?.role === 'placement_director';
 
   if (!hasPermission) {
     return (

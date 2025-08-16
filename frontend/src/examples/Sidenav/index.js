@@ -43,6 +43,12 @@ import SidenavCollapse from "examples/Sidenav/SidenavCollapse";
 // Custom styles for the Sidenav
 import SidenavRoot from "examples/Sidenav/SidenavRoot";
 import sidenavLogoLabel from "examples/Sidenav/styles/sidenav";
+import {
+  collapseItem,
+  collapseIconBox,
+  collapseIcon,
+  collapseText,
+} from "examples/Sidenav/styles/sidenavCollapse";
 
 // S.A. Engineering College React context
 import {
@@ -131,8 +137,20 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     const isSystemAdmin = systemAdminRoles.includes(user.role);
     const isAdministrator = administratorRoles.includes(user.role);
     const isStudent = studentRoles.includes(user.role);
+    const isAdmin = user.role === 'admin';
     
-    // Role-based filtering logic
+    // For admin users, show only the reorganized sidebar structure
+    if (isAdmin) {
+      const adminSidebarItems = [
+        'dashboard',
+        'user-management', 
+        'departments',
+        'administrator-profile'
+      ];
+      return adminSidebarItems.includes(key);
+    }
+    
+    // Role-based filtering logic for other users
     switch (key) {
       case 'profile':
         // Hide Profile for System Administrators, show for others
@@ -158,13 +176,17 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         // Show Department HOD Profile only for department HODs
         return user.role === 'department_hod';
 
-      case 'staff-management':
-        // Show Staff Management only for admin and placement director
+      case 'user-management':
+        // Show User Management for admin and placement director
         return user.role === 'admin' || user.role === 'placement_director';
 
       case 'departments':
-        // Show Departments only for admin and placement director
+        // Show Departments for admin and placement director
         return user.role === 'admin' || user.role === 'placement_director';
+
+      case 'staff-management':
+        // Hide standalone Staff Management (now nested under User Management)
+        return false;
       
       default:
         // Show all other routes by default
@@ -187,49 +209,41 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             <ListItem component="li">
               <MDBox
                 onClick={() => handleCollapseToggle(key)}
-                sx={(theme) => ({
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  margin: "0 8px",
-                  backgroundColor: transparentSidenav ? "transparent" : 
-                    whiteSidenav ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
-                  "&:hover": {
-                    backgroundColor: transparentSidenav ? "rgba(0,0,0,0.05)" : 
-                      whiteSidenav ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)",
-                  }
-                })}
+                sx={(theme) =>
+                  collapseItem(theme, {
+                    active: false,
+                    transparentSidenav,
+                    whiteSidenav,
+                    darkMode,
+                    sidenavColor,
+                  })
+                }
               >
                 <ListItemIcon
-                  sx={{
-                    minWidth: "36px",
-                    color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.6)" : "white"
-                  }}
+                  sx={(theme) =>
+                    collapseIconBox(theme, { transparentSidenav, whiteSidenav, darkMode, active: false })
+                  }
                 >
                   {typeof icon === "string" ? (
-                    <Icon sx={{ fontSize: "1.25rem" }}>{icon}</Icon>
+                    <Icon sx={(theme) => collapseIcon(theme, { active: false })}>{icon}</Icon>
                   ) : (
                     icon
                   )}
                 </ListItemIcon>
                 <ListItemText
                   primary={name}
-                  sx={{
-                    "& .MuiListItemText-primary": {
-                      color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.8)" : "white",
-                      fontSize: "0.875rem",
-                      fontWeight: 400,
-                      opacity: miniSidenav ? 0 : 1,
-                      transition: "opacity 0.3s ease"
-                    }
-                  }}
+                  sx={(theme) =>
+                    collapseText(theme, {
+                      miniSidenav,
+                      transparentSidenav,
+                      whiteSidenav,
+                      active: false,
+                    })
+                  }
                 />
                 <Icon
                   sx={{
-                    color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.6)" : "white",
+                    color: (transparentSidenav && !darkMode) || whiteSidenav ? "rgba(0,0,0,0.6)" : "white",
                     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                     transition: "transform 0.3s ease"
                   }}
@@ -244,43 +258,42 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               <List component="div" disablePadding>
                 {collapse.map((nestedRoute) => (
                   <NavLink key={nestedRoute.key} to={nestedRoute.route} style={{ textDecoration: "none" }}>
-                    <ListItem component="li" sx={{ pl: 4 }}>
+                    <ListItem component="li" sx={{ pl: 2 }}>
                       <MDBox
-                        sx={(theme) => ({
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "6px 12px",
-                          borderRadius: "6px",
-                          margin: "0 8px",
-                          backgroundColor: location.pathname === nestedRoute.route ? 
-                            (transparentSidenav ? "rgba(0,0,0,0.1)" : 
-                             whiteSidenav ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)") : "transparent",
-                          "&:hover": {
-                            backgroundColor: transparentSidenav ? "rgba(0,0,0,0.05)" : 
-                              whiteSidenav ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
-                          }
-                        })}
+                        sx={(theme) =>
+                          collapseItem(theme, {
+                            active: location.pathname === nestedRoute.route,
+                            transparentSidenav,
+                            whiteSidenav,
+                            darkMode,
+                            sidenavColor,
+                          })
+                        }
                       >
                         <ListItemIcon
-                          sx={{
-                            minWidth: "24px",
-                            color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.8)"
-                          }}
+                          sx={(theme) =>
+                            collapseIconBox(theme, { 
+                              transparentSidenav, 
+                              whiteSidenav, 
+                              darkMode, 
+                              active: location.pathname === nestedRoute.route 
+                            })
+                          }
                         >
-                          <Icon sx={{ fontSize: "1rem" }}>fiber_manual_record</Icon>
+                          <Icon sx={(theme) => collapseIcon(theme, { active: location.pathname === nestedRoute.route })}>
+                            fiber_manual_record
+                          </Icon>
                         </ListItemIcon>
                         <ListItemText
                           primary={nestedRoute.name}
-                          sx={{
-                            "& .MuiListItemText-primary": {
-                              color: transparentSidenav || whiteSidenav ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.9)",
-                              fontSize: "0.8125rem",
-                              fontWeight: location.pathname === nestedRoute.route ? 500 : 400,
-                              opacity: miniSidenav ? 0 : 1,
-                              transition: "opacity 0.3s ease"
-                            }
-                          }}
+                          sx={(theme) =>
+                            collapseText(theme, {
+                              miniSidenav,
+                              transparentSidenav,
+                              whiteSidenav,
+                              active: location.pathname === nestedRoute.route,
+                            })
+                          }
                         />
                       </MDBox>
                     </ListItem>

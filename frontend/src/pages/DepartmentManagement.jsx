@@ -89,7 +89,7 @@ const DepartmentManagementContent = () => {
   };
 
   // Check if user has permission to access department management
-  const hasPermission = user?.role === 'admin';
+  const hasPermission = user?.role === 'admin' || user?.role === 'placement_director';
 
   if (!hasPermission) {
     return (

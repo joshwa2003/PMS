@@ -13,8 +13,8 @@ const { protect, authorize } = require('../middleware/auth');
 // Protect all routes
 router.use(protect);
 
-// Admin only routes
-router.use(authorize('admin'));
+// Admin and Placement Director only routes
+router.use(authorize('admin', 'placement_director'));
 
 // Routes
 router

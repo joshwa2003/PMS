@@ -1,4 +1,4 @@
-import api from './api';
+import api, { bulkApi } from './api';
 
 class StaffService {
   // Create new staff member (Admin and Placement Director only)
@@ -16,17 +16,210 @@ class StaffService {
     }
   }
 
-  // Create multiple staff members at once (Admin and Placement Director only)
-  async createBulkStaff(staffDataArray) {
+  // Create multiple staff members at once with progress tracking (Admin and Placement Director only)
+  async createBulkStaff(staffDataArray, onProgress = null) {
     try {
-      const response = await api.post('/users/staff/bulk', { staffData: staffDataArray });
-      
-      if (response.success) {
-        return response;
+      // If no progress callback provided, use the original method
+      if (!onProgress) {
+        const response = await bulkApi.post('/users/staff/bulk', { staffData: staffDataArray });
+        
+        if (response.success) {
+          return response;
+        }
+        
+        throw new Error(response.message || 'Failed to create bulk staff members');
       }
-      
-      throw new Error(response.message || 'Failed to create bulk staff members');
+
+      // Use progress tracking method
+      return await this.createBulkStaffWithProgress(staffDataArray, onProgress);
     } catch (error) {
+      throw error;
+    }
+  }
+
+  // Create bulk staff with progress tracking
+  async createBulkStaffWithProgress(staffDataArray, onProgress) {
+    try {
+      const totalStaff = staffDataArray.length;
+      let processedCount = 0;
+      let successCount = 0;
+      let failureCount = 0;
+      const createdStaff = [];
+      const failedStaff = [];
+      const warningStaff = [];
+
+      // Initial progress update
+      onProgress({
+        processed: 0,
+        total: totalStaff,
+        success: 0,
+        failed: 0,
+        warnings: 0,
+        status: 'starting',
+        message: `Starting bulk upload of ${totalStaff} staff members...`
+      });
+
+      // Process in batches of 10 for better progress tracking
+      const batchSize = 10;
+      const batches = [];
+      
+      for (let i = 0; i < staffDataArray.length; i += batchSize) {
+        batches.push(staffDataArray.slice(i, i + batchSize));
+      }
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        
+        try {
+          // Send batch to backend
+          const response = await bulkApi.post('/users/staff/bulk', { 
+            staffData: batch,
+            batchInfo: {
+              batchIndex: batchIndex + 1,
+              totalBatches: batches.length,
+              batchSize: batch.length
+            }
+          });
+
+          if (response.success && response.results) {
+            // Update counters
+            successCount += response.results.successCount || 0;
+            failureCount += response.results.failureCount || 0;
+            processedCount += batch.length;
+
+            // Collect results
+            if (response.results.createdStaff) {
+              createdStaff.push(...response.results.createdStaff);
+            }
+            if (response.results.failedStaff) {
+              failedStaff.push(...response.results.failedStaff);
+            }
+            if (response.results.warningStaff) {
+              warningStaff.push(...response.results.warningStaff);
+            }
+
+            // Send progress update
+            onProgress({
+              processed: processedCount,
+              total: totalStaff,
+              success: successCount,
+              failed: failureCount,
+              warnings: warningStaff.length,
+              status: 'processing',
+              message: `Processing ${processedCount}/${totalStaff} staff members...`,
+              batchInfo: {
+                currentBatch: batchIndex + 1,
+                totalBatches: batches.length
+              }
+            });
+
+            // Small delay to show progress (optional)
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+          } else {
+            // Handle batch failure
+            failureCount += batch.length;
+            processedCount += batch.length;
+            
+            batch.forEach((staff, index) => {
+              failedStaff.push({
+                rowNumber: (batchIndex * batchSize) + index + 1,
+                data: staff,
+                errors: [response.message || 'Batch processing failed'],
+                warnings: []
+              });
+            });
+
+            onProgress({
+              processed: processedCount,
+              total: totalStaff,
+              success: successCount,
+              failed: failureCount,
+              warnings: warningStaff.length,
+              status: 'processing',
+              message: `Processing ${processedCount}/${totalStaff} staff members... (Batch ${batchIndex + 1} failed)`,
+              batchInfo: {
+                currentBatch: batchIndex + 1,
+                totalBatches: batches.length
+              }
+            });
+          }
+
+        } catch (batchError) {
+          console.error(`Batch ${batchIndex + 1} error:`, batchError);
+          
+          // Handle batch error
+          failureCount += batch.length;
+          processedCount += batch.length;
+          
+          batch.forEach((staff, index) => {
+            failedStaff.push({
+              rowNumber: (batchIndex * batchSize) + index + 1,
+              data: staff,
+              errors: [batchError.message || 'Network error during batch processing'],
+              warnings: []
+            });
+          });
+
+          onProgress({
+            processed: processedCount,
+            total: totalStaff,
+            success: successCount,
+            failed: failureCount,
+            warnings: warningStaff.length,
+            status: 'processing',
+            message: `Processing ${processedCount}/${totalStaff} staff members... (Batch ${batchIndex + 1} error)`,
+            batchInfo: {
+              currentBatch: batchIndex + 1,
+              totalBatches: batches.length
+            },
+            error: batchError.message
+          });
+        }
+      }
+
+      // Final progress update
+      const finalStatus = failureCount === 0 ? 'completed' : 'completed_with_errors';
+      onProgress({
+        processed: processedCount,
+        total: totalStaff,
+        success: successCount,
+        failed: failureCount,
+        warnings: warningStaff.length,
+        status: finalStatus,
+        message: failureCount === 0 
+          ? `Successfully created ${successCount} staff members!`
+          : `Completed with ${successCount} successful, ${failureCount} failed staff members.`
+      });
+
+      // Return consolidated results
+      return {
+        success: true,
+        message: `Bulk staff creation completed. ${successCount} created, ${failureCount} failed, ${warningStaff.length} warnings.`,
+        results: {
+          totalProcessed: processedCount,
+          successCount,
+          failureCount,
+          warningCount: warningStaff.length,
+          createdStaff,
+          failedStaff,
+          warningStaff
+        }
+      };
+
+    } catch (error) {
+      // Final error update
+      onProgress({
+        processed: 0,
+        total: staffDataArray.length,
+        success: 0,
+        failed: staffDataArray.length,
+        warnings: 0,
+        status: 'error',
+        message: `Upload failed: ${error.message}`,
+        error: error.message
+      });
+      
       throw error;
     }
   }

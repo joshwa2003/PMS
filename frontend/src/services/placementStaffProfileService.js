@@ -95,12 +95,39 @@ class PlacementStaffProfileService {
   // Upload profile image
   async uploadProfileImage(file) {
     try {
+      // Validate file before upload
+      if (!file) {
+        throw new Error('No file selected. Please choose an image file.');
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Please select a JPEG, PNG, or GIF image.');
+      }
+
+      // Validate file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        throw new Error('File size too large. Please select an image smaller than 5MB.');
+      }
+
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('profileImage', file);
       
       // Get token for authorization
       const token = localStorage.getItem('pms_token');
+      
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
+      console.log('Uploading profile image:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
       
       // Use fetch for file upload since axios has issues with FormData
       const response = await fetch(`${api.defaults.baseURL}/placement-staff-profiles/upload-profile-image`, {
@@ -111,14 +138,50 @@ class PlacementStaffProfileService {
         body: formData
       });
 
+      // Check if response is ok
+      if (!response.ok) {
+        let errorMessage = 'Failed to upload profile image';
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the error response, use status text
+          errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
       const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.message || 'Failed to upload profile image');
       }
 
+      console.log('Profile image uploaded successfully:', result.profilePhotoUrl);
       return result;
     } catch (error) {
+      console.error('Upload profile image error:', error);
+      
+      // Provide user-friendly error messages
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
+      if (error.message.includes('413')) {
+        throw new Error('File size too large. Please select a smaller image.');
+      }
+      
+      if (error.message.includes('401') || error.message.includes('403')) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
+      
+      if (error.message.includes('500')) {
+        throw new Error('Server error. Please try again later or contact support.');
+      }
+      
+      // Re-throw the original error if it's already user-friendly
       throw error;
     }
   }

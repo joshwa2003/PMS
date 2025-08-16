@@ -102,8 +102,8 @@ const StaffCard = ({ staff, onEdit, onDelete }) => {
     return `${staff.firstName?.charAt(0) || ''}${staff.lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
-  // Check if current user can delete (only admin can delete)
-  const canDelete = user?.role === 'admin';
+  // Check if current user can delete (admin and placement_director can delete)
+  const canDelete = user?.role === 'admin' || user?.role === 'placement_director';
 
   return (
     <>

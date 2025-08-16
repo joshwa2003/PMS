@@ -346,24 +346,52 @@ export const PlacementStaffProfileProvider = ({ children }) => {
   // Upload profile image function
   const uploadProfileImage = async (file) => {
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
+    dispatch({ type: ACTIONS.CLEAR_ERROR });
 
     try {
+      console.log('Starting profile image upload process...');
+      
       // Use the placementStaffProfileService to upload the image
       const result = await placementStaffProfileService.uploadProfileImage(file);
       
+      if (!result.success) {
+        throw new Error(result.message || 'Upload failed');
+      }
+      
       const profilePhotoUrl = result.profilePhotoUrl;
+      console.log('Image uploaded successfully, URL:', profilePhotoUrl);
       
       // Update form data with new profile image URL
       updateFormData('profilePhotoUrl', profilePhotoUrl);
       
-      // Also save the profile to persist the image URL
-      await saveProfile({ profilePhotoUrl });
+      // The backend upload function already updates the profile, so we don't need to call saveProfile again
+      // This avoids the secondary error we were seeing
       
+      console.log('Profile image upload completed successfully');
       return { success: true, profilePhotoUrl };
     } catch (error) {
       console.error('Upload profile image error:', error);
-      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
-      return { success: false, error: error.message };
+      
+      // Set user-friendly error message
+      let errorMessage = error.message;
+      
+      // Handle specific error cases
+      if (error.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('Authentication')) {
+        errorMessage = 'Session expired. Please refresh the page and try again.';
+      } else if (error.message.includes('Server error')) {
+        errorMessage = 'Server error. Please try again in a few moments.';
+      } else if (error.message.includes('File size')) {
+        errorMessage = 'Image file is too large. Please select a smaller image (max 5MB).';
+      } else if (error.message.includes('Invalid file type')) {
+        errorMessage = 'Invalid file format. Please select a JPEG, PNG, or GIF image.';
+      } else if (!errorMessage || errorMessage === 'Upload failed') {
+        errorMessage = 'Failed to upload image. Please try again.';
+      }
+      
+      dispatch({ type: ACTIONS.SET_ERROR, payload: errorMessage });
+      return { success: false, error: errorMessage };
     } finally {
       dispatch({ type: ACTIONS.SET_SAVING, payload: false });
     }

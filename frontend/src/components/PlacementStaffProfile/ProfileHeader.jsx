@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Card, Avatar, IconButton, CircularProgress, Box } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Card, Avatar, IconButton, CircularProgress, Box, Snackbar, Alert } from '@mui/material';
 import { PhotoCamera, Edit } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
@@ -13,29 +13,38 @@ function ProfileHeader() {
     formData,
     uploadProfileImage,
     isSaving,
+    error,
+    clearError,
     getProfileCompletion
   } = usePlacementStaffProfile();
 
   const fileInputRef = useRef(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, PNG, or GIF)');
-        return;
+      console.log('File selected for upload:', file.name);
+      
+      const result = await uploadProfileImage(file);
+      
+      if (result.success) {
+        setUploadSuccess(true);
+        // Clear the file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-
-      // Validate file size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-
-      await uploadProfileImage(file);
+      // Error handling is done in the context, no need to handle here
     }
+  };
+
+  const handleCloseSuccess = () => {
+    setUploadSuccess(false);
+  };
+
+  const handleCloseError = () => {
+    clearError();
   };
 
   const triggerFileInput = () => {
@@ -61,60 +70,65 @@ function ProfileHeader() {
   const displayEmployeeId = formData?.employeeId || 'Employee ID';
 
   return (
-    <Card sx={{ overflow: 'visible' }}>
-      <MDBox p={3}>
-        <MDBox display="flex" alignItems="center" justifyContent="space-between">
-          {/* Profile Image and Basic Info */}
-          <MDBox display="flex" alignItems="center">
-            <MDBox position="relative" mr={3}>
-              <Avatar
-                src={formData?.profilePhotoUrl || profile?.profilePhotoUrl}
-                sx={{ 
-                  width: 80, 
-                  height: 80,
-                  fontSize: '2rem',
-                  bgcolor: 'grey.300',
-                  color: 'grey.700',
-                  border: '2px solid',
-                  borderColor: 'primary.main'
-                }}
-              >
-                {displayName.charAt(0).toUpperCase()}
-              </Avatar>
-              
-              {/* Upload Button Overlay */}
-              <IconButton
-                onClick={triggerFileInput}
-                disabled={isSaving}
-                sx={{
-                  position: 'absolute',
-                  bottom: -5,
-                  right: -5,
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  width: 30,
-                  height: 30,
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  }
-                }}
-              >
-                {isSaving ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <PhotoCamera sx={{ fontSize: 16 }} />
-                )}
-              </IconButton>
+    <>
+      <Card sx={{ overflow: 'visible' }}>
+        <MDBox p={3}>
+          <MDBox display="flex" alignItems="center" justifyContent="space-between">
+            {/* Profile Image and Basic Info */}
+            <MDBox display="flex" alignItems="center">
+              <MDBox position="relative" mr={3}>
+                <Avatar
+                  src={formData?.profilePhotoUrl || profile?.profilePhotoUrl}
+                  sx={{ 
+                    width: 80, 
+                    height: 80,
+                    fontSize: '2rem',
+                    bgcolor: 'grey.300',
+                    color: 'grey.700',
+                    border: '2px solid',
+                    borderColor: 'primary.main'
+                  }}
+                >
+                  {displayName.charAt(0).toUpperCase()}
+                </Avatar>
+                
+                {/* Upload Button Overlay */}
+                <IconButton
+                  onClick={triggerFileInput}
+                  disabled={isSaving}
+                  title={isSaving ? 'Uploading...' : 'Upload profile image'}
+                  sx={{
+                    position: 'absolute',
+                    bottom: -5,
+                    right: -5,
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    width: 30,
+                    height: 30,
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                    },
+                    '&:disabled': {
+                      bgcolor: 'grey.400',
+                    }
+                  }}
+                >
+                  {isSaving ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <PhotoCamera sx={{ fontSize: 16 }} />
+                  )}
+                </IconButton>
 
-              {/* Hidden File Input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: 'none' }}
-              />
-            </MDBox>
+                {/* Hidden File Input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+              </MDBox>
 
             <MDBox>
               <MDTypography variant="h4" fontWeight="medium">
@@ -204,6 +218,31 @@ function ProfileHeader() {
         </MDBox>
       </MDBox>
     </Card>
+
+    {/* Success Snackbar */}
+    <Snackbar
+      open={uploadSuccess}
+      autoHideDuration={4000}
+      onClose={handleCloseSuccess}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+    >
+      <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
+        Profile image uploaded successfully!
+      </Alert>
+    </Snackbar>
+
+    {/* Error Snackbar */}
+    <Snackbar
+      open={!!error}
+      autoHideDuration={6000}
+      onClose={handleCloseError}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+    >
+      <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+        {error}
+      </Alert>
+    </Snackbar>
+  </>
   );
 }
 
