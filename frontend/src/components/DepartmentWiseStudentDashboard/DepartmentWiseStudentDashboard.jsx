@@ -80,8 +80,8 @@ function DepartmentWiseStudentDashboard() {
   };
 
   const handleViewStudents = (department) => {
-    // Navigate to the dedicated department students page
-    navigate(`/department-students/${department.id}`);
+    // Navigate to the department batches page first
+    navigate(`/department-batches/${department.id}`);
   };
 
   const filteredDepartments = departments.filter(dept => {

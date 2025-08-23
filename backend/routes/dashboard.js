@@ -17,6 +17,16 @@ router.get('/department-wise-students', dashboardController.getDepartmentWiseStu
 // @access  Private (Admin, Placement Director)
 router.get('/department/:departmentId/students', dashboardController.getDepartmentStudents);
 
+// @route   GET /api/dashboard/departments/:departmentId/batches
+// @desc    Get batches for a specific department
+// @access  Private (Admin, Placement Director)
+router.get('/departments/:departmentId/batches', dashboardController.getDepartmentBatches);
+
+// @route   GET /api/dashboard/departments/:departmentId/batches/:batchId/students
+// @desc    Get students for a specific department and batch
+// @access  Private (Admin, Placement Director)
+router.get('/departments/:departmentId/batches/:batchId/students', dashboardController.getDepartmentBatchStudents);
+
 // @route   GET /api/dashboard/summary
 // @desc    Get dashboard summary statistics
 // @access  Private (Admin, Placement Director)

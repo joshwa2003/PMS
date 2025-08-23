@@ -26,10 +26,11 @@ import StudentDataTable from 'components/DepartmentStudents/StudentDataTable';
 import departmentWiseStudentService from 'services/departmentWiseStudentService';
 
 const DepartmentStudents = () => {
-  const { departmentId } = useParams();
+  const { departmentId, batchId } = useParams();
   const navigate = useNavigate();
   
   const [department, setDepartment] = useState(null);
+  const [batch, setBatch] = useState(null);
   const [students, setStudents] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,16 +53,24 @@ const DepartmentStudents = () => {
     limit: 10
   });
 
-  // Fetch department students
+  // Fetch department students (batch-specific or all)
   const fetchDepartmentStudents = async (newFilters = null) => {
     try {
       setLoading(true);
       const params = newFilters || filters;
       
-      const response = await departmentWiseStudentService.getDepartmentStudents(departmentId, params);
+      let response;
+      if (batchId) {
+        // Fetch batch-specific students
+        response = await departmentWiseStudentService.getDepartmentBatchStudents(departmentId, batchId, params);
+      } else {
+        // Fetch all department students (legacy support)
+        response = await departmentWiseStudentService.getDepartmentStudents(departmentId, params);
+      }
       
       if (response.success) {
         setDepartment(response.data.department);
+        setBatch(response.data.batch || null);
         setStudents(response.data.students);
         setPagination(response.data.pagination);
         
@@ -73,17 +82,14 @@ const DepartmentStudents = () => {
           multipleOffers: response.data.students.filter(s => s.placementStatus === 'Multiple Offers').length
         };
         
-        // For accurate statistics, we need to fetch all students count by status
-        // This is a simplified version - in production, the backend should provide these stats
         setStatistics(stats);
-        
         setError(null);
       } else {
-        setError(response.message || 'Failed to fetch department students');
+        setError(response.message || 'Failed to fetch students');
       }
     } catch (error) {
-      console.error('Error fetching department students:', error);
-      setError('Failed to fetch department students');
+      console.error('Error fetching students:', error);
+      setError('Failed to fetch students');
     } finally {
       setLoading(false);
     }
@@ -197,9 +203,9 @@ const DepartmentStudents = () => {
             variant="outlined"
             color="secondary"
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/department-wise-student-dashboard')}
+            onClick={() => navigate(batchId ? `/department-batches/${departmentId}` : '/department-wise-student-dashboard')}
           >
-            Back to Dashboard
+            {batchId ? 'Back to Batches' : 'Back to Dashboard'}
           </MDButton>
         </MDBox>
       </DashboardLayout>
@@ -215,7 +221,7 @@ const DepartmentStudents = () => {
           <Grid container spacing={3} alignItems="center">
             <Grid item>
               <IconButton 
-                onClick={() => navigate('/department-wise-student-dashboard')}
+                onClick={() => navigate(batchId ? `/department-batches/${departmentId}` : '/department-wise-student-dashboard')}
                 sx={{ 
                   mr: 1,
                   backgroundColor: 'rgba(0,0,0,0.04)',
@@ -229,12 +235,18 @@ const DepartmentStudents = () => {
             </Grid>
             <Grid item xs>
               <MDTypography variant="h4" fontWeight="medium">
-                Students in {department?.name}
+                {batchId && batch ? 
+                  `Students in ${batch.batchCode} - ${department?.name}` : 
+                  `Students in ${department?.name}`
+                }
               </MDTypography>
               <MDTypography variant="body2" color="text" mt={1}>
-                {department?.placementStaff ? 
-                  `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` : 
-                  'No Staff Assigned'
+                {batchId && batch ? 
+                  `${batch.courseType} • ${batch.startYear}-${batch.endYear} • ${department?.placementStaff ? 
+                    `Staff: ${department.placementStaff.name}` : 'No Staff Assigned'}` :
+                  (department?.placementStaff ? 
+                    `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` : 
+                    'No Staff Assigned')
                 }
               </MDTypography>
             </Grid>

@@ -56,6 +56,7 @@ import DepartmentStaffManagement from "pages/DepartmentStaffManagement";
 import DepartmentsOverview from "pages/DepartmentsOverview";
 import DepartmentWiseStudentDashboard from "pages/DepartmentWiseStudentDashboard";
 import DepartmentStudents from "pages/DepartmentStudents";
+import DepartmentBatches from "pages/DepartmentBatches";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -290,12 +291,36 @@ const routes = [
       </ProtectedRoute>
     ),
   },
+  // Department Batches (hidden from sidebar - accessed via department dashboard)
+  {
+    type: "route",
+    name: "Department Batches",
+    key: "department-batches",
+    route: "/department-batches/:departmentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <DepartmentBatches />
+      </ProtectedRoute>
+    ),
+  },
   // Department Students (hidden from sidebar - accessed via department dashboard)
   {
     type: "route",
     name: "Department Students",
     key: "department-students",
     route: "/department-students/:departmentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <DepartmentStudents />
+      </ProtectedRoute>
+    ),
+  },
+  // Batch Students (hidden from sidebar - accessed via department batches)
+  {
+    type: "route",
+    name: "Batch Students",
+    key: "batch-students",
+    route: "/department-students/:departmentId/:batchId",
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
         <DepartmentStudents />

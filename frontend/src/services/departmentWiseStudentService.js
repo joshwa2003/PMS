@@ -32,6 +32,43 @@ class DepartmentWiseStudentService {
     }
   }
 
+  // Get batches for a specific department
+  async getDepartmentBatches(departmentId) {
+    try {
+      const response = await api.get(`/dashboard/departments/${departmentId}/batches`);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to fetch department batches');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get students for a specific department and batch
+  async getDepartmentBatchStudents(departmentId, batchId, params = {}) {
+    try {
+      const queryParams = new URLSearchParams({
+        page: params.page || 1,
+        limit: params.limit || 50,
+        search: params.search || '',
+        status: params.status || 'all'
+      });
+
+      const response = await api.get(`/dashboard/departments/${departmentId}/batches/${batchId}/students?${queryParams}`);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to fetch department batch students');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get dashboard summary statistics
   async getDashboardSummary() {
     try {

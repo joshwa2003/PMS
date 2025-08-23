@@ -306,6 +306,320 @@ class DashboardController {
     }
   }
 
+  // Get batches for a specific department (Admin and Placement Director only)
+  async getDepartmentBatches(req, res) {
+    try {
+      const { departmentId } = req.params;
+
+      console.log('getDepartmentBatches called with:', { departmentId, userRole: req.user?.role });
+
+      // Check if user has permission
+      if (!['admin', 'placement_director'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Only administrators and placement directors can view this data.'
+        });
+      }
+
+      // Validate department ID
+      if (!departmentId || !require('mongoose').Types.ObjectId.isValid(departmentId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid department ID is required'
+        });
+      }
+
+      // Get department details
+      const department = await Department.findById(departmentId)
+        .populate('placementStaff', 'firstName lastName email')
+        .populate('courseCategory', 'name');
+
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: 'Department not found'
+        });
+      }
+
+      console.log('Department found:', { name: department.name, code: department.code });
+
+      // Get all batches for this department
+      const Batch = require('../models/Batch');
+      const batches = await Batch.find({ 
+        department: departmentId,
+        isActive: true 
+      })
+      .populate('department', 'name code')
+      .sort({ startYear: -1 }) // Most recent first
+      .lean();
+
+      console.log(`Found ${batches.length} batches for department ${department.name}`);
+
+      // Get student counts for each batch
+      const batchesWithStats = [];
+
+      for (const batch of batches) {
+        try {
+          // Get students in this batch for this department
+          const studentsInBatch = await Student.find({
+            batchId: batch._id,
+            'academic.department': { $in: [department.name, department.code] }
+          })
+          .select('placement.placementStatus')
+          .lean();
+
+          // Calculate placement statistics
+          const placementSummary = {
+            unplaced: studentsInBatch.filter(s => !s.placement?.placementStatus || s.placement.placementStatus === 'Unplaced').length,
+            placed: studentsInBatch.filter(s => s.placement?.placementStatus === 'Placed').length,
+            multipleOffers: studentsInBatch.filter(s => s.placement?.placementStatus === 'Multiple Offers').length
+          };
+
+          const totalStudents = studentsInBatch.length;
+          const placementRate = totalStudents > 0 ? 
+            Math.round(((placementSummary.placed + placementSummary.multipleOffers) / totalStudents) * 100) : 0;
+
+          batchesWithStats.push({
+            id: batch._id,
+            batchCode: batch.batchCode,
+            startYear: batch.startYear,
+            endYear: batch.endYear,
+            courseType: batch.courseType,
+            courseDuration: batch.courseDuration,
+            academicStatus: batch.academicStatus,
+            displayName: batch.displayName,
+            fullDisplayName: batch.fullDisplayName,
+            department: batch.department,
+            isActive: batch.isActive,
+            isGraduated: batch.isGraduated,
+            createdAt: batch.createdAt,
+            stats: {
+              totalStudents: totalStudents,
+              placement: placementSummary,
+              placementRate: placementRate
+            }
+          });
+
+        } catch (statsError) {
+          console.error(`Error calculating stats for batch ${batch.batchCode}:`, statsError);
+          // Add batch with zero stats to avoid breaking the entire response
+          batchesWithStats.push({
+            id: batch._id,
+            batchCode: batch.batchCode,
+            startYear: batch.startYear,
+            endYear: batch.endYear,
+            courseType: batch.courseType,
+            courseDuration: batch.courseDuration,
+            academicStatus: batch.academicStatus,
+            displayName: batch.displayName,
+            fullDisplayName: batch.fullDisplayName,
+            department: batch.department,
+            isActive: batch.isActive,
+            isGraduated: batch.isGraduated,
+            createdAt: batch.createdAt,
+            stats: {
+              totalStudents: 0,
+              placement: { unplaced: 0, placed: 0, multipleOffers: 0 },
+              placementRate: 0
+            }
+          });
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Department batches retrieved successfully',
+        data: {
+          department: {
+            id: department._id,
+            name: department.name,
+            code: department.code,
+            description: department.description,
+            placementStaff: department.placementStaff ? {
+              id: department.placementStaff._id,
+              name: `${department.placementStaff.firstName} ${department.placementStaff.lastName}`,
+              email: department.placementStaff.email
+            } : null
+          },
+          batches: batchesWithStats
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching department batches:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error while fetching department batches',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  // Get students for a specific department and batch (Admin and Placement Director only)
+  async getDepartmentBatchStudents(req, res) {
+    try {
+      const { departmentId, batchId } = req.params;
+      const { page = 1, limit = 50, search = '', status = 'all' } = req.query;
+
+      console.log('getDepartmentBatchStudents called with:', { departmentId, batchId, page, limit, search, status });
+
+      // Check if user has permission
+      if (!['admin', 'placement_director'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Only administrators and placement directors can view this data.'
+        });
+      }
+
+      // Validate IDs
+      const mongoose = require('mongoose');
+      if (!mongoose.Types.ObjectId.isValid(departmentId) || !mongoose.Types.ObjectId.isValid(batchId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid department ID and batch ID are required'
+        });
+      }
+
+      // Get department and batch details
+      const [department, batch] = await Promise.all([
+        Department.findById(departmentId)
+          .populate('placementStaff', 'firstName lastName email')
+          .populate('courseCategory', 'name'),
+        require('../models/Batch').findById(batchId).populate('department', 'name code')
+      ]);
+
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: 'Department not found'
+        });
+      }
+
+      if (!batch) {
+        return res.status(404).json({
+          success: false,
+          message: 'Batch not found'
+        });
+      }
+
+      console.log('Department and batch found:', { 
+        departmentName: department.name, 
+        batchCode: batch.batchCode 
+      });
+
+      // Build query for students - match by department and batch
+      let studentQuery = {
+        batchId: batchId,
+        $or: [
+          { 'academic.department': department.name },
+          { 'academic.department': department.code }
+        ]
+      };
+
+      // Add search filter
+      if (search) {
+        studentQuery = {
+          $and: [
+            studentQuery,
+            {
+              $or: [
+                { 'personalInfo.fullName': { $regex: search, $options: 'i' } },
+                { studentId: { $regex: search, $options: 'i' } },
+                { registrationNumber: { $regex: search, $options: 'i' } }
+              ]
+            }
+          ]
+        };
+      }
+
+      // Add status filter
+      if (status !== 'all') {
+        if (search) {
+          studentQuery.$and.push({ 'placement.placementStatus': status });
+        } else {
+          studentQuery = {
+            $and: [
+              studentQuery,
+              { 'placement.placementStatus': status }
+            ]
+          };
+        }
+      }
+
+      console.log('Final student query:', JSON.stringify(studentQuery, null, 2));
+
+      // Get students with pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const students = await Student.find(studentQuery)
+        .populate('userId', 'firstName lastName email isActive')
+        .select('academic placement personalInfo studentId registrationNumber createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const totalStudents = await Student.countDocuments(studentQuery);
+
+      console.log(`Found ${students.length} students for batch ${batch.batchCode} in department ${department.name}`);
+
+      // Format student data
+      const formattedStudents = students.map(student => ({
+        id: student._id,
+        studentId: student.studentId,
+        registrationNumber: student.registrationNumber,
+        name: student.personalInfo?.fullName || `${student.userId?.firstName} ${student.userId?.lastName}`,
+        email: student.userId?.email,
+        placementStatus: student.placement?.placementStatus || 'Unplaced',
+        isActive: student.userId?.isActive,
+        createdAt: student.createdAt,
+        department: student.academic?.department,
+        program: student.academic?.program,
+        cgpa: student.academic?.cgpa
+      }));
+
+      res.status(200).json({
+        success: true,
+        message: 'Department batch students retrieved successfully',
+        data: {
+          department: {
+            id: department._id,
+            name: department.name,
+            code: department.code,
+            placementStaff: department.placementStaff ? {
+              id: department.placementStaff._id,
+              name: `${department.placementStaff.firstName} ${department.placementStaff.lastName}`,
+              email: department.placementStaff.email
+            } : null
+          },
+          batch: {
+            id: batch._id,
+            batchCode: batch.batchCode,
+            startYear: batch.startYear,
+            endYear: batch.endYear,
+            courseType: batch.courseType,
+            academicStatus: batch.academicStatus,
+            displayName: batch.displayName
+          },
+          students: formattedStudents,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(totalStudents / parseInt(limit)),
+            totalStudents,
+            hasNextPage: skip + students.length < totalStudents,
+            hasPrevPage: parseInt(page) > 1
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching department batch students:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error while fetching department batch students',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
   // Get dashboard summary statistics
   async getDashboardSummary(req, res) {
     try {
