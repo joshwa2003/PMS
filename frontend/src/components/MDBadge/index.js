@@ -42,7 +42,7 @@ MDBadge.defaultProps = {
   circular: false,
   indicator: false,
   border: false,
-  children: false,
+  children: null,
   container: false,
 };
 
@@ -63,7 +63,7 @@ MDBadge.propTypes = {
   circular: PropTypes.bool,
   indicator: PropTypes.bool,
   border: PropTypes.bool,
-  children: PropTypes.node,
+  children: PropTypes.node, // This is optional, not required
   container: PropTypes.bool,
 };
 

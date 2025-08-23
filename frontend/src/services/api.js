@@ -38,6 +38,18 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    console.error('🔍 API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      config: {
+        method: error.config?.method,
+        url: error.config?.url,
+        data: error.config?.data
+      }
+    });
+
     // Handle common errors
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
@@ -46,8 +58,25 @@ api.interceptors.response.use(
       window.location.href = '/authentication/sign-in';
     }
     
-    // Return error message
-    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+    // Preserve the original backend error message with better fallback
+    let errorMessage = 'An error occurred';
+    
+    if (error.response?.data?.message) {
+      // Use backend error message if available
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      // Use backend error field if message is not available
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      // Use axios error message as fallback
+      errorMessage = error.message;
+    }
+
+    // Add status code context for better debugging
+    if (error.response?.status) {
+      errorMessage = `${errorMessage} (Status: ${error.response.status})`;
+    }
+    
     return Promise.reject(new Error(errorMessage));
   }
 );
@@ -72,6 +101,18 @@ bulkApi.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    console.error('🔍 Bulk API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      config: {
+        method: error.config?.method,
+        url: error.config?.url,
+        data: error.config?.data
+      }
+    });
+
     // Handle common errors
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
@@ -80,8 +121,25 @@ bulkApi.interceptors.response.use(
       window.location.href = '/authentication/sign-in';
     }
     
-    // Return error message
-    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+    // Preserve the original backend error message with better fallback
+    let errorMessage = 'An error occurred';
+    
+    if (error.response?.data?.message) {
+      // Use backend error message if available
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      // Use backend error field if message is not available
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      // Use axios error message as fallback
+      errorMessage = error.message;
+    }
+
+    // Add status code context for better debugging
+    if (error.response?.status) {
+      errorMessage = `${errorMessage} (Status: ${error.response.status})`;
+    }
+    
     return Promise.reject(new Error(errorMessage));
   }
 );

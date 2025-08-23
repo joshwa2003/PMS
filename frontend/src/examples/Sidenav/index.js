@@ -143,6 +143,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     if (isAdmin) {
       const adminSidebarItems = [
         'dashboard',
+        'department-wise-student-dashboard',
         'user-management', 
         'departments',
         'administrator-profile'
@@ -182,6 +183,10 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
 
       case 'departments':
         // Show Departments for admin and placement director
+        return user.role === 'admin' || user.role === 'placement_director';
+
+      case 'department-wise-student-dashboard':
+        // Show Department-wise Student Dashboard for admin and placement director
         return user.role === 'admin' || user.role === 'placement_director';
 
       case 'staff-management':

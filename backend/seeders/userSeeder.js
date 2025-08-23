@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+const path = require('path');
+
+// Load environment variables from the parent directory (.env file is in backend/)
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const User = require('../models/User');
 
@@ -327,13 +330,30 @@ const dummyUsers = [
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    // Use environment variable with fallback to local MongoDB
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pms';
+    
+    // Log the connection attempt (without exposing sensitive credentials)
+    const uriForLogging = mongoURI.includes('@') 
+      ? mongoURI.replace(/:([^:@]{1,})@/, ':****@') 
+      : mongoURI;
+    console.log(`🔗 Attempting to connect to MongoDB: ${uriForLogging}`);
+    
+    if (!process.env.MONGODB_URI) {
+      console.log('⚠️  MONGODB_URI not found in environment variables, using fallback: mongodb://localhost:27017/pms');
+    }
+    
+    await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ Connected to MongoDB successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+    console.error('💡 Troubleshooting tips:');
+    console.error('   1. Make sure MongoDB is running locally or check your MONGODB_URI');
+    console.error('   2. Verify the .env file exists in the backend directory');
+    console.error('   3. Check if MONGODB_URI is properly set in the .env file');
     process.exit(1);
   }
 };
@@ -355,10 +375,17 @@ const seedUsers = async () => {
       const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
       const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
       
+      // Fix department field - move string value to departmentCode and set department to null
+      const userDataFixed = { ...userData };
+      if (userDataFixed.department && typeof userDataFixed.department === 'string') {
+        userDataFixed.departmentCode = userDataFixed.department;
+        userDataFixed.department = null;
+      }
+      
       usersToCreate.push({
-        ...userData,
+        ...userDataFixed,
         password: hashedPassword,
-        permissions: User.getRolePermissions(userData.role),
+        permissions: User.getRolePermissions(userDataFixed.role),
         createdAt: new Date(),
         updatedAt: new Date()
       });

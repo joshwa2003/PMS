@@ -76,14 +76,13 @@ const createStudent = async (req, res) => {
 
     // Generate a temporary password
     const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
-
-    // Create user account
+    
+    // Create user account (password will be hashed by User model pre-save middleware)
     const newUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
-      password: hashedPassword,
+      password: tempPassword, // Don't hash here - let the User model handle it
       role: 'student',
       studentId: studentId,
       isActive: true,
@@ -181,14 +180,50 @@ const createStudent = async (req, res) => {
 // @access  Private (Placement Staff only)
 const createBulkStudents = async (req, res) => {
   try {
-    const { studentData } = req.body;
+    // Enhanced request body handling - support both formats for backward compatibility
+    console.log('🔍 Bulk upload request received');
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
 
-    if (!studentData || !Array.isArray(studentData) || studentData.length === 0) {
+    let studentData;
+    
+    // Handle different request body formats
+    if (req.body.studentData && Array.isArray(req.body.studentData)) {
+      // Format: { studentData: [...] }
+      studentData = req.body.studentData;
+      console.log('✅ Using wrapped format: req.body.studentData');
+    } else if (Array.isArray(req.body)) {
+      // Format: [...]
+      studentData = req.body;
+      console.log('✅ Using direct array format: req.body');
+    } else if (req.body.length !== undefined) {
+      // Handle case where body might be array-like
+      studentData = Array.from(req.body);
+      console.log('✅ Converting array-like object to array');
+    } else {
+      console.log('❌ Invalid request format');
       return res.status(400).json({
         success: false,
-        message: 'Student data array is required'
+        message: 'Invalid request format. Expected student data array or object with studentData property.',
+        receivedKeys: Object.keys(req.body),
+        receivedType: typeof req.body,
+        isArray: Array.isArray(req.body)
       });
     }
+
+    if (!studentData || !Array.isArray(studentData) || studentData.length === 0) {
+      console.log('❌ Student data validation failed');
+      return res.status(400).json({
+        success: false,
+        message: 'Student data array is required and must not be empty',
+        receivedData: studentData,
+        dataType: typeof studentData,
+        isArray: Array.isArray(studentData),
+        length: studentData ? studentData.length : 'N/A'
+      });
+    }
+
+    console.log(`✅ Processing ${studentData.length} students for bulk creation`);
 
     // Get placement staff's department from user record
     const placementStaffUser = await User.findById(req.user.id).populate('department');
@@ -271,8 +306,8 @@ const createBulkStudents = async (req, res) => {
           continue;
         }
 
-        // Generate sequential student ID (fixed logic)
-        const currentStudentNumber = startingNumber + results.successful.length;
+        // Generate sequential student ID (FIXED: Use loop index instead of successful results length)
+        const currentStudentNumber = startingNumber + i;
         const studentId = `${studentIdPrefix}${currentStudentNumber.toString().padStart(3, '0')}`;
 
         console.log(`Creating student ${i + 1}/${studentData.length}: ${firstName} ${lastName} with ID: ${studentId}`);
@@ -290,14 +325,13 @@ const createBulkStudents = async (req, res) => {
 
         // Generate temporary password
         const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
-        const hashedPassword = await bcrypt.hash(tempPassword, 12);
-
-        // Create user account
+        
+        // Create user account (password will be hashed by User model pre-save middleware)
         const newUser = new User({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: email.toLowerCase().trim(),
-          password: hashedPassword,
+          password: tempPassword, // Don't hash here - let the User model handle it
           role: 'student',
           studentId: studentId,
           isActive: true,
@@ -378,16 +412,24 @@ const createBulkStudents = async (req, res) => {
 
     console.log(`Bulk creation completed. Successful: ${results.totalSuccessful}, Failed: ${results.totalFailed}`);
 
-    // Send bulk welcome emails for successful students
+    // Send bulk welcome emails for successful students asynchronously (fire-and-forget)
     if (results.successful.length > 0) {
-      try {
-        console.log(`Sending welcome emails to ${results.successful.length} students...`);
-        const emailResults = await emailService.sendBulkStudentWelcomeEmails(results.successful);
-        console.log(`Bulk emails sent. Success: ${emailResults.totalSent}, Failed: ${emailResults.totalFailed}`);
-      } catch (emailError) {
-        console.error('Error sending bulk welcome emails:', emailError);
-        // Don't fail the entire operation if emails fail
-      }
+      // Don't await this - let it run in background
+      setImmediate(async () => {
+        try {
+          console.log(`🚀 Starting background email sending to ${results.successful.length} students...`);
+          const emailResults = await emailService.sendBulkStudentWelcomeEmailsParallel(results.successful);
+          console.log(`📧 Background bulk emails completed. Success: ${emailResults.totalSent}, Failed: ${emailResults.totalFailed}`);
+          
+          if (emailResults.totalFailed > 0) {
+            console.warn(`⚠️ Some emails failed to send:`, emailResults.failed);
+          }
+        } catch (emailError) {
+          console.error('❌ Error in background email sending:', emailError);
+        }
+      });
+      
+      console.log(`✅ Student creation completed. Email sending started in background for ${results.successful.length} students.`);
     }
 
     const statusCode = results.totalSuccessful > 0 ? 201 : 400;
@@ -798,6 +840,179 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+// @desc    Delete multiple students
+// @route   DELETE /api/student-management/students/bulk
+// @access  Private (Placement Staff only)
+const deleteBulkStudents = async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+
+    console.log('🔍 Bulk delete request received');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Student IDs to delete:', studentIds);
+    console.log('User ID:', req.user.id);
+    console.log('User role:', req.user.role);
+
+    // Validate input
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      console.log('❌ Validation failed: Invalid studentIds');
+      return res.status(400).json({
+        success: false,
+        message: 'Student IDs array is required and must not be empty',
+        receivedData: {
+          studentIds: studentIds,
+          type: typeof studentIds,
+          isArray: Array.isArray(studentIds),
+          length: studentIds ? studentIds.length : 'N/A'
+        }
+      });
+    }
+
+    // Convert string IDs to ObjectIds and validate
+    let objectIds;
+    try {
+      objectIds = studentIds.map(id => {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+          throw new Error(`Invalid student ID format: ${id}`);
+        }
+        return new mongoose.Types.ObjectId(id);
+      });
+      console.log('✅ Successfully converted student IDs to ObjectIds');
+    } catch (validationError) {
+      console.log('❌ ID validation failed:', validationError.message);
+      return res.status(400).json({
+        success: false,
+        message: validationError.message,
+        invalidIds: studentIds.filter(id => !mongoose.Types.ObjectId.isValid(id))
+      });
+    }
+
+    // Find students that belong to this placement staff
+    console.log('🔍 Searching for students with query:', {
+      _id: { $in: objectIds },
+      role: 'student',
+      createdBy: req.user.id
+    });
+
+    const students = await User.find({
+      _id: { $in: objectIds },
+      role: 'student',
+      createdBy: req.user.id // Ensure placement staff can only delete their own students
+    });
+
+    console.log(`✅ Found ${students.length} students out of ${studentIds.length} requested`);
+    console.log('Found students:', students.map(s => ({ id: s._id, email: s.email, name: `${s.firstName} ${s.lastName}` })));
+
+    if (students.length === 0) {
+      console.log('❌ No students found or no permission');
+      return res.status(404).json({
+        success: false,
+        message: 'No students found or you do not have permission to delete these students',
+        requestedIds: studentIds,
+        userPermissions: {
+          userId: req.user.id,
+          role: req.user.role
+        }
+      });
+    }
+
+    const results = {
+      successful: [],
+      failed: [],
+      totalProcessed: studentIds.length,
+      totalSuccessful: 0,
+      totalFailed: 0
+    };
+
+    // Process each student deletion
+    for (const student of students) {
+      try {
+        console.log(`🗑️ Deleting student: ${student.firstName} ${student.lastName} (${student.email})`);
+
+        // Delete the student profile if it exists
+        if (student.studentProfile) {
+          const deletedProfile = await Student.findByIdAndDelete(student.studentProfile);
+          console.log(`✅ Deleted student profile for: ${student.email}`, deletedProfile ? 'Success' : 'Profile not found');
+        }
+
+        // Delete the user account
+        const deletedUser = await User.findByIdAndDelete(student._id);
+        console.log(`✅ Deleted user account for: ${student.email}`, deletedUser ? 'Success' : 'User not found');
+
+        results.successful.push({
+          id: student._id,
+          name: `${student.firstName} ${student.lastName}`,
+          email: student.email,
+          studentId: student.studentId
+        });
+        results.totalSuccessful++;
+
+      } catch (error) {
+        console.error(`❌ Error deleting student ${student.email}:`, error);
+        results.failed.push({
+          id: student._id,
+          name: `${student.firstName} ${student.lastName}`,
+          email: student.email,
+          error: error.message
+        });
+        results.totalFailed++;
+      }
+    }
+
+    // Check for students that were not found (don't have permission or don't exist)
+    const foundIds = students.map(s => s._id.toString());
+    const notFoundIds = studentIds.filter(id => !foundIds.includes(id));
+    
+    if (notFoundIds.length > 0) {
+      console.log('⚠️ Some students were not found or no permission:', notFoundIds);
+    }
+    
+    notFoundIds.forEach(id => {
+      results.failed.push({
+        id: id,
+        name: 'Unknown',
+        email: 'Unknown',
+        error: 'Student not found or no permission to delete'
+      });
+      results.totalFailed++;
+    });
+
+    console.log(`✅ Bulk deletion completed. Successful: ${results.totalSuccessful}, Failed: ${results.totalFailed}`);
+
+    const statusCode = results.totalSuccessful > 0 ? 200 : 400;
+    
+    res.status(statusCode).json({
+      success: results.totalSuccessful > 0,
+      message: `Bulk student deletion completed. ${results.totalSuccessful} successful, ${results.totalFailed} failed.`,
+      results
+    });
+
+  } catch (error) {
+    console.error('❌ Critical error in bulk student deletion:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Provide detailed error information for debugging
+    const errorResponse = {
+      success: false,
+      message: 'Error processing bulk student deletion',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      requestInfo: {
+        userId: req.user?.id,
+        userRole: req.user?.role,
+        requestBody: req.body
+      }
+    };
+
+    // Add stack trace in development mode
+    if (process.env.NODE_ENV === 'development') {
+      errorResponse.stack = error.stack;
+    }
+
+    res.status(500).json(errorResponse);
+  }
+};
+
 // @desc    Test email configuration
 // @route   GET /api/student-management/test-email-config
 // @access  Private (Placement Staff only)
@@ -900,10 +1115,9 @@ const resendWelcomeEmail = async (req, res) => {
 
     // Generate a new temporary password
     const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
-    // Update the student's password
-    student.password = hashedPassword;
+    // Update the student's password (will be hashed by User model pre-save middleware)
+    student.password = tempPassword; // Don't hash here - let the User model handle it
     await student.save();
 
     // Prepare student data for email
@@ -952,6 +1166,7 @@ module.exports = {
   getStudentStatsForPlacementStaff,
   updateStudentStatus,
   deleteStudent,
+  deleteBulkStudents,
   testEmailConfiguration,
   sendTestEmail,
   resendWelcomeEmail

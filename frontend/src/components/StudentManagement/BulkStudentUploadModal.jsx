@@ -166,17 +166,20 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
         });
       }, 200);
 
-      console.log('Uploading student data:', uploadedData);
+      console.log('🔍 Frontend: Uploading student data:', uploadedData);
+      console.log('🔍 Frontend: Data type:', typeof uploadedData, 'Is Array:', Array.isArray(uploadedData));
+      console.log('🔍 Frontend: Data length:', uploadedData.length);
+      
       const response = await createBulkStudents(uploadedData);
-      console.log('Upload response:', response);
+      console.log('✅ Frontend: Upload response:', response);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
 
       // Show success message with details
       const successMessage = response.results 
-        ? `Successfully created ${response.results.totalSuccessful} students. ${response.results.totalFailed > 0 ? `${response.results.totalFailed} failed.` : ''}`
-        : 'Students created successfully!';
+        ? `Successfully created ${response.results.totalSuccessful} students. ${response.results.totalFailed > 0 ? `${response.results.totalFailed} failed.` : ''} Welcome emails are being sent in the background.`
+        : 'Students created successfully! Welcome emails are being sent in the background.';
 
       setTimeout(() => {
         if (onSuccess) {
@@ -195,7 +198,14 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
       }, 1000);
 
     } catch (error) {
-      console.error('Bulk upload error:', error);
+      console.error('❌ Frontend: Bulk upload error:', error);
+      console.error('❌ Frontend: Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        request: error.request ? 'Request made but no response' : 'No request made'
+      });
+      
       if (progressInterval) {
         clearInterval(progressInterval);
       }
@@ -209,12 +219,23 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
         errorMessage = 'Upload is taking longer than expected. This might be due to email sending. Please check if students were created and try again if needed.';
       } else if (error.response) {
         // Server responded with error status
+        console.log('🔍 Frontend: Server response error:', error.response.data);
+        
         if (error.response.status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
         } else if (error.response.status === 403) {
           errorMessage = 'You do not have permission to create students.';
         } else if (error.response.status === 400) {
           errorMessage = error.response.data?.message || 'Invalid data provided.';
+          
+          // Log additional debugging info for 400 errors
+          console.log('🔍 Frontend: 400 Error details:', {
+            receivedKeys: error.response.data?.receivedKeys,
+            receivedType: error.response.data?.receivedType,
+            isArray: error.response.data?.isArray,
+            dataType: error.response.data?.dataType,
+            length: error.response.data?.length
+          });
           
           // Check if there are detailed results in the error response
           if (error.response.data?.results) {
@@ -237,12 +258,15 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
         }
       } else if (error.request) {
         // Network error or timeout
+        console.log('🔍 Frontend: Network error - no response received');
         errorMessage = 'Network error or timeout. The upload might still be processing. Please check your connection and refresh the page to see if students were created.';
       } else if (error.message) {
         // Error from our service layer
+        console.log('🔍 Frontend: Service layer error:', error.message);
         errorMessage = error.message;
       } else {
         // Other error
+        console.log('🔍 Frontend: Unknown error type');
         errorMessage = 'An unexpected error occurred.';
       }
       

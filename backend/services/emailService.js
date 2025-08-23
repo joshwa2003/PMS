@@ -814,7 +814,7 @@ Placement Office Team
     }
   }
 
-  // Send welcome emails to multiple students (bulk)
+  // Send welcome emails to multiple students (bulk) - Sequential with delays
   async sendBulkStudentWelcomeEmails(studentDataArray) {
     const results = {
       successful: [],
@@ -865,6 +865,101 @@ Placement Office Team
     }
 
     console.log(`Bulk student email sending completed. Sent: ${results.totalSent}, Failed: ${results.totalFailed}`);
+    
+    return results;
+  }
+
+  // Send welcome emails to multiple students in parallel (much faster!)
+  async sendBulkStudentWelcomeEmailsParallel(studentDataArray) {
+    const results = {
+      successful: [],
+      failed: [],
+      totalSent: 0,
+      totalFailed: 0
+    };
+
+    console.log(`🚀 Starting PARALLEL bulk student email sending for ${studentDataArray.length} students...`);
+
+    // Create array of email promises
+    const emailPromises = studentDataArray.map(async (studentData, index) => {
+      try {
+        // Add a small staggered delay to avoid overwhelming the SMTP server
+        // Spread the requests over a few seconds instead of all at once
+        const delay = Math.floor(index / 10) * 1000; // 1 second delay for every 10 emails
+        if (delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        console.log(`📧 Sending email ${index + 1}/${studentDataArray.length} to ${studentData.email}`);
+        const emailResult = await this.sendStudentWelcomeEmail(studentData, studentData.defaultPassword);
+        
+        return {
+          index: index + 1,
+          studentData,
+          emailResult,
+          success: emailResult.success
+        };
+
+      } catch (error) {
+        console.error(`❌ Unexpected error sending email to student ${studentData.email}:`, error);
+        return {
+          index: index + 1,
+          studentData,
+          emailResult: { success: false, error: error.message },
+          success: false
+        };
+      }
+    });
+
+    // Wait for all emails to complete (or fail)
+    console.log(`⏳ Waiting for all ${emailPromises.length} email promises to resolve...`);
+    const emailResults = await Promise.allSettled(emailPromises);
+
+    // Process results
+    emailResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const { studentData, emailResult, success } = result.value;
+        
+        if (success) {
+          results.successful.push({
+            email: studentData.email,
+            name: `${studentData.firstName} ${studentData.lastName}`,
+            studentId: studentData.studentId,
+            messageId: emailResult.messageId
+          });
+          results.totalSent++;
+        } else {
+          results.failed.push({
+            email: studentData.email,
+            name: `${studentData.firstName} ${studentData.lastName}`,
+            studentId: studentData.studentId,
+            error: emailResult.error
+          });
+          results.totalFailed++;
+        }
+      } else {
+        // Promise was rejected
+        const studentData = studentDataArray[index];
+        console.error(`❌ Promise rejected for student ${studentData.email}:`, result.reason);
+        results.failed.push({
+          email: studentData.email,
+          name: `${studentData.firstName} ${studentData.lastName}`,
+          studentId: studentData.studentId,
+          error: result.reason?.message || 'Promise rejected'
+        });
+        results.totalFailed++;
+      }
+    });
+
+    console.log(`✅ PARALLEL bulk student email sending completed. Sent: ${results.totalSent}, Failed: ${results.totalFailed}`);
+    
+    // Log summary
+    if (results.totalSent > 0) {
+      console.log(`📧 Successfully sent emails to: ${results.successful.map(s => s.email).join(', ')}`);
+    }
+    if (results.totalFailed > 0) {
+      console.log(`❌ Failed to send emails to: ${results.failed.map(f => `${f.email} (${f.error})`).join(', ')}`);
+    }
     
     return results;
   }

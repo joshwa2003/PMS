@@ -9,7 +9,19 @@ import {
   IconButton,
   Tooltip,
   Chip,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  Box,
+  Checkbox,
+  Toolbar,
+  Collapse,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -19,7 +31,12 @@ import {
   Block as DeactivateIcon,
   CheckCircleOutline as ActivateIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  DeleteSweep as DeleteSweepIcon,
+  SelectAll as SelectAllIcon,
+  ArrowDropDown as ArrowDropDownIcon,
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon
 } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
@@ -37,12 +54,22 @@ const StudentDataTable = () => {
     loading,
     pagination,
     filters,
+    selectedStudents,
+    selectAll,
+    selectAllAcrossPages,
+    bulkOperationLoading,
     fetchStudents,
     updateStudentStatus,
     deleteStudent,
+    deleteBulkStudents,
     handleSearch,
     handleFilterChange,
     handleSortChange,
+    toggleStudentSelection,
+    toggleSelectAll,
+    toggleSelectAllAcrossPages,
+    clearSelection,
+    getSelectedStudentData,
     getStudentStatusColor,
     getStudentStatusText,
     getPlacementStatusColor,
@@ -53,6 +80,16 @@ const StudentDataTable = () => {
   } = useStudentManagement();
 
   const [localSearch, setLocalSearch] = useState(filters.search);
+
+  // Selection dropdown menu state
+  const [selectMenuAnchor, setSelectMenuAnchor] = useState(null);
+
+  // Bulk delete confirmation dialog state
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+
+  // Single delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
 
   // Fetch students on component mount and when filters change
   useEffect(() => {
@@ -110,15 +147,79 @@ const StudentDataTable = () => {
     }
   };
 
-  const handleDeleteStudent = async (studentId) => {
-    if (window.confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+  const handleDeleteStudent = async (student) => {
+    setStudentToDelete(student);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (selectedStudents.length === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  // Confirm bulk delete
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedStudents.length === 0) return;
+
+    try {
+      await deleteBulkStudents(selectedStudents);
+      setBulkDeleteDialogOpen(false);
+      fetchStudents(); // Refresh the list
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      // Error is handled by context
+    }
+  };
+
+  // Cancel bulk delete
+  const handleBulkDeleteCancel = () => {
+    setBulkDeleteDialogOpen(false);
+  };
+
+  // Confirm single delete
+  const handleDeleteConfirm = async () => {
+    if (studentToDelete) {
       try {
-        await deleteStudent(studentId);
-        fetchStudents();
+        await deleteStudent(studentToDelete.id);
+        setDeleteDialogOpen(false);
+        setStudentToDelete(null);
+        fetchStudents(); // Refresh the list
       } catch (error) {
         console.error('Error deleting student:', error);
+        // Error is handled by context
       }
     }
+  };
+
+  // Cancel single delete
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
+  };
+
+  // Handle select all checkbox in header
+  const handleSelectAllChange = () => {
+    toggleSelectAll();
+  };
+
+  // Handle dropdown menu for selection options
+  const handleSelectMenuClick = (event) => {
+    setSelectMenuAnchor(event.currentTarget);
+  };
+
+  const handleSelectMenuClose = () => {
+    setSelectMenuAnchor(null);
+  };
+
+  const handleSelectCurrentPage = () => {
+    toggleSelectAll();
+    handleSelectMenuClose();
+  };
+
+  const handleSelectAllPages = async () => {
+    await toggleSelectAllAcrossPages();
+    handleSelectMenuClose();
   };
 
   const handleViewStudent = (studentId) => {
@@ -212,6 +313,15 @@ const StudentDataTable = () => {
       </MDBox>
     );
 
+    const Selection = ({ student }) => (
+      <Checkbox
+        checked={selectedStudents.includes(student.id)}
+        onChange={() => toggleStudentSelection(student.id)}
+        size="small"
+        disabled={loading}
+      />
+    );
+
     const Actions = ({ student }) => (
       <MDBox display="flex" alignItems="center" gap={0.5} flexWrap="wrap">
         {/* View Student */}
@@ -278,7 +388,7 @@ const StudentDataTable = () => {
           <span>
             <IconButton
               size="small"
-              onClick={() => handleDeleteStudent(student.id)}
+              onClick={() => handleDeleteStudent(student)}
               disabled={loading}
               color="error"
             >
@@ -291,6 +401,7 @@ const StudentDataTable = () => {
 
     return {
       columns: [
+        { Header: "", accessor: "selection", width: "5%", align: "center" },
         { Header: "student", accessor: "student", width: "25%", align: "left" },
         { Header: "department", accessor: "department", align: "left" },
         { Header: "status", accessor: "status", align: "center" },
@@ -300,6 +411,7 @@ const StudentDataTable = () => {
       ],
 
       rows: students.map((student) => ({
+        selection: <Selection student={student} />,
         student: <Student student={student} />,
         department: <Department student={student} />,
         status: <Status student={student} />,
@@ -315,13 +427,63 @@ const StudentDataTable = () => {
       <MDBox p={3}>
         {/* Header */}
         <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <MDBox>
-            <MDTypography variant="h6" fontWeight="medium">
-              Students List
-            </MDTypography>
-            <MDTypography variant="body2" color="text">
-              {pagination.totalStudents} students found
-            </MDTypography>
+          <MDBox display="flex" alignItems="center">
+            {students.length > 0 && (
+              <MDBox display="flex" alignItems="center" mr={2}>
+                <Checkbox
+                  checked={selectAll || selectAllAcrossPages}
+                  indeterminate={selectedStudents.length > 0 && !selectAll && !selectAllAcrossPages}
+                  onChange={handleSelectAllChange}
+                />
+                <IconButton
+                  size="small"
+                  onClick={handleSelectMenuClick}
+                  sx={{ ml: -1, mr: 1 }}
+                >
+                  <ArrowDropDownIcon />
+                </IconButton>
+                <Menu
+                  anchorEl={selectMenuAnchor}
+                  open={Boolean(selectMenuAnchor)}
+                  onClose={handleSelectMenuClose}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                  }}
+                >
+                  <MenuItem onClick={handleSelectCurrentPage}>
+                    <ListItemIcon>
+                      {selectAll && !selectAllAcrossPages ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
+                    </ListItemIcon>
+                    <ListItemText primary="Select Current Page" secondary={`${students.length} students`} />
+                  </MenuItem>
+                  <MenuItem onClick={handleSelectAllPages}>
+                    <ListItemIcon>
+                      {selectAllAcrossPages ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
+                    </ListItemIcon>
+                    <ListItemText primary="Select All Pages" secondary={`${pagination.totalStudents} students`} />
+                  </MenuItem>
+                </Menu>
+              </MDBox>
+            )}
+            <MDBox>
+              <MDTypography variant="h6" fontWeight="medium">
+                Students List
+              </MDTypography>
+              <MDTypography variant="body2" color="text">
+                {pagination.totalStudents} students found
+                {selectedStudents.length > 0 && (
+                  <>
+                    {` • ${selectedStudents.length} selected`}
+                    {selectAllAcrossPages && ` (all pages)`}
+                  </>
+                )}
+              </MDTypography>
+            </MDBox>
           </MDBox>
           <MDBox display="flex" gap={1}>
             <Tooltip title="Refresh">
@@ -457,6 +619,54 @@ const StudentDataTable = () => {
           </MDBox>
         )}
 
+        {/* Bulk Actions Toolbar - Show when items are selected */}
+        <Collapse in={selectedStudents.length > 0}>
+          <MDBox mb={2}>
+            <Toolbar
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                borderRadius: '12px',
+                minHeight: '64px !important',
+                px: 2
+              }}
+            >
+              <Box display="flex" alignItems="center" flex={1}>
+                <Checkbox
+                  checked={selectAll}
+                  indeterminate={selectedStudents.length > 0 && selectedStudents.length < students.length}
+                  onChange={handleSelectAllChange}
+                  sx={{ 
+                    color: 'white',
+                    '&.Mui-checked': { color: 'white' },
+                    '&.MuiCheckbox-indeterminate': { color: 'white' }
+                  }}
+                />
+                <Typography variant="h6" sx={{ ml: 1 }}>
+                  {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected
+                </Typography>
+              </Box>
+              
+              <Box display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Clear Selection">
+                  <IconButton onClick={clearSelection} sx={{ color: 'white' }}>
+                    <ClearIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete Selected">
+                  <IconButton 
+                    onClick={handleBulkDelete} 
+                    disabled={bulkOperationLoading}
+                    sx={{ color: 'white' }}
+                  >
+                    <DeleteSweepIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Toolbar>
+          </MDBox>
+        </Collapse>
+
         {/* Data Table */}
         <DataTable
           table={getStudentTableData()}
@@ -503,6 +713,142 @@ const StudentDataTable = () => {
           </MDBox>
         )}
       </MDBox>
+
+      {/* Single Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="medium">
+            Delete Student
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          {studentToDelete && (
+            <>
+              <Typography variant="body1" mb={2}>
+                Are you sure you want to delete <strong>{studentToDelete.fullName}</strong>?
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                This action cannot be undone. The student will lose access to the system immediately.
+              </Typography>
+
+              <Box 
+                sx={{ 
+                  backgroundColor: 'error.light', 
+                  color: 'error.contrastText',
+                  p: 2, 
+                  borderRadius: 1,
+                  mb: 2
+                }}
+              >
+                <Typography variant="body2" fontWeight="medium">
+                  Student Details:
+                </Typography>
+                <Typography variant="body2">
+                  • Email: {studentToDelete.email}
+                </Typography>
+                <Typography variant="body2">
+                  • Student ID: {studentToDelete.studentId}
+                </Typography>
+                <Typography variant="body2">
+                  • Department: {getDepartmentDisplayName(studentToDelete.profile?.department || 'Not Specified')}
+                </Typography>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        
+        <DialogActions>
+          <Button 
+            onClick={handleDeleteCancel}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? 'Deleting...' : 'Delete Student'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={bulkDeleteDialogOpen}
+        onClose={handleBulkDeleteCancel}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="medium">
+            Delete Multiple Students
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          <Typography variant="body1" mb={2}>
+            Are you sure you want to delete <strong>{selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''}</strong>?
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary" mb={3}>
+            This action cannot be undone. All selected students will lose access to the system immediately.
+          </Typography>
+
+          <Box 
+            sx={{ 
+              backgroundColor: 'error.light', 
+              color: 'error.contrastText',
+              p: 2, 
+              borderRadius: 1,
+              mb: 2,
+              maxHeight: '300px',
+              overflow: 'auto'
+            }}
+          >
+            <Typography variant="body2" fontWeight="medium" mb={2}>
+              Students to be deleted:
+            </Typography>
+            {getSelectedStudentData().map((student, index) => (
+              <Box key={student.id} mb={1}>
+                <Typography variant="body2">
+                  {index + 1}. <strong>{student.fullName}</strong> ({student.email})
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ ml: 2, opacity: 0.8 }}>
+                  ID: {student.studentId} • {getDepartmentDisplayName(student.profile?.department || 'Not Specified')}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        
+        <DialogActions>
+          <Button 
+            onClick={handleBulkDeleteCancel}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleBulkDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={bulkOperationLoading}
+            startIcon={<DeleteSweepIcon />}
+          >
+            {bulkOperationLoading ? 'Deleting...' : `Delete ${selectedStudents.length} Students`}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

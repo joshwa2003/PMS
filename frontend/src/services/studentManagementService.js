@@ -1,4 +1,4 @@
-import api from './api';
+import api, { bulkApi } from './api';
 
 class StudentManagementService {
   // Create new student (Placement Staff only)
@@ -19,7 +19,18 @@ class StudentManagementService {
   // Create multiple students at once (Placement Staff only)
   async createBulkStudents(studentDataArray) {
     try {
-      const response = await api.post('/student-management/students/bulk', { studentData: studentDataArray });
+      console.log('🔍 Service: Creating bulk students');
+      console.log('🔍 Service: Input data:', studentDataArray);
+      console.log('🔍 Service: Data type:', typeof studentDataArray, 'Is Array:', Array.isArray(studentDataArray));
+      console.log('🔍 Service: Data length:', studentDataArray.length);
+      
+      const requestBody = { studentData: studentDataArray };
+      console.log('🔍 Service: Request body:', requestBody);
+      console.log('🚀 Service: Using bulkApi with extended timeout for bulk operations');
+      
+      // Use bulkApi instead of regular api for extended timeout (5 minutes vs 30 seconds)
+      const response = await bulkApi.post('/student-management/students/bulk', requestBody);
+      console.log('✅ Service: Response received:', response);
       
       if (response.success) {
         return response;
@@ -27,6 +38,13 @@ class StudentManagementService {
       
       throw new Error(response.message || 'Failed to create bulk students');
     } catch (error) {
+      console.error('❌ Service: Error in createBulkStudents:', error);
+      
+      // Provide more specific error messages for common issues
+      if (error.message && error.message.includes('timeout')) {
+        throw new Error('The bulk upload is taking longer than expected. This might be due to email sending. Please check if students were created and try again if needed.');
+      }
+      
       throw error;
     }
   }
@@ -88,6 +106,28 @@ class StudentManagementService {
       
       throw new Error(response.message || 'Failed to delete student');
     } catch (error) {
+      throw error;
+    }
+  }
+
+  // Delete multiple students
+  async deleteBulkStudents(studentIds) {
+    try {
+      console.log('🔍 Service: Deleting bulk students:', studentIds);
+      
+      const response = await api.delete('/student-management/students/bulk', {
+        data: { studentIds }
+      });
+      
+      console.log('✅ Service: Bulk delete response:', response);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to delete students');
+    } catch (error) {
+      console.error('❌ Service: Error in deleteBulkStudents:', error);
       throw error;
     }
   }

@@ -7,6 +7,7 @@ const {
   getStudentStatsForPlacementStaff,
   updateStudentStatus,
   deleteStudent,
+  deleteBulkStudents,
   testEmailConfiguration,
   sendTestEmail,
   resendWelcomeEmail
@@ -45,6 +46,11 @@ router.get('/students', auth, requirePlacementStaff, getStudentsForPlacementStaf
 // @route   GET /api/student-management/stats
 // @access  Private (Placement Staff only)
 router.get('/stats', auth, requirePlacementStaff, getStudentStatsForPlacementStaff);
+
+// @desc    Delete multiple students
+// @route   DELETE /api/student-management/students/bulk
+// @access  Private (Placement Staff only)
+router.delete('/students/bulk', auth, requirePlacementStaff, deleteBulkStudents);
 
 // @desc    Update student status (verify/unverify, activate/deactivate)
 // @route   PUT /api/student-management/students/:id/status

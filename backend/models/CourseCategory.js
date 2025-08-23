@@ -39,6 +39,9 @@ courseCategorySchema.index({ createdAt: -1 });
 
 // Virtual for formatted creation date
 courseCategorySchema.virtual('formattedCreatedAt').get(function() {
+  if (!this.createdAt) {
+    return 'N/A';
+  }
   return this.createdAt.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

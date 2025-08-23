@@ -18,6 +18,12 @@ const initialState = {
   students: [],
   loading: false,
   error: null,
+  // Selection state for bulk operations
+  selectedStudents: [],
+  selectAll: false,
+  selectAllAcrossPages: false, // New state for selecting all across pages
+  allStudentIds: [], // Store all student IDs for cross-page selection
+  bulkOperationLoading: false,
   stats: {
     total: 0,
     active: 0,
@@ -56,10 +62,18 @@ const actionTypes = {
   ADD_BULK_STUDENTS: 'ADD_BULK_STUDENTS',
   UPDATE_STUDENT: 'UPDATE_STUDENT',
   DELETE_STUDENT: 'DELETE_STUDENT',
+  DELETE_BULK_STUDENTS: 'DELETE_BULK_STUDENTS',
   SET_STATS: 'SET_STATS',
   SET_PAGINATION: 'SET_PAGINATION',
   SET_FILTERS: 'SET_FILTERS',
-  RESET_FILTERS: 'RESET_FILTERS'
+  RESET_FILTERS: 'RESET_FILTERS',
+  // Selection actions
+  TOGGLE_STUDENT_SELECTION: 'TOGGLE_STUDENT_SELECTION',
+  TOGGLE_SELECT_ALL: 'TOGGLE_SELECT_ALL',
+  TOGGLE_SELECT_ALL_ACROSS_PAGES: 'TOGGLE_SELECT_ALL_ACROSS_PAGES',
+  SET_ALL_STUDENT_IDS: 'SET_ALL_STUDENT_IDS',
+  CLEAR_SELECTION: 'CLEAR_SELECTION',
+  SET_BULK_OPERATION_LOADING: 'SET_BULK_OPERATION_LOADING'
 };
 
 // Reducer function
@@ -126,10 +140,86 @@ const studentManagementReducer = (state, action) => {
       return {
         ...state,
         students: state.students.filter(student => student.id !== action.payload),
+        selectedStudents: state.selectedStudents.filter(id => id !== action.payload),
         stats: {
           ...state.stats,
           total: Math.max(0, state.stats.total - 1)
         }
+      };
+
+    case actionTypes.DELETE_BULK_STUDENTS:
+      return {
+        ...state,
+        students: state.students.filter(student => !action.payload.includes(student.id)),
+        selectedStudents: [],
+        selectAll: false,
+        stats: {
+          ...state.stats,
+          total: Math.max(0, state.stats.total - action.payload.length)
+        }
+      };
+
+    case actionTypes.TOGGLE_STUDENT_SELECTION:
+      const studentId = action.payload;
+      const isSelected = state.selectedStudents.includes(studentId);
+      const newSelectedStudents = isSelected
+        ? state.selectedStudents.filter(id => id !== studentId)
+        : [...state.selectedStudents, studentId];
+      
+      // Check if all current page students are selected
+      const currentPageSelected = state.students.every(student => 
+        newSelectedStudents.includes(student.id)
+      );
+      
+      // Check if all students across pages are selected
+      const allAcrossPagesCurrentlySelected = state.selectAllAcrossPages && 
+        state.allStudentIds.every(id => newSelectedStudents.includes(id));
+      
+      return {
+        ...state,
+        selectedStudents: newSelectedStudents,
+        selectAll: currentPageSelected && state.students.length > 0,
+        selectAllAcrossPages: allAcrossPagesCurrentlySelected
+      };
+
+    case actionTypes.TOGGLE_SELECT_ALL:
+      const allSelected = state.selectAll;
+      return {
+        ...state,
+        selectedStudents: allSelected ? 
+          state.selectedStudents.filter(id => !state.students.map(s => s.id).includes(id)) : 
+          [...new Set([...state.selectedStudents, ...state.students.map(student => student.id)])],
+        selectAll: !allSelected,
+        selectAllAcrossPages: false // Reset cross-page selection when toggling current page
+      };
+
+    case actionTypes.TOGGLE_SELECT_ALL_ACROSS_PAGES:
+      const allAcrossPagesSelected = state.selectAllAcrossPages;
+      return {
+        ...state,
+        selectedStudents: allAcrossPagesSelected ? [] : [...state.allStudentIds],
+        selectAll: !allAcrossPagesSelected && state.students.length > 0,
+        selectAllAcrossPages: !allAcrossPagesSelected
+      };
+
+    case actionTypes.SET_ALL_STUDENT_IDS:
+      return {
+        ...state,
+        allStudentIds: action.payload
+      };
+
+    case actionTypes.CLEAR_SELECTION:
+      return {
+        ...state,
+        selectedStudents: [],
+        selectAll: false,
+        selectAllAcrossPages: false
+      };
+
+    case actionTypes.SET_BULK_OPERATION_LOADING:
+      return {
+        ...state,
+        bulkOperationLoading: action.payload
       };
 
     case actionTypes.SET_STATS:
@@ -274,6 +364,71 @@ export const StudentManagementProvider = ({ children }) => {
     }
   }, [clearError]);
 
+  // Delete multiple students
+  const deleteBulkStudents = useCallback(async (studentIds) => {
+    try {
+      dispatch({ type: actionTypes.SET_BULK_OPERATION_LOADING, payload: true });
+      clearError();
+
+      const response = await studentManagementService.deleteBulkStudents(studentIds);
+
+      // Remove the students from the local state
+      dispatch({ type: actionTypes.DELETE_BULK_STUDENTS, payload: studentIds });
+      dispatch({ type: actionTypes.SET_BULK_OPERATION_LOADING, payload: false });
+
+      return response;
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+      dispatch({ type: actionTypes.SET_BULK_OPERATION_LOADING, payload: false });
+      throw error;
+    }
+  }, [clearError]);
+
+  // Fetch all student IDs for cross-page selection
+  const fetchAllStudentIds = useCallback(async () => {
+    try {
+      // Fetch all students with a high limit to get all IDs
+      const response = await studentManagementService.getAllStudents({
+        limit: 10000, // High limit to get all students
+        search: state.filters.search,
+        status: state.filters.status !== 'all' ? state.filters.status : '',
+        placementStatus: state.filters.placementStatus !== 'all' ? state.filters.placementStatus : ''
+      });
+      
+      const allIds = response.students.map(student => student.id);
+      dispatch({ type: actionTypes.SET_ALL_STUDENT_IDS, payload: allIds });
+      return allIds;
+    } catch (error) {
+      console.error('Error fetching all student IDs:', error);
+      return [];
+    }
+  }, [state.filters.search, state.filters.status, state.filters.placementStatus]);
+
+  // Selection functions
+  const toggleStudentSelection = useCallback((studentId) => {
+    dispatch({ type: actionTypes.TOGGLE_STUDENT_SELECTION, payload: studentId });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    dispatch({ type: actionTypes.TOGGLE_SELECT_ALL });
+  }, []);
+
+  const toggleSelectAllAcrossPages = useCallback(async () => {
+    // Fetch all student IDs if not already loaded
+    if (state.allStudentIds.length === 0) {
+      await fetchAllStudentIds();
+    }
+    dispatch({ type: actionTypes.TOGGLE_SELECT_ALL_ACROSS_PAGES });
+  }, [state.allStudentIds.length, fetchAllStudentIds]);
+
+  const clearSelection = useCallback(() => {
+    dispatch({ type: actionTypes.CLEAR_SELECTION });
+  }, []);
+
+  const getSelectedStudentData = useCallback(() => {
+    return state.students.filter(student => state.selectedStudents.includes(student.id));
+  }, [state.students, state.selectedStudents]);
+
   // Fetch student statistics
   const fetchStudentStats = useCallback(async () => {
     try {
@@ -345,6 +500,12 @@ export const StudentManagementProvider = ({ children }) => {
     stats: state.stats,
     pagination: state.pagination,
     filters: state.filters,
+    // Selection state
+    selectedStudents: state.selectedStudents,
+    selectAll: state.selectAll,
+    selectAllAcrossPages: state.selectAllAcrossPages,
+    allStudentIds: state.allStudentIds,
+    bulkOperationLoading: state.bulkOperationLoading,
 
     // Actions
     fetchStudents,
@@ -352,6 +513,7 @@ export const StudentManagementProvider = ({ children }) => {
     createBulkStudents,
     updateStudentStatus,
     deleteStudent,
+    deleteBulkStudents,
     fetchStudentStats,
     updateFilters,
     resetFilters,
@@ -359,6 +521,13 @@ export const StudentManagementProvider = ({ children }) => {
     handleFilterChange,
     handleSortChange,
     clearError,
+    // Selection actions
+    toggleStudentSelection,
+    toggleSelectAll,
+    toggleSelectAllAcrossPages,
+    fetchAllStudentIds,
+    clearSelection,
+    getSelectedStudentData,
 
     // Service utilities
     ...serviceUtils

@@ -54,6 +54,8 @@ import CourseCategoryManagement from "pages/CourseCategoryManagement";
 import DepartmentManagement from "pages/DepartmentManagement";
 import DepartmentStaffManagement from "pages/DepartmentStaffManagement";
 import DepartmentsOverview from "pages/DepartmentsOverview";
+import DepartmentWiseStudentDashboard from "pages/DepartmentWiseStudentDashboard";
+import DepartmentStudents from "pages/DepartmentStudents";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -75,6 +77,20 @@ const routes = [
     component: (
       <ProtectedRoute>
         <Dashboard />
+      </ProtectedRoute>
+    ),
+  },
+
+  // 1.5. Department-wise Student Dashboard
+  {
+    type: "collapse",
+    name: "Student Dashboard",
+    key: "department-wise-student-dashboard",
+    icon: <Icon fontSize="small">analytics</Icon>,
+    route: "/department-wise-student-dashboard",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <DepartmentWiseStudentDashboard />
       </ProtectedRoute>
     ),
   },
@@ -271,6 +287,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
         <DepartmentStaffManagement />
+      </ProtectedRoute>
+    ),
+  },
+  // Department Students (hidden from sidebar - accessed via department dashboard)
+  {
+    type: "route",
+    name: "Department Students",
+    key: "department-students",
+    route: "/department-students/:departmentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <DepartmentStudents />
       </ProtectedRoute>
     ),
   },
