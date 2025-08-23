@@ -60,6 +60,9 @@ departmentSchema.index({ createdAt: -1 });
 
 // Virtual for formatted creation date
 departmentSchema.virtual('formattedCreatedAt').get(function() {
+  if (!this.createdAt) {
+    return 'Unknown';
+  }
   return this.createdAt.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

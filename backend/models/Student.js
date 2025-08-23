@@ -151,7 +151,14 @@ const studentSchema = new mongoose.Schema({
   profileLastUpdated: { type: Date, default: Date.now },
   
   // Reference to User model
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  
+  // Batch reference
+  batchId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Batch',
+    default: null
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -161,6 +168,7 @@ const studentSchema = new mongoose.Schema({
 // Indexes for better query performance
 studentSchema.index({ studentId: 1 });
 studentSchema.index({ userId: 1 });
+studentSchema.index({ batchId: 1 });
 studentSchema.index({ 'academic.department': 1 });
 studentSchema.index({ 'placement.placementStatus': 1 });
 studentSchema.index({ 'academic.yearOfStudy': 1 });

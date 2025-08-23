@@ -10,7 +10,9 @@ const {
   deleteBulkStudents,
   testEmailConfiguration,
   sendTestEmail,
-  resendWelcomeEmail
+  resendWelcomeEmail,
+  getBatchesForPlacementStaff,
+  getStudentsForBatch
 } = require('../controllers/studentManagementController');
 
 // Middleware
@@ -76,5 +78,15 @@ router.post('/send-test-email', auth, requirePlacementStaff, sendTestEmail);
 // @route   POST /api/student-management/students/:id/resend-email
 // @access  Private (Placement Staff only)
 router.post('/students/:id/resend-email', auth, requirePlacementStaff, resendWelcomeEmail);
+
+// @desc    Get batches for placement staff
+// @route   GET /api/student-management/batches
+// @access  Private (Placement Staff only)
+router.get('/batches', auth, requirePlacementStaff, getBatchesForPlacementStaff);
+
+// @desc    Get students for a specific batch
+// @route   GET /api/student-management/batches/:batchId/students
+// @access  Private (Placement Staff only)
+router.get('/batches/:batchId/students', auth, requirePlacementStaff, getStudentsForBatch);
 
 module.exports = router;

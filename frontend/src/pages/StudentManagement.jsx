@@ -34,6 +34,8 @@ import ComplexStatisticsCard from 'examples/Cards/StatisticsCards/ComplexStatist
 import CreateStudentForm from 'components/StudentManagement/CreateStudentForm';
 import BulkStudentUploadModal from 'components/StudentManagement/BulkStudentUploadModal';
 import StudentDataTable from 'components/StudentManagement/StudentDataTable';
+import BatchYearTable from 'components/StudentManagement/BatchYearTable';
+import BatchStudentsView from 'components/StudentManagement/BatchStudentsView';
 
 // Context
 import { StudentManagementProvider, useStudentManagement } from 'context/StudentManagementContext';
@@ -52,6 +54,10 @@ const StudentManagementContent = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
+  
+  // View state management
+  const [currentView, setCurrentView] = useState('batches'); // 'batches' or 'students'
+  const [selectedBatch, setSelectedBatch] = useState(null);
 
   // Fetch stats and students on component mount
   useEffect(() => {
@@ -81,6 +87,22 @@ const StudentManagementContent = () => {
   const handleBulkUploadDialogClose = () => {
     setBulkUploadDialogOpen(false);
     clearError();
+  };
+
+  // Navigation handlers
+  const handleBatchSelect = (batch) => {
+    setSelectedBatch(batch);
+    setCurrentView('students');
+  };
+
+  const handleBackToBatches = () => {
+    setSelectedBatch(null);
+    setCurrentView('batches');
+  };
+
+  const handleBatchRefresh = (batches) => {
+    // Optional: Update any batch-related stats if needed
+    console.log('Batches refreshed:', batches);
   };
 
   return (
@@ -248,68 +270,19 @@ const StudentManagementContent = () => {
           </MDBox>
         )}
 
-        {/* Students Data Table */}
+        {/* Main Content Area - Conditional Rendering */}
         <MDBox mb={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              {/* Green Header Bar */}
-              <MDBox
-                mx={0}
-                mt={0}
-                py={3}
-                px={2}
-                variant="gradient"
-                bgColor="success"
-                borderRadius="lg"
-                coloredShadow="success"
-              >
-                <MDBox display="flex" justifyContent="space-between" alignItems="center">
-                  <MDTypography variant="h6" color="white">
-                    Students Created by You
-                  </MDTypography>
-                  <MDBox display="flex" gap={1}>
-                    <MDButton
-                      variant="outlined"
-                      color="white"
-                      size="small"
-                      startIcon={<UploadIcon />}
-                      onClick={() => setBulkUploadDialogOpen(true)}
-                      sx={{
-                        color: 'white',
-                        borderColor: 'white',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          borderColor: 'white'
-                        }
-                      }}
-                    >
-                      Bulk Upload
-                    </MDButton>
-                    <MDButton
-                      variant="contained"
-                      color="white"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => setCreateDialogOpen(true)}
-                      sx={{
-                        color: '#4caf50',
-                        backgroundColor: 'white',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255,255,255,0.9)'
-                        }
-                      }}
-                    >
-                      Add Student
-                    </MDButton>
-                  </MDBox>
-                </MDBox>
-              </MDBox>
-
-              <MDBox pt={3}>
-                <StudentDataTable />
-              </MDBox>
-            </Grid>
-          </Grid>
+          {currentView === 'batches' ? (
+            <BatchYearTable 
+              onBatchSelect={handleBatchSelect}
+              onRefresh={handleBatchRefresh}
+            />
+          ) : (
+            <BatchStudentsView 
+              batch={selectedBatch}
+              onBackToBatches={handleBackToBatches}
+            />
+          )}
         </MDBox>
 
         {/* Create Student Dialog */}

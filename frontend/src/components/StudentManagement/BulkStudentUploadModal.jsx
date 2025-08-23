@@ -11,7 +11,12 @@ import {
   Alert,
   LinearProgress,
   Chip,
-  IconButton
+  IconButton,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -19,7 +24,8 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  School as SchoolIcon
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import MDBox from 'components/MDBox';
@@ -38,6 +44,12 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
   const [validationResults, setValidationResults] = useState([]);
   const [step, setStep] = useState(1); // 1: Upload, 2: Preview, 3: Processing
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Batch selection state
+  const [batchData, setBatchData] = useState({
+    joiningYear: new Date().getFullYear(),
+    courseType: 'UG'
+  });
 
 
   const handleDrag = (e) => {
@@ -143,6 +155,38 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
     return { validData, validationResults };
   };
 
+  // Calculate batch code based on joining year and course type
+  const calculateBatchCode = (joiningYear, courseType) => {
+    const courseDurations = {
+      'UG': 4,
+      'PG': 2,
+      'Diploma': 3,
+      'Certificate': 1
+    };
+    
+    const duration = courseDurations[courseType] || 4;
+    const endYear = joiningYear + duration;
+    return `${joiningYear}-${endYear}`;
+  };
+
+  const handleBatchDataChange = (field) => (event) => {
+    const value = event.target.value;
+    setBatchData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Generate year options (current year - 5 to current year + 2)
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = currentYear - 5; year <= currentYear + 2; year++) {
+      years.push(year);
+    }
+    return years;
+  };
+
   const handleBulkUpload = async () => {
     if (uploadedData.length === 0) {
       alert('No valid data to upload');
@@ -166,11 +210,19 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
         });
       }, 200);
 
-      console.log('🔍 Frontend: Uploading student data:', uploadedData);
-      console.log('🔍 Frontend: Data type:', typeof uploadedData, 'Is Array:', Array.isArray(uploadedData));
-      console.log('🔍 Frontend: Data length:', uploadedData.length);
+      // Include batch data with student data
+      const uploadDataWithBatch = {
+        studentData: uploadedData,
+        batchInfo: {
+          joiningYear: batchData.joiningYear,
+          courseType: batchData.courseType,
+          batchCode: calculateBatchCode(batchData.joiningYear, batchData.courseType)
+        }
+      };
+
+      console.log('🔍 Frontend: Uploading student data with batch:', uploadDataWithBatch);
       
-      const response = await createBulkStudents(uploadedData);
+      const response = await createBulkStudents(uploadDataWithBatch);
       console.log('✅ Frontend: Upload response:', response);
       
       clearInterval(progressInterval);
@@ -315,6 +367,11 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
     setValidationResults([]);
     setUploadProgress(0);
     setDragActive(false);
+    // Reset batch data to defaults
+    setBatchData({
+      joiningYear: new Date().getFullYear(),
+      courseType: 'UG'
+    });
     onClose();
   };
 
@@ -454,6 +511,68 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
       <DialogContent>
         {step === 1 && (
           <Box>
+            {/* Batch Selection Section */}
+            <Paper sx={{ p: 3, mb: 3, backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}>
+              <MDBox display="flex" alignItems="center" mb={2}>
+                <SchoolIcon sx={{ color: '#4CAF50', mr: 1 }} />
+                <MDTypography variant="h6" fontWeight="medium">
+                  Batch Information
+                </MDTypography>
+              </MDBox>
+              
+              <Grid container spacing={3} alignItems="center">
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Joining Year</InputLabel>
+                    <Select
+                      value={batchData.joiningYear}
+                      onChange={handleBatchDataChange('joiningYear')}
+                      label="Joining Year"
+                    >
+                      {generateYearOptions().map(year => (
+                        <MenuItem key={year} value={year}>
+                          {year}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Course Type</InputLabel>
+                    <Select
+                      value={batchData.courseType}
+                      onChange={handleBatchDataChange('courseType')}
+                      label="Course Type"
+                    >
+                      <MenuItem value="UG">UG (4 Years)</MenuItem>
+                      <MenuItem value="PG">PG (2 Years)</MenuItem>
+                      <MenuItem value="Diploma">Diploma (3 Years)</MenuItem>
+                      <MenuItem value="Certificate">Certificate (1 Year)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, backgroundColor: '#e8f5e8', textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Generated Batch
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold" color="success.main">
+                      {calculateBatchCode(batchData.joiningYear, batchData.courseType)} {batchData.courseType}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+              
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  All students in the uploaded file will be assigned to the <strong>{calculateBatchCode(batchData.joiningYear, batchData.courseType)} {batchData.courseType}</strong> batch.
+                </Typography>
+              </Alert>
+            </Paper>
+
             {/* Download Template Button */}
             <Box display="flex" justifyContent="center" mb={3}>
               <MDButton
@@ -472,7 +591,8 @@ const BulkStudentUploadModal = ({ open, onClose, onSuccess }) => {
                 Upload Instructions:
               </Typography>
               <Typography variant="body2" component="div">
-                • Download the sample template above to get started<br/>
+                • Select the batch information above first<br/>
+                • Download the sample template to get started<br/>
                 • Upload an Excel (.xlsx, .xls) or CSV file with student data<br/>
                 • Required columns: First Name, Last Name, Email<br/>
                 • Make sure all email addresses are valid and unique<br/>

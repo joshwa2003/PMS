@@ -17,14 +17,26 @@ class StudentManagementService {
   }
 
   // Create multiple students at once (Placement Staff only)
-  async createBulkStudents(studentDataArray) {
+  async createBulkStudents(uploadDataWithBatch) {
     try {
       console.log('🔍 Service: Creating bulk students');
-      console.log('🔍 Service: Input data:', studentDataArray);
-      console.log('🔍 Service: Data type:', typeof studentDataArray, 'Is Array:', Array.isArray(studentDataArray));
-      console.log('🔍 Service: Data length:', studentDataArray.length);
+      console.log('🔍 Service: Input data:', uploadDataWithBatch);
       
-      const requestBody = { studentData: studentDataArray };
+      // Handle both old format (array) and new format (object with studentData and batchInfo)
+      let requestBody;
+      if (Array.isArray(uploadDataWithBatch)) {
+        // Old format - just student data array
+        requestBody = { studentData: uploadDataWithBatch };
+        console.log('🔍 Service: Using legacy format (array only)');
+      } else if (uploadDataWithBatch.studentData && Array.isArray(uploadDataWithBatch.studentData)) {
+        // New format - object with studentData and batchInfo
+        requestBody = uploadDataWithBatch;
+        console.log('🔍 Service: Using new format with batch info');
+        console.log('🔍 Service: Batch info:', uploadDataWithBatch.batchInfo);
+      } else {
+        throw new Error('Invalid data format. Expected array or object with studentData property.');
+      }
+
       console.log('🔍 Service: Request body:', requestBody);
       console.log('🚀 Service: Using bulkApi with extended timeout for bulk operations');
       
@@ -128,6 +140,39 @@ class StudentManagementService {
       throw new Error(response.message || 'Failed to delete students');
     } catch (error) {
       console.error('❌ Service: Error in deleteBulkStudents:', error);
+      throw error;
+    }
+  }
+
+  // Get all batches for placement staff
+  async getAllBatches() {
+    try {
+      const response = await api.get('/student-management/batches');
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to fetch batches');
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      throw error;
+    }
+  }
+
+  // Get students for a specific batch
+  async getStudentsForBatch(batchId, params = {}) {
+    try {
+      const queryParams = new URLSearchParams(params).toString();
+      const response = await api.get(`/student-management/batches/${batchId}/students?${queryParams}`);
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to fetch students for batch');
+    } catch (error) {
+      console.error('Error fetching students for batch:', error);
       throw error;
     }
   }
@@ -372,6 +417,53 @@ class StudentManagementService {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
+  }
+
+  // Batch utility methods
+  formatBatchDisplayName(batch) {
+    if (!batch) return 'Unknown Batch';
+    return `${batch.batchCode} ${batch.courseType}`;
+  }
+
+  getBatchStatusColor(batch) {
+    if (!batch) return 'secondary';
+    
+    if (batch.isGraduated) return 'info';
+    if (!batch.isActive) return 'secondary';
+    
+    // Based on academic status
+    const status = batch.academicStatus;
+    if (status && status.includes('1st Year')) return 'success';
+    if (status && status.includes('2nd Year')) return 'warning';
+    if (status && status.includes('3rd Year')) return 'error';
+    if (status && status.includes('4th Year')) return 'dark';
+    if (status && status.includes('Alumni')) return 'info';
+    
+    return 'primary';
+  }
+
+  getBatchStatusText(batch) {
+    if (!batch) return 'Unknown';
+    
+    if (batch.isGraduated) return 'Alumni';
+    if (!batch.isActive) return 'Inactive';
+    
+    return batch.academicStatus || 'Active';
+  }
+
+  formatBatchYear(batch) {
+    if (!batch) return 'Unknown';
+    return `${batch.startYear}-${batch.endYear}`;
+  }
+
+  calculateBatchPlacementRate(batch) {
+    if (!batch || !batch.stats) return 0;
+    
+    const { totalStudents, placement } = batch.stats;
+    if (totalStudents === 0) return 0;
+    
+    const placedCount = (placement.placed || 0) + (placement.multipleOffers || 0);
+    return Math.round((placedCount / totalStudents) * 100);
   }
 }
 
