@@ -37,11 +37,8 @@ Coded by www.creative-tim.com
 
 // S.A. Engineering College React layouts
 import Dashboard from "layouts/dashboard";
-import Tables from "layouts/tables";
-import Billing from "layouts/billing";
 import RTL from "layouts/rtl";
 import Notifications from "layouts/notifications";
-import Profile from "layouts/profile";
 import ProfilePage from "layouts/profile/ProfilePage";
 import StudentProfile from "pages/StudentProfile";
 import AdministratorProfile from "pages/AdministratorProfile";
@@ -57,6 +54,9 @@ import DepartmentsOverview from "pages/DepartmentsOverview";
 import DepartmentWiseStudentDashboard from "pages/DepartmentWiseStudentDashboard";
 import DepartmentStudents from "pages/DepartmentStudents";
 import DepartmentBatches from "pages/DepartmentBatches";
+import JobManagementNew from "pages/JobManagementNew";
+import CreateJobPageEnhanced from "pages/CreateJobPageEnhanced";
+import JobMonitoring from "pages/JobMonitoring";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -170,16 +170,28 @@ const routes = [
     ),
   },
 
-  // Other existing routes (kept for functionality but may be hidden from sidebar based on role)
+  // Job Management Routes
   {
     type: "collapse",
     name: "Job Management",
-    key: "billing",
+    key: "job-management",
     icon: <Icon fontSize="small">work</Icon>,
-    route: "/billing",
+    route: "/job-management",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <JobManagementNew />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Job Monitoring",
+    key: "job-monitoring",
+    icon: <Icon fontSize="small">analytics</Icon>,
+    route: "/job-monitoring",
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
-        <Billing />
+        <JobMonitoring />
       </ProtectedRoute>
     ),
   },
@@ -324,6 +336,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
         <DepartmentStudents />
+      </ProtectedRoute>
+    ),
+  },
+  // Create Job Page (hidden from sidebar - accessed via job management)
+  {
+    type: "route",
+    name: "Create Job",
+    key: "create-job",
+    route: "/job-management/create",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <CreateJobPageEnhanced />
       </ProtectedRoute>
     ),
   },

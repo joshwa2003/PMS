@@ -49,6 +49,7 @@ import routes from "routes";
 // S.A. Engineering College React contexts
 import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "context";
 import { AuthProvider } from "context/AuthContext";
+import { JobProvider } from "context/JobContext";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
@@ -149,9 +150,46 @@ export default function App() {
 
   return (
     <AuthProvider>
-      {direction === "rtl" ? (
-        <CacheProvider value={rtlCache}>
-          <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
+      <JobProvider>
+        {direction === "rtl" ? (
+          <CacheProvider value={rtlCache}>
+            <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
+              <CssBaseline />
+              {layout === "dashboard" && (
+                <>
+                  <Sidenav
+                    color={sidenavColor}
+                    brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
+                    brandName="S.A. Engineering College"
+                    routes={routes}
+                    onMouseEnter={handleOnMouseEnter}
+                    onMouseLeave={handleOnMouseLeave}
+                  />
+                  <Configurator />
+                  {configsButton}
+                </>
+              )}
+              {layout === "student-profile" && (
+                <>
+                  <Configurator />
+                  {configsButton}
+                </>
+              )}
+              {layout === "administrator-profile" && (
+                <>
+                  <Configurator />
+                  {configsButton}
+                </>
+              )}
+              {layout === "vr" && <Configurator />}
+              <Routes>
+                {getRoutes(routes)}
+                <Route path="*" element={<Navigate to="/dashboard" />} />
+              </Routes>
+            </ThemeProvider>
+          </CacheProvider>
+        ) : (
+          <ThemeProvider theme={darkMode ? themeDark : theme}>
             <CssBaseline />
             {layout === "dashboard" && (
               <>
@@ -185,43 +223,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </ThemeProvider>
-        </CacheProvider>
-      ) : (
-        <ThemeProvider theme={darkMode ? themeDark : theme}>
-          <CssBaseline />
-          {layout === "dashboard" && (
-            <>
-              <Sidenav
-                color={sidenavColor}
-                brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
-                brandName="S.A. Engineering College"
-                routes={routes}
-                onMouseEnter={handleOnMouseEnter}
-                onMouseLeave={handleOnMouseLeave}
-              />
-              <Configurator />
-              {configsButton}
-            </>
-          )}
-          {layout === "student-profile" && (
-            <>
-              <Configurator />
-              {configsButton}
-            </>
-          )}
-          {layout === "administrator-profile" && (
-            <>
-              <Configurator />
-              {configsButton}
-            </>
-          )}
-          {layout === "vr" && <Configurator />}
-          <Routes>
-            {getRoutes(routes)}
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </ThemeProvider>
-      )}
+        )}
+      </JobProvider>
     </AuthProvider>
   );
 }

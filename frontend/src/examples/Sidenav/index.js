@@ -146,6 +146,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         'department-wise-student-dashboard',
         'user-management', 
         'departments',
+        'job-management',
+        'job-monitoring',
         'administrator-profile'
       ];
       return adminSidebarItems.includes(key);

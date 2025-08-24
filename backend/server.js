@@ -20,6 +20,7 @@ const departmentHODProfileRoutes = require('./routes/departmentHODProfiles');
 const courseCategoryRoutes = require('./routes/courseCategories');
 const departmentRoutes = require('./routes/departments');
 const dashboardRoutes = require('./routes/dashboard');
+const jobRoutes = require('./routes/jobs');
 
 const app = express();
 
@@ -36,6 +37,8 @@ app.use(express.urlencoded({ extended: true }));
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
 const resumesDir = path.join(uploadsDir, 'resumes');
+const companyLogosDir = path.join(uploadsDir, 'company-logos');
+const jobDocumentsDir = path.join(uploadsDir, 'job-documents');
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -43,6 +46,14 @@ if (!fs.existsSync(uploadsDir)) {
 
 if (!fs.existsSync(resumesDir)) {
   fs.mkdirSync(resumesDir);
+}
+
+if (!fs.existsSync(companyLogosDir)) {
+  fs.mkdirSync(companyLogosDir);
+}
+
+if (!fs.existsSync(jobDocumentsDir)) {
+  fs.mkdirSync(jobDocumentsDir);
 }
 
 // Serve static files from uploads directory
@@ -75,6 +86,7 @@ app.use(`/api/${API_VERSION}/department-hod-profiles`, departmentHODProfileRoute
 app.use(`/api/${API_VERSION}/course-categories`, courseCategoryRoutes);
 app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
+app.use(`/api/${API_VERSION}/jobs`, jobRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
