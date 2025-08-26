@@ -19,7 +19,9 @@ import {
   Work as WorkIcon,
   People as PeopleIcon,
   Schedule as ScheduleIcon,
-  Analytics as AnalyticsIcon
+  Analytics as AnalyticsIcon,
+  Publish as PublishIcon,
+  UnpublishedOutlined as UnpublishIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -43,6 +45,7 @@ import { useAuth } from 'context/AuthContext';
 import EditJobModal from 'components/JobManagement/EditJobModal';
 import JobDetailsModal from 'components/JobManagement/JobDetailsModal';
 import DeleteConfirmationModal from 'components/JobManagement/DeleteConfirmationModal';
+import PublishConfirmationModal from 'components/JobManagement/PublishConfirmationModal';
 import JobFilters from 'components/JobManagement/JobFilters';
 
 // Services
@@ -144,6 +147,8 @@ function JobManagementNew() {
     pagination,
     filters,
     fetchJobs,
+    publishJob,
+    unpublishJob,
     deleteJob,
     setFilters,
     setCurrentPage,
@@ -154,7 +159,10 @@ function JobManagementNew() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [publishAction, setPublishAction] = useState('publish'); // 'publish' or 'unpublish'
+  const [publishLoading, setPublishLoading] = useState(false);
 
   // Alert state
   const [alert, setAlert] = useState({ show: false, message: '', type: 'success' });
@@ -219,6 +227,52 @@ function JobManagementNew() {
         message: error.message || 'Failed to delete job',
         type: 'error'
       });
+    }
+  };
+
+  const handlePublishJob = (job) => {
+    setSelectedJob(job);
+    setPublishAction('publish');
+    setPublishModalOpen(true);
+  };
+
+  const handleUnpublishJob = (job) => {
+    setSelectedJob(job);
+    setPublishAction('unpublish');
+    setPublishModalOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    try {
+      setPublishLoading(true);
+      
+      if (publishAction === 'publish') {
+        await publishJob(selectedJob._id);
+        setAlert({
+          show: true,
+          message: 'Job published successfully',
+          type: 'success'
+        });
+      } else {
+        await unpublishJob(selectedJob._id);
+        setAlert({
+          show: true,
+          message: 'Job unpublished successfully',
+          type: 'success'
+        });
+      }
+      
+      setPublishModalOpen(false);
+      setSelectedJob(null);
+      fetchJobs(); // Refresh the list
+    } catch (error) {
+      setAlert({
+        show: true,
+        message: error.message || `Failed to ${publishAction} job`,
+        type: 'error'
+      });
+    } finally {
+      setPublishLoading(false);
     }
   };
 
@@ -340,6 +394,29 @@ function JobManagementNew() {
           </Tooltip>
           {canCreateJobs && (
             <>
+              {/* Publish/Unpublish buttons */}
+              {row.original.status === 'Draft' ? (
+                <Tooltip title="Publish Job">
+                  <IconButton 
+                    size="small" 
+                    onClick={() => handlePublishJob(row.original)}
+                    sx={{ color: 'success.main' }}
+                  >
+                    <PublishIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : row.original.status === 'Active' ? (
+                <Tooltip title="Unpublish Job">
+                  <IconButton 
+                    size="small" 
+                    onClick={() => handleUnpublishJob(row.original)}
+                    sx={{ color: 'warning.main' }}
+                  >
+                    <UnpublishIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+              
               <Tooltip title="Edit Job">
                 <IconButton 
                   size="small" 
@@ -571,6 +648,20 @@ function JobManagementNew() {
             setSelectedJob(null);
           }}
           onConfirm={handleConfirmDelete}
+        />
+      )}
+
+      {publishModalOpen && selectedJob && (
+        <PublishConfirmationModal
+          open={publishModalOpen}
+          job={selectedJob}
+          action={publishAction}
+          onClose={() => {
+            setPublishModalOpen(false);
+            setSelectedJob(null);
+          }}
+          onConfirm={handleConfirmPublish}
+          loading={publishLoading}
         />
       )}
 

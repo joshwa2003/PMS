@@ -146,6 +146,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         'department-wise-student-dashboard',
         'user-management', 
         'departments',
+        'job-posts',
         'job-management',
         'job-monitoring',
         'administrator-profile'

@@ -750,11 +750,339 @@ const createJobApplicationsForStudents = async (jobId) => {
   }
 };
 
+// Get public job listings (accessible to all users)
+const getPublicJobs = async (req, res) => {
+  try {
+    console.log('🌐 Fetching public job listings - Request params:', req.query);
+
+    const { 
+      page = 1, 
+      limit = 12, 
+      search = '', 
+      jobType = '',
+      location = '',
+      company = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object for public jobs (only active and not expired)
+    const filter = {
+      status: 'Active',
+      deadline: { $gt: new Date() }
+    };
+    
+    // Search functionality
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { 'company.name': { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { skillsRequired: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
+    
+    // Job type filter
+    if (jobType) {
+      filter.jobType = jobType;
+    }
+    
+    // Location filter
+    if (location) {
+      filter.location = { $regex: location, $options: 'i' };
+    }
+    
+    // Company filter
+    if (company) {
+      filter['company.name'] = { $regex: company, $options: 'i' };
+    }
+
+    console.log('🔍 Public filter applied:', JSON.stringify(filter, null, 2));
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const actualLimit = parseInt(limit);
+
+    // Build sort object
+    const sortObj = {};
+    sortObj[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Get jobs with minimal population for public view
+    const jobs = await Job.find(filter)
+      .populate({
+        path: 'targetDepartments',
+        select: 'name code',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'eligibility.departments',
+        select: 'name code',
+        options: { strictPopulate: false }
+      })
+      .select(`
+        title company.name company.logo company.website company.industry company.size
+        description location jobType workMode startDate numberOfOpenings
+        salary stipend deadline skillsRequired benefits
+        stats.totalViews stats.totalApplications createdAt
+      `)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(actualLimit)
+      .lean();
+
+    console.log('✅ Public jobs found:', jobs.length);
+
+    // Get total count for pagination
+    const totalJobs = await Job.countDocuments(filter);
+    const totalPages = Math.ceil(totalJobs / parseInt(limit));
+
+    // Get filter options for frontend
+    const jobTypes = await Job.distinct('jobType', { status: 'Active', deadline: { $gt: new Date() } });
+    const locations = await Job.distinct('location', { status: 'Active', deadline: { $gt: new Date() } });
+    const companies = await Job.distinct('company.name', { status: 'Active', deadline: { $gt: new Date() } });
+
+    console.log('📊 Public pagination info - Total:', totalJobs, 'Pages:', totalPages);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        jobs,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalJobs,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        },
+        filters: {
+          jobTypes: jobTypes.sort(),
+          locations: locations.sort(),
+          companies: companies.sort()
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching public jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching jobs',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get single public job details
+const getPublicJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🔍 Fetching public job details with ID:', id);
+
+    const job = await Job.findOne({
+      _id: id,
+      status: 'Active',
+      deadline: { $gt: new Date() }
+    })
+    .populate('targetDepartments', 'name code')
+    .populate('eligibility.departments', 'name code')
+    .select(`
+      title company description location jobType workMode startDate
+      numberOfOpenings salary stipend deadline applicationLink
+      keyResponsibilities requirements skillsRequired otherRequirements
+      workEnvironmentRequirements benefits educationQualifications
+      eligibility stats.totalViews stats.totalApplications createdAt
+      targetDepartments
+    `)
+    .lean();
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found or no longer available'
+      });
+    }
+
+    // Increment view count (without user tracking for public view)
+    await Job.findByIdAndUpdate(id, { 
+      $inc: { 'stats.totalViews': 1 } 
+    });
+
+    console.log('✅ Public job found:', job.title);
+
+    res.status(200).json({
+      success: true,
+      data: { job }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching public job:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching job details',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Publish job (change status from Draft to Active)
+const publishJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📢 Publishing job:', id);
+
+    // Check permissions
+    if (!['admin', 'placement_director'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to publish jobs'
+      });
+    }
+
+    const job = await Job.findById(id);
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Check if user can publish this job
+    if (req.user.role !== 'admin' && job.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only publish jobs you created'
+      });
+    }
+
+    // Check if job is already active
+    if (job.status === 'Active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Job is already published'
+      });
+    }
+
+    // Check if job is expired
+    if (job.deadline <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot publish expired job'
+      });
+    }
+
+    // Update job status to Active
+    const updatedJob = await Job.findByIdAndUpdate(
+      id, 
+      { 
+        status: 'Active',
+        publishedAt: new Date(),
+        updatedBy: req.user._id
+      }, 
+      { new: true, runValidators: true }
+    ).populate('targetDepartments', 'name code')
+      .populate('eligibility.departments', 'name code')
+      .populate('createdBy', 'firstName lastName email')
+      .populate('updatedBy', 'firstName lastName email');
+
+    // Create job applications for eligible students
+    await createJobApplicationsForStudents(id);
+
+    console.log('✅ Job published successfully:', updatedJob.title);
+
+    res.status(200).json({
+      success: true,
+      message: 'Job published successfully',
+      data: { job: updatedJob }
+    });
+  } catch (error) {
+    console.error('❌ Error publishing job:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error publishing job',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Unpublish job (change status from Active to Draft)
+const unpublishJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('📝 Unpublishing job:', id);
+
+    // Check permissions
+    if (!['admin', 'placement_director'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to unpublish jobs'
+      });
+    }
+
+    const job = await Job.findById(id);
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Check if user can unpublish this job
+    if (req.user.role !== 'admin' && job.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only unpublish jobs you created'
+      });
+    }
+
+    // Check if job is already draft
+    if (job.status === 'Draft') {
+      return res.status(400).json({
+        success: false,
+        message: 'Job is already in draft status'
+      });
+    }
+
+    // Update job status to Draft
+    const updatedJob = await Job.findByIdAndUpdate(
+      id, 
+      { 
+        status: 'Draft',
+        publishedAt: null,
+        updatedBy: req.user._id
+      }, 
+      { new: true, runValidators: true }
+    ).populate('targetDepartments', 'name code')
+      .populate('eligibility.departments', 'name code')
+      .populate('createdBy', 'firstName lastName email')
+      .populate('updatedBy', 'firstName lastName email');
+
+    console.log('✅ Job unpublished successfully:', updatedJob.title);
+
+    res.status(200).json({
+      success: true,
+      message: 'Job unpublished successfully',
+      data: { job: updatedJob }
+    });
+  } catch (error) {
+    console.error('❌ Error unpublishing job:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error unpublishing job',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   getAllJobs,
   getJob,
   createJob,
   updateJob,
   deleteJob,
-  getStudentJobs
+  getStudentJobs,
+  getPublicJobs,
+  getPublicJob,
+  publishJob,
+  unpublishJob
 };

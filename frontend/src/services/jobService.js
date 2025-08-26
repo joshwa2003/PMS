@@ -1,6 +1,52 @@
 import api from './api';
+import axios from 'axios';
 
 const API_BASE_URL = '/jobs';
+
+// Create a separate axios instance for public endpoints (no auth required)
+const publicApi = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api/v1',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Response interceptor for public API
+publicApi.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error) => {
+    console.error('🔍 Public API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      config: {
+        method: error.config?.method,
+        url: error.config?.url,
+        data: error.config?.data
+      }
+    });
+
+    let errorMessage = 'An error occurred';
+    
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    if (error.response?.status) {
+      errorMessage = `${errorMessage} (Status: ${error.response.status})`;
+    }
+    
+    return Promise.reject(new Error(errorMessage));
+  }
+);
 
 // ============================================================================
 // JOB MANAGEMENT SERVICES
@@ -163,6 +209,36 @@ export const updateJob = async (jobId, jobData, companyLogo = null, documents = 
     return response.data;
   } catch (error) {
     console.error('Error updating job:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Publish job (change status from Draft to Active)
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const publishJob = async (jobId) => {
+  try {
+    const response = await api.put(`${API_BASE_URL}/${jobId}/publish`);
+    return response.data;
+  } catch (error) {
+    console.error('Error publishing job:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Unpublish job (change status from Active to Draft)
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const unpublishJob = async (jobId) => {
+  try {
+    const response = await api.put(`${API_BASE_URL}/${jobId}/unpublish`);
+    return response.data;
+  } catch (error) {
+    console.error('Error unpublishing job:', error);
     throw error.response?.data || error;
   }
 };
@@ -441,6 +517,40 @@ export const getApplicationStatusColor = (status) => {
   }
 };
 
+// ============================================================================
+// PUBLIC JOB SERVICES (No authentication required)
+// ============================================================================
+
+/**
+ * Get public job listings
+ * @param {Object} params - Query parameters
+ * @returns {Promise} API response
+ */
+export const getPublicJobs = async (params = {}) => {
+  try {
+    const response = await publicApi.get('/jobs/public', { params });
+    return response;
+  } catch (error) {
+    console.error('Error fetching public jobs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single public job by ID
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const getPublicJobById = async (jobId) => {
+  try {
+    const response = await publicApi.get(`/jobs/public/${jobId}`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching public job:', error);
+    throw error;
+  }
+};
+
 export default {
   // Job Management
   getAllJobs,
@@ -448,7 +558,13 @@ export default {
   getJobById,
   createJob,
   updateJob,
+  publishJob,
+  unpublishJob,
   deleteJob,
+  
+  // Public Job Access
+  getPublicJobs,
+  getPublicJobById,
   
   // Job Application Tracking
   recordJobView,

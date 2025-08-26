@@ -311,6 +311,38 @@ export const JobProvider = ({ children }) => {
     }
   }, []);
 
+  const publishJob = useCallback(async (jobId) => {
+    try {
+      const response = await jobService.publishJob(jobId);
+      // Handle nested response structure: response.data.data.job
+      const job = response.data?.data?.job || response.data?.job || response.job;
+      if (!job) {
+        throw new Error('Job data not found in response');
+      }
+      dispatch({ type: ActionTypes.UPDATE_JOB, payload: job });
+      return job;
+    } catch (error) {
+      console.error('Error publishing job:', error);
+      throw error;
+    }
+  }, []);
+
+  const unpublishJob = useCallback(async (jobId) => {
+    try {
+      const response = await jobService.unpublishJob(jobId);
+      // Handle nested response structure: response.data.data.job
+      const job = response.data?.data?.job || response.data?.job || response.job;
+      if (!job) {
+        throw new Error('Job data not found in response');
+      }
+      dispatch({ type: ActionTypes.UPDATE_JOB, payload: job });
+      return job;
+    } catch (error) {
+      console.error('Error unpublishing job:', error);
+      throw error;
+    }
+  }, []);
+
   const deleteJob = useCallback(async (jobId) => {
     try {
       await jobService.deleteJob(jobId);
@@ -495,6 +527,8 @@ export const JobProvider = ({ children }) => {
     fetchJobById,
     createJob,
     updateJob,
+    publishJob,
+    unpublishJob,
     deleteJob,
     
     // Student Job Actions

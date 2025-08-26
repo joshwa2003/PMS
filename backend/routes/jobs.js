@@ -62,6 +62,25 @@ const upload = multer({
 });
 
 // ============================================================================
+// PUBLIC JOB ROUTES (No authentication required)
+// ============================================================================
+
+/**
+ * @route   GET /api/v1/jobs/public
+ * @desc    Get public job listings (accessible to all users)
+ * @access  Public
+ * @query   page, limit, search, jobType, location, company, sortBy, sortOrder
+ */
+router.get('/public', jobController.getPublicJobs);
+
+/**
+ * @route   GET /api/v1/jobs/public/:id
+ * @desc    Get single public job details
+ * @access  Public
+ */
+router.get('/public/:id', jobController.getPublicJob);
+
+// ============================================================================
 // JOB MANAGEMENT ROUTES (Admin & Placement Director)
 // ============================================================================
 
@@ -201,6 +220,20 @@ router.put('/:id',
   ]), 
   jobController.updateJob
 );
+
+/**
+ * @route   PUT /api/v1/jobs/:id/publish
+ * @desc    Publish job (change status from Draft to Active)
+ * @access  Private (Admin, Placement Director only)
+ */
+router.put('/:id/publish', auth, jobController.publishJob);
+
+/**
+ * @route   PUT /api/v1/jobs/:id/unpublish
+ * @desc    Unpublish job (change status from Active to Draft)
+ * @access  Private (Admin, Placement Director only)
+ */
+router.put('/:id/unpublish', auth, jobController.unpublishJob);
 
 /**
  * @route   DELETE /api/v1/jobs/:id

@@ -57,6 +57,8 @@ import DepartmentBatches from "pages/DepartmentBatches";
 import JobManagementNew from "pages/JobManagementNew";
 import CreateJobPageEnhanced from "pages/CreateJobPageEnhanced";
 import JobMonitoring from "pages/JobMonitoring";
+import JobPosts from "pages/JobPosts";
+import JobDetailPage from "pages/JobDetailPage";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -168,6 +170,24 @@ const routes = [
         <AdministratorProfile />
       </ProtectedRoute>
     ),
+  },
+
+  // Job Posts (Public - accessible to all users)
+  {
+    type: "collapse",
+    name: "Job Posts",
+    key: "job-posts",
+    icon: <Icon fontSize="small">work_outline</Icon>,
+    route: "/job-posts",
+    component: <JobPosts />,
+  },
+  // Job Detail Page (hidden from sidebar - accessed via job posts)
+  {
+    type: "route",
+    name: "Job Detail",
+    key: "job-detail",
+    route: "/job-detail/:jobId",
+    component: <JobDetailPage />,
   },
 
   // Job Management Routes
