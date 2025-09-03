@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useApplicationResponse } from 'context/ApplicationResponseContext';
 import {
   Container,
   Grid,
@@ -10,8 +11,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Box,
-  Divider,
   CircularProgress,
   Alert
 } from '@mui/material';
@@ -19,7 +18,6 @@ import {
   ArrowBack as BackIcon,
   LocationOn as LocationIcon,
   Work as WorkIcon,
-  Schedule as ScheduleIcon,
   Business as BusinessIcon,
   OpenInNew as OpenIcon,
   AccessTime as TimeIcon,
@@ -49,6 +47,7 @@ import { useMaterialUIController } from 'context';
 // Services
 import { getPublicJobById } from 'services/jobService';
 import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
+
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
@@ -85,9 +84,41 @@ const JobDetailPage = () => {
     }
   }, [jobId]);
 
-  const handleApply = () => {
+  const { recordApplyClick } = useApplicationResponse();
+
+  const handleApply = async () => {
     if (job?.applicationLink) {
+      console.log('🔗 Apply button clicked for job:', job._id);
+      
+      // Record the apply click before opening external link
+      await recordApplyClick(job._id, {
+        _id: job._id,
+        title: job.title,
+        company: job.company,
+        location: job.location
+      });
+      
+      console.log('✅ Apply click recorded, opening external link:', job.applicationLink);
+      
+      // Open external application link
       window.open(job.applicationLink, '_blank');
+    } else {
+      // If no external link, simulate the apply process for demo purposes
+      console.log('🔗 No external link, simulating apply process for job:', job._id);
+      
+      // Record the apply click for demo
+      await recordApplyClick(job._id || `demo-${Date.now()}`, {
+        _id: job._id || `demo-${Date.now()}`,
+        title: job.title,
+        company: job.company,
+        location: job.location
+      });
+      
+      // Show alert and simulate external redirect
+      alert('Demo: You would be redirected to the company\'s application page. When you return, you\'ll see the popup asking if you applied.');
+      
+      // For demo purposes, you can refresh the page to see the popup
+      console.log('💡 Tip: Refresh the page to see the application response popup!');
     }
   };
 
@@ -98,7 +129,10 @@ const JobDetailPage = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <DashboardNavbar />
+        <DashboardNavbar 
+          customTitle="Loading..."
+          customRoute={['job-detail']}
+        />
         <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress />
         </MDBox>
@@ -109,7 +143,10 @@ const JobDetailPage = () => {
   if (error) {
     return (
       <DashboardLayout>
-        <DashboardNavbar />
+        <DashboardNavbar 
+          customTitle="Error"
+          customRoute={['job-detail']}
+        />
         <Container maxWidth="lg">
           <Alert severity="error" sx={{ mt: 4, borderRadius: 2 }}>
             {error}
@@ -131,7 +168,10 @@ const JobDetailPage = () => {
   if (!job) {
     return (
       <DashboardLayout>
-        <DashboardNavbar />
+        <DashboardNavbar 
+          customTitle="Job Not Found"
+          customRoute={['job-detail']}
+        />
         <Container maxWidth="lg">
           <Alert severity="warning" sx={{ mt: 4, borderRadius: 2 }}>
             Job not found
@@ -165,9 +205,16 @@ const JobDetailPage = () => {
     }
   };
 
+  // Create custom breadcrumb data
+  const customTitle = job ? job.title : 'Loading...';
+  const customRoute = ['job-detail'];
+
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar 
+        customTitle={customTitle}
+        customRoute={customRoute}
+      />
       
       <MDBox py={3}>
         <Container maxWidth="lg">

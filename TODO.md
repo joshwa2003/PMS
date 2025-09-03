@@ -1,24 +1,48 @@
-# JobDetailPage Dark Mode Visibility Fix - TODO
+# Job Opportunities Fixes
 
-## Tasks to Complete:
+## Task 1: Fix Job Opportunities sorting to show most recently published jobs first ✅
 
-- [ ] Update JobDetailPage.jsx text colors for dark mode compatibility
-  - [ ] Replace hardcoded `color="dark"` with theme-aware colors
-  - [ ] Update `color="text"` to ensure proper contrast in dark mode
-  - [ ] Fix typography elements for better visibility
-  - [ ] Update chip and badge colors for dark mode
-  - [ ] Ensure all content sections are readable in dark mode
+### Progress:
+- [x] Analyze current implementation
+- [x] Identify the issue (sorting by createdAt instead of publishedAt)
+- [x] Create comprehensive plan
+- [x] Update backend controller to sort by publishedAt
+- [x] Update frontend to remove client-side sorting
+- [x] Test the changes
 
-## Progress:
-- [x] Plan created and approved
-- [x] Implementation completed (v4 - Final Fix)
-  - [x] **JobDetailPage.jsx**: Fixed background colors using `backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper`
-  - [x] **JobDetailPage.jsx**: Updated all text colors to use conditional `color={darkMode ? "white" : "dark"}`
-  - [x] **JobDetailPage.jsx**: Fixed all content sections to be visible in dark mode
-  - [x] **JobCard.jsx**: Applied same background color fix for consistency
-  - [x] **JobCard.jsx**: Updated all text colors to be theme-aware
-  - [x] **JobCard.jsx**: Fixed chip borders and colors for dark mode
-  - [x] **JobCard.jsx**: Fixed footer border color for dark mode
-  - [x] Used `useMaterialUIController` hook for dark mode detection
-  - [x] All components now have consistent dark mode styling
-- [x] Testing completed - Both JobDetailPage and JobCard now work perfectly in dark mode
+### Changes Made:
+
+1. **Backend (jobController.js)** ✅:
+   - Changed default sortBy from 'createdAt' to 'publishedAt' in getPublicJobs function
+   - Now jobs will be sorted by when they were actually published/made active
+
+2. **Frontend (JobPosts.jsx)** ✅:
+   - Removed client-side sorting by createdAt
+   - Backend now handles proper sorting by publishedAt in descending order
+   - Most recently published jobs will appear first
+
+## Task 2: Fix Apply Now button functionality in Job Cards ✅
+
+### Progress:
+- [x] Analyze the issue (Apply Now button working in JobDetailPage but not in JobCard)
+- [x] Compare implementations between JobDetailPage and JobPosts
+- [x] Update JobPosts to use the same comprehensive handleApply function
+- [x] Add application response tracking to Job Cards
+
+### Changes Made:
+
+3. **Frontend (JobPosts.jsx)** ✅:
+   - Added `useApplicationResponse` context import
+   - Updated `handleApply` function to match JobDetailPage implementation
+   - Now records apply clicks and tracks application responses
+   - Opens external application links properly
+   - Includes demo functionality for jobs without external links
+
+### Files Modified:
+- ✅ backend/controllers/jobController.js
+- ✅ frontend/src/pages/JobPosts.jsx
+
+### Summary:
+Both issues have been fixed:
+1. **Sorting**: Jobs in the Job Opportunities page will now be sorted by `publishedAt` (when they were made active/published) instead of `createdAt` (when they were created as drafts). This ensures that the most recently published jobs appear at the top of the list.
+2. **Apply Now Button**: The Apply Now button in Job Cards now works the same way as in Job Detail pages, with proper application tracking and response functionality.

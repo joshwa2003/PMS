@@ -50,6 +50,10 @@ import routes from "routes";
 import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "context";
 import { AuthProvider } from "context/AuthContext";
 import { JobProvider } from "context/JobContext";
+import { ApplicationResponseProvider, useApplicationResponse } from "context/ApplicationResponseContext";
+
+// Application Response Modal
+import ApplicationResponseModal from "components/ApplicationResponseModal";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
@@ -151,10 +155,131 @@ export default function App() {
   return (
     <AuthProvider>
       <JobProvider>
-        {direction === "rtl" ? (
-          <CacheProvider value={rtlCache}>
-            <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
-              <CssBaseline />
+        <ApplicationResponseProvider>
+          <AppContent 
+            direction={direction}
+            rtlCache={rtlCache}
+            darkMode={darkMode}
+            layout={layout}
+            sidenavColor={sidenavColor}
+            transparentSidenav={transparentSidenav}
+            whiteSidenav={whiteSidenav}
+            brandDark={brandDark}
+            brandWhite={brandWhite}
+            routes={routes}
+            handleOnMouseEnter={handleOnMouseEnter}
+            handleOnMouseLeave={handleOnMouseLeave}
+            configsButton={configsButton}
+            getRoutes={getRoutes}
+          />
+        </ApplicationResponseProvider>
+      </JobProvider>
+    </AuthProvider>
+  );
+}
+
+// Separate component to access ApplicationResponse context
+function AppContent({ 
+  direction, 
+  rtlCache, 
+  darkMode, 
+  layout, 
+  sidenavColor, 
+  transparentSidenav, 
+  whiteSidenav, 
+  brandDark, 
+  brandWhite, 
+  routes, 
+  handleOnMouseEnter, 
+  handleOnMouseLeave, 
+  configsButton, 
+  getRoutes 
+}) {
+  const { pendingResponse, showModal, submitResponse, loading, error, checkForPendingResponses } = useApplicationResponse();
+
+  // Debug logging for App.js - only in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 App.js render - Modal state:', { showModal, pendingResponse, loading, error });
+  }
+
+  const handleModalSubmit = async (responseData) => {
+    const result = await submitResponse(responseData);
+    if (result.success) {
+      console.log('✅ Application response submitted successfully');
+    }
+  };
+
+  // Force check on component mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 App.js forcing check for pending responses...');
+      }
+      checkForPendingResponses();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [checkForPendingResponses]);
+
+  // Block navigation when modal is shown
+  useEffect(() => {
+    if (showModal) {
+      // Prevent browser back/forward
+      const handlePopState = (e) => {
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+      };
+      
+      // Add state to history to prevent back navigation
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', handlePopState);
+      
+      // Prevent page unload
+      const handleBeforeUnload = (e) => {
+        e.preventDefault();
+        e.returnValue = 'You must respond to the application confirmation before leaving.';
+        return 'You must respond to the application confirmation before leaving.';
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [showModal]);
+
+  return (
+    <>
+      {direction === "rtl" ? (
+        <CacheProvider value={rtlCache}>
+          <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
+            <CssBaseline />
+            
+            {/* Show modal overlay that blocks everything when response is required */}
+            {showModal && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  zIndex: 9997,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <div style={{ color: 'white', textAlign: 'center', fontSize: '18px', padding: '20px' }}>
+                  Please respond to the application confirmation to continue...
+                </div>
+              </div>
+            )}
+            
+            <div style={{ filter: showModal ? 'blur(5px)' : 'none', pointerEvents: showModal ? 'none' : 'auto' }}>
               {layout === "dashboard" && (
                 <>
                   <Sidenav
@@ -186,11 +311,45 @@ export default function App() {
                 {getRoutes(routes)}
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Routes>
-            </ThemeProvider>
-          </CacheProvider>
-        ) : (
-          <ThemeProvider theme={darkMode ? themeDark : theme}>
-            <CssBaseline />
+            </div>
+            
+            {/* Global Application Response Modal - Always on top */}
+            <ApplicationResponseModal
+              open={showModal}
+              jobData={pendingResponse?.jobData}
+              onSubmit={handleModalSubmit}
+              loading={loading}
+              error={error}
+            />
+          </ThemeProvider>
+        </CacheProvider>
+      ) : (
+        <ThemeProvider theme={darkMode ? themeDark : theme}>
+          <CssBaseline />
+          
+          {/* Show modal overlay that blocks everything when response is required */}
+          {showModal && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                zIndex: 9997,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <div style={{ color: 'white', textAlign: 'center', fontSize: '18px', padding: '20px' }}>
+                Please respond to the application confirmation to continue...
+              </div>
+            </div>
+          )}
+          
+          <div style={{ filter: showModal ? 'blur(5px)' : 'none', pointerEvents: showModal ? 'none' : 'auto' }}>
             {layout === "dashboard" && (
               <>
                 <Sidenav
@@ -222,9 +381,18 @@ export default function App() {
               {getRoutes(routes)}
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
-          </ThemeProvider>
-        )}
-      </JobProvider>
-    </AuthProvider>
+          </div>
+          
+          {/* Global Application Response Modal - Always on top */}
+          <ApplicationResponseModal
+            open={showModal}
+            jobData={pendingResponse?.jobData}
+            onSubmit={handleModalSubmit}
+            loading={loading}
+            error={error}
+          />
+        </ThemeProvider>
+      )}
+    </>
   );
 }

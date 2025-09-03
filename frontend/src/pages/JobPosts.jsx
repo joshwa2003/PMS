@@ -16,6 +16,9 @@ import JobCard from 'components/JobPosts/JobCard';
 import JobFilters from 'components/JobPosts/JobFilters';
 import LoadingSpinner from 'components/LoadingSpinner'; // Added import
 
+// Context
+import { useApplicationResponse } from 'context/ApplicationResponseContext';
+
 // Services
 import { getPublicJobs } from 'services/jobService';
 
@@ -40,11 +43,14 @@ const JobPosts = () => {
     jobType: '',
     location: '',
     company: '',
-    sortBy: 'createdAt',
+    sortBy: 'publishedAt',
     sortOrder: 'desc',
     page: 1,
     limit: 12
   });
+
+  // Application response context
+  const { recordApplyClick } = useApplicationResponse();
 
   // Fetch jobs function
   const fetchJobs = useCallback(async (currentFilters = filters) => {
@@ -55,7 +61,8 @@ const JobPosts = () => {
       const response = await getPublicJobs(currentFilters);
       
       if (response.success) {
-        setJobs(response.data.jobs || []);
+        // Backend now handles sorting by publishedAt, so we don't need client-side sorting
+        setJobs(response.data.jobs);
         setPagination(response.data.pagination || {});
         setAvailableFilters(response.data.filters || {});
       } else {
@@ -92,9 +99,39 @@ const JobPosts = () => {
   };
 
   // Handle job application
-  const handleApply = (job) => {
-    if (job.applicationLink) {
+  const handleApply = async (job) => {
+    if (job?.applicationLink) {
+      console.log('🔗 Apply button clicked for job:', job._id);
+      
+      // Record the apply click before opening external link
+      await recordApplyClick(job._id, {
+        _id: job._id,
+        title: job.title,
+        company: job.company,
+        location: job.location
+      });
+      
+      console.log('✅ Apply click recorded, opening external link:', job.applicationLink);
+      
+      // Open external application link
       window.open(job.applicationLink, '_blank');
+    } else {
+      // If no external link, simulate the apply process for demo purposes
+      console.log('🔗 No external link, simulating apply process for job:', job._id);
+      
+      // Record the apply click for demo
+      await recordApplyClick(job._id || `demo-${Date.now()}`, {
+        _id: job._id || `demo-${Date.now()}`,
+        title: job.title,
+        company: job.company,
+        location: job.location
+      });
+      
+      // Show alert and simulate external redirect
+      alert('Demo: You would be redirected to the company\'s application page. When you return, you\'ll see the popup asking if you applied.');
+      
+      // For demo purposes, you can refresh the page to see the popup
+      console.log('💡 Tip: Refresh the page to see the application response popup!');
     }
   };
 

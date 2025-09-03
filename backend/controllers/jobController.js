@@ -762,7 +762,7 @@ const getPublicJobs = async (req, res) => {
       jobType = '',
       location = '',
       company = '',
-      sortBy = 'createdAt',
+      sortBy = 'publishedAt',
       sortOrder = 'desc'
     } = req.query;
 

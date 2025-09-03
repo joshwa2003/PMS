@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Application Response Popup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .info {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <h1>Application Response Popup Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Simulate Apply Click</h2>
+        <p>This will simulate clicking "Apply Now" and storing data in localStorage/sessionStorage</p>
+        <button onclick="simulateApplyClick()">Simulate Apply Click</button>
+        <div id="apply-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Check Storage</h2>
+        <p>Check what's currently stored in localStorage and sessionStorage</p>
+        <button onclick="checkStorage()">Check Storage</button>
+        <div id="storage-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Simulate Return Detection</h2>
+        <p>This will simulate the user returning to the website after applying</p>
+        <button onclick="simulateReturn()">Simulate Return (Focus Event)</button>
+        <div id="return-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Clear Storage</h2>
+        <p>Clear all stored data</p>
+        <button onclick="clearStorage()">Clear Storage</button>
+        <div id="clear-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Open PMS Website</h2>
+        <p>Open the actual PMS website to test the popup</p>
+        <button onclick="openPMS()">Open PMS Website</button>
+    </div>
+
+    <script>
+        function simulateApplyClick() {
+            const pendingData = {
+                jobId: "test-job-123",
+                jobData: {
+                    _id: "test-job-123",
+                    title: "Test Software Engineer Position",
+                    company: {
+                        name: "Test Company Inc."
+                    },
+                    location: "Test City"
+                },
+                clickedAt: new Date().toISOString()
+            };
+
+            // Store in both localStorage and sessionStorage
+            localStorage.setItem('pendingApplicationResponse', JSON.stringify(pendingData));
+            sessionStorage.setItem('pendingApplicationResponse', JSON.stringify(pendingData));
+
+            document.getElementById('apply-result').innerHTML = 
+                '<div class="success">✅ Apply click simulated! Data stored in both localStorage and sessionStorage.</div>';
+            
+            console.log('🔗 Simulated apply click:', pendingData);
+        }
+
+        function checkStorage() {
+            const localStorage_data = localStorage.getItem('pendingApplicationResponse');
+            const sessionStorage_data = sessionStorage.getItem('pendingApplicationResponse');
+            
+            let result = '<h3>Storage Contents:</h3>';
+            
+            if (localStorage_data) {
+                const parsed = JSON.parse(localStorage_data);
+                result += `<div class="info"><strong>LocalStorage:</strong><br>
+                    Job ID: ${parsed.jobId}<br>
+                    Job Title: ${parsed.jobData.title}<br>
+                    Company: ${parsed.jobData.company.name}<br>
+                    Clicked At: ${parsed.clickedAt}</div>`;
+            } else {
+                result += '<div class="error">LocalStorage: No pending data found</div>';
+            }
+
+            if (sessionStorage_data) {
+                const parsed = JSON.parse(sessionStorage_data);
+                result += `<div class="info"><strong>SessionStorage:</strong><br>
+                    Job ID: ${parsed.jobId}<br>
+                    Job Title: ${parsed.jobData.title}<br>
+                    Company: ${parsed.jobData.company.name}<br>
+                    Clicked At: ${parsed.clickedAt}</div>`;
+            } else {
+                result += '<div class="error">SessionStorage: No pending data found</div>';
+            }
+
+            document.getElementById('storage-result').innerHTML = result;
+        }
+
+        function simulateReturn() {
+            // Simulate window focus event
+            const focusEvent = new Event('focus');
+            window.dispatchEvent(focusEvent);
+
+            // Simulate visibility change event
+            Object.defineProperty(document, 'hidden', {
+                value: false,
+                writable: true
+            });
+            const visibilityEvent = new Event('visibilitychange');
+            document.dispatchEvent(visibilityEvent);
+
+            document.getElementById('return-result').innerHTML = 
+                '<div class="success">✅ Return events simulated! Check console for detection logs.</div>';
+            
+            console.log('🔍 Simulated return - focus and visibility change events fired');
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('pendingApplicationResponse');
+            sessionStorage.removeItem('pendingApplicationResponse');
+            
+            document.getElementById('clear-result').innerHTML = 
+                '<div class="success">✅ Storage cleared!</div>';
+            
+            console.log('🧹 Storage cleared');
+        }
+
+        function openPMS() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        // Log when page loads
+        console.log('🧪 Test page loaded');
+        
+        // Check storage on load
+        window.addEventListener('load', () => {
+            setTimeout(checkStorage, 1000);
+        });
+    </script>
+</body>
+</html>

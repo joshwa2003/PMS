@@ -109,6 +109,8 @@ function CreateJobPage() {
     startDate: 'Immediately',
     applicationLink: '',
     deadline: '',
+    deadlineDate: '',
+    deadlineTime: '23:59',
     salary: {
       min: '',
       max: '',
@@ -213,6 +215,22 @@ function CreateJobPage() {
     fetchDepartments();
   }, [fetchDepartments]);
 
+  // Helper function to combine date and time into ISO string
+  const combineDateAndTime = (date, time) => {
+    if (!date || !time) return '';
+    const dateTimeString = `${date}T${time}:00`;
+    return new Date(dateTimeString).toISOString();
+  };
+
+  // Helper function to format time in 12-hour format for display
+  const formatTime12Hour = (time24) => {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':');
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
@@ -224,10 +242,21 @@ function CreateJobPage() {
         }
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [field]: value
+        };
+        
+        // If updating deadlineDate or deadlineTime, combine them to create deadline
+        if (field === 'deadlineDate' || field === 'deadlineTime') {
+          const date = field === 'deadlineDate' ? value : prev.deadlineDate;
+          const time = field === 'deadlineTime' ? value : prev.deadlineTime;
+          newData.deadline = combineDateAndTime(date, time);
+        }
+        
+        return newData;
+      });
     }
     
     // Clear error when user starts typing
@@ -252,9 +281,13 @@ function CreateJobPage() {
       case 1: // Job Details
         if (!formData.description.trim()) newErrors.description = 'Job description is required';
         if (!formData.applicationLink.trim()) newErrors.applicationLink = 'Application link is required';
-        if (!formData.deadline) newErrors.deadline = 'Application deadline is required';
-        if (formData.deadline && new Date(formData.deadline) <= new Date()) {
-          newErrors.deadline = 'Deadline must be in the future';
+        if (!formData.deadlineDate) newErrors.deadlineDate = 'Application deadline date is required';
+        if (!formData.deadlineTime) newErrors.deadlineTime = 'Application deadline time is required';
+        if (formData.deadlineDate && formData.deadlineTime) {
+          const combinedDeadline = combineDateAndTime(formData.deadlineDate, formData.deadlineTime);
+          if (new Date(combinedDeadline) <= new Date()) {
+            newErrors.deadline = 'Deadline must be in the future';
+          }
         }
         break;
       
@@ -411,12 +444,12 @@ function CreateJobPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Application Deadline"
+                label="Application Deadline Date"
                 type="date"
-                value={formData.deadline || ''}
-                onChange={(e) => handleInputChange('deadline', e.target.value)}
-                error={!!errors.deadline}
-                helperText={errors.deadline}
+                value={formData.deadlineDate || ''}
+                onChange={(e) => handleInputChange('deadlineDate', e.target.value)}
+                error={!!errors.deadlineDate}
+                helperText={errors.deadlineDate}
                 required
                 InputLabelProps={{
                   shrink: true,
@@ -427,6 +460,31 @@ function CreateJobPage() {
                 variant="outlined"
               />
             </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Application Deadline Time"
+                type="time"
+                value={formData.deadlineTime || '23:59'}
+                onChange={(e) => handleInputChange('deadlineTime', e.target.value)}
+                error={!!errors.deadlineTime}
+                helperText={errors.deadlineTime || `Time in 12-hour format: ${formatTime12Hour(formData.deadlineTime)}`}
+                required
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                variant="outlined"
+              />
+            </Grid>
+
+            {errors.deadline && (
+              <Grid item xs={12}>
+                <MDTypography variant="caption" color="error">
+                  {errors.deadline}
+                </MDTypography>
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <TextField
@@ -676,7 +734,10 @@ function CreateJobPage() {
                       Deadline:
                     </MDTypography>
                     <MDTypography variant="body2" color="text">
-                      {formData.deadline ? new Date(formData.deadline).toLocaleDateString() : 'Not set'}
+                      {formData.deadlineDate && formData.deadlineTime 
+                        ? `${new Date(formData.deadlineDate).toLocaleDateString()} at ${formatTime12Hour(formData.deadlineTime)}`
+                        : 'Not set'
+                      }
                     </MDTypography>
                   </Grid>
 

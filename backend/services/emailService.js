@@ -1102,6 +1102,155 @@ This is an automated test email. Please do not reply.
     }
   }
 
+  // Send notification to staff about student application responses
+  async sendNotificationToStaff(notificationData) {
+    try {
+      const {
+        type,
+        jobId,
+        jobTitle,
+        companyName,
+        studentName,
+        studentId,
+        applied,
+        responseMethod,
+        responseAt,
+        notes
+      } = notificationData;
+
+      // Get staff members who should be notified
+      const User = require('../models/User');
+      const staffMembers = await User.find({
+        role: { $in: ['admin', 'placement_director', 'placement_staff'] },
+        isActive: true
+      }).select('email firstName lastName role');
+
+      if (staffMembers.length === 0) {
+        console.log('No staff members found to notify');
+        return;
+      }
+
+      // Create email content
+      const responseStatus = applied ? 'APPLIED' : 'DID NOT APPLY';
+      const methodText = responseMethod === 'forced' ? ' (Mandatory Response)' : '';
+      
+      const subject = `Student Application Response: ${studentName} - ${jobTitle}`;
+      
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0; font-size: 24px;">Student Application Response</h2>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Placement Management System</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #333; margin-top: 0;">Response Details</h3>
+              
+              <div style="background: ${applied ? '#d4edda' : '#f8d7da'}; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <h4 style="margin: 0; color: ${applied ? '#155724' : '#721c24'};">
+                  Status: ${responseStatus}${methodText}
+                </h4>
+              </div>
+              
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; font-weight: bold; color: #666;">Student:</td>
+                  <td style="padding: 8px 0;">${studentName} (${studentId})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: bold; color: #666;">Job:</td>
+                  <td style="padding: 8px 0;">${jobTitle}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: bold; color: #666;">Company:</td>
+                  <td style="padding: 8px 0;">${companyName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: bold; color: #666;">Response Time:</td>
+                  <td style="padding: 8px 0;">${new Date(responseAt).toLocaleString()}</td>
+                </tr>
+                ${notes ? `
+                <tr>
+                  <td style="padding: 8px 0; font-weight: bold; color: #666; vertical-align: top;">Notes:</td>
+                  <td style="padding: 8px 0;">${notes}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/job-monitoring" 
+                 style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                View Job Analytics
+              </a>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; font-size: 12px; color: #666;">
+              <p style="margin: 0;"><strong>Note:</strong> This is an automated notification from the Placement Management System. 
+              ${responseMethod === 'forced' ? 'This response was collected through a mandatory popup when the student returned to the website after clicking the apply link.' : 'This response was submitted voluntarily by the student.'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Send emails to all staff members
+      const emailPromises = staffMembers.map(staff => {
+        const mailOptions = {
+          from: {
+            name: 'PMS - Placement Management System',
+            address: process.env.SMTP_EMAIL || 'noreply@saec.edu.in'
+          },
+          to: staff.email,
+          subject,
+          html: htmlContent,
+          text: `
+Student Application Response Notification
+
+Student: ${studentName} (${studentId})
+Job: ${jobTitle}
+Company: ${companyName}
+Status: ${responseStatus}${methodText}
+Response Time: ${new Date(responseAt).toLocaleString()}
+${notes ? `Notes: ${notes}` : ''}
+
+This is an automated notification from the Placement Management System.
+${responseMethod === 'forced' ? 'This response was collected through a mandatory popup.' : 'This response was submitted voluntarily.'}
+          `
+        };
+
+        return this.transporter.sendMail(mailOptions);
+      });
+
+      await Promise.all(emailPromises);
+      
+      console.log(`✅ Notification emails sent to ${staffMembers.length} staff members`);
+      
+      // Log the notification for audit purposes
+      console.log('📧 Staff Notification Details:', {
+        type,
+        jobTitle,
+        studentName,
+        applied,
+        responseMethod,
+        staffNotified: staffMembers.length
+      });
+
+      return {
+        success: true,
+        staffNotified: staffMembers.length,
+        message: 'Staff notifications sent successfully'
+      };
+
+    } catch (error) {
+      console.error('❌ Error sending staff notifications:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   // Get email service status
   getEmailServiceStatus() {
     return {

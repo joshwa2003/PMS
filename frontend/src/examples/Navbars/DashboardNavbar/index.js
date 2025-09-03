@@ -59,13 +59,14 @@ import {
 // Auth context
 import { useAuth } from "context/AuthContext";
 
-function DashboardNavbar({ absolute, light, isMini }) {
+function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
   const [openMenu, setOpenMenu] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
-  const route = useLocation().pathname.split("/").slice(1);
+  const defaultRoute = useLocation().pathname.split("/").slice(1);
+  const route = customRoute || defaultRoute;
   const navigate = useNavigate();
   
   // Auth context
@@ -204,7 +205,12 @@ function DashboardNavbar({ absolute, light, isMini }) {
     >
       <Toolbar sx={(theme) => navbarContainer(theme)}>
         <MDBox color="inherit" mb={{ xs: 1, md: 0 }} sx={(theme) => navbarRow(theme, { isMini })}>
-          <Breadcrumbs icon="home" title={route[route.length - 1]} route={route} light={light} />
+          <Breadcrumbs 
+            icon="home" 
+            title={customTitle || route[route.length - 1]} 
+            route={route} 
+            light={light} 
+          />
         </MDBox>
         {isMini ? null : (
           <MDBox sx={(theme) => ({ 
@@ -304,6 +310,8 @@ DashboardNavbar.defaultProps = {
   absolute: false,
   light: false,
   isMini: false,
+  customTitle: null,
+  customRoute: null,
 };
 
 // Typechecking props for the DashboardNavbar
@@ -311,6 +319,8 @@ DashboardNavbar.propTypes = {
   absolute: PropTypes.bool,
   light: PropTypes.bool,
   isMini: PropTypes.bool,
+  customTitle: PropTypes.string,
+  customRoute: PropTypes.array,
 };
 
 export default DashboardNavbar;

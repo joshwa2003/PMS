@@ -135,26 +135,123 @@ const recordApplicationClick = async (req, res) => {
     
     console.log('🔗 Recording application click for job:', jobId, 'by user:', req.user._id);
 
-    // Get student information
-    const student = await Student.findOne({ userId: req.user._id });
+    // Get student information or create a basic one if not found
+    let student = await Student.findOne({ userId: req.user._id });
     if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found'
+      console.log('⚠️ Student profile not found, creating basic profile for user:', req.user._id);
+      
+      // Create a basic student profile for demo purposes
+      student = new Student({
+        userId: req.user._id,
+        studentId: `DEMO_${req.user._id.toString().slice(-6)}`,
+        registrationNumber: `REG_${req.user._id.toString().slice(-6)}`,
+        personalInfo: {
+          fullName: (req.user.firstName + ' ' + req.user.lastName) || 'Demo Student',
+          email: req.user.email
+        },
+        academic: {
+          department: null, // Will be set later
+          cgpa: 0,
+          backlogs: 0
+        }
       });
+      
+      await student.save();
+      console.log('✅ Created basic student profile:', student._id);
     }
 
-    // Find job application
-    const jobApplication = await JobApplication.findOne({
+    // Find or create job application
+    let jobApplication = await JobApplication.findOne({
       job: jobId,
       student: student._id
     });
 
     if (!jobApplication) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job application record not found'
+      console.log('⚠️ Job application record not found, creating new one');
+      
+      // Get job information
+      const job = await Job.findById(jobId);
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          message: 'Job not found'
+        });
+      }
+
+      // Get or create a default department for demo purposes
+      const Department = require('../models/Department');
+      const CourseCategory = require('../models/CourseCategory');
+      
+      // Try to find existing department first
+      let department = await Department.findOne({ 
+        $or: [
+          { name: 'Computer Science' },
+          { code: 'CSE' }
+        ]
       });
+      
+      if (!department) {
+        // First, get or create a default course category
+        let courseCategory = await CourseCategory.findOne({ name: 'Engineering' });
+        
+        if (!courseCategory) {
+          courseCategory = new CourseCategory({
+            name: 'Engineering',
+            code: 'ENG',
+            description: 'Engineering Courses',
+            isActive: true,
+            createdBy: req.user._id
+          });
+          await courseCategory.save();
+          console.log('✅ Created default course category:', courseCategory._id);
+        }
+        
+        // Create a default department if none exists
+        try {
+          department = new Department({
+            name: 'Computer Science',
+            code: 'CSE',
+            description: 'Computer Science and Engineering Department',
+            courseCategory: courseCategory._id,
+            createdBy: req.user._id,
+            isActive: true
+          });
+          await department.save();
+          console.log('✅ Created default department:', department._id);
+        } catch (error) {
+          // If duplicate key error, try to find the existing department
+          if (error.code === 11000) {
+            department = await Department.findOne({ 
+              $or: [
+                { name: 'Computer Science' },
+                { code: 'CSE' }
+              ]
+            });
+            console.log('✅ Found existing department:', department._id);
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        console.log('✅ Using existing department:', department._id);
+      }
+
+      // Create new job application record
+      jobApplication = new JobApplication({
+        job: jobId,
+        student: student._id,
+        user: req.user._id,
+        department: department._id, // Use the department ID instead of null
+        batch: student.batchId || null,
+        eligibilityCheck: {
+          isEligible: true, // Default to eligible for demo
+          reasons: [],
+          checkedAt: new Date()
+        }
+      });
+
+      await jobApplication.save();
+      console.log('✅ Created new job application record:', jobApplication._id);
     }
 
     // Record the click
@@ -187,9 +284,9 @@ const recordApplicationClick = async (req, res) => {
 const submitStudentResponse = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const { applied, notes = '' } = req.body;
+    const { applied, notes = '', responseMethod = 'voluntary' } = req.body;
 
-    console.log('📝 Recording student response for job:', jobId, 'Applied:', applied);
+    console.log('📝 Recording student response for job:', jobId, 'Applied:', applied, 'Method:', responseMethod);
 
     if (typeof applied !== 'boolean') {
       return res.status(400).json({
@@ -207,11 +304,11 @@ const submitStudentResponse = async (req, res) => {
       });
     }
 
-    // Find job application
+    // Find job application and populate job data for validation
     const jobApplication = await JobApplication.findOne({
       job: jobId,
       student: student._id
-    });
+    }).populate('job', 'title company.name status deadline');
 
     if (!jobApplication) {
       return res.status(404).json({
@@ -220,19 +317,33 @@ const submitStudentResponse = async (req, res) => {
       });
     }
 
+    // Additional logging for debugging
+    console.log('🔍 Job details for validation:', {
+      jobId: jobApplication.job._id,
+      title: jobApplication.job.title,
+      status: jobApplication.job.status,
+      deadline: jobApplication.job.deadline,
+      currentDate: new Date(),
+      isExpired: jobApplication.job.deadline < new Date()
+    });
+
     // Check if student can still respond
     const canRespond = jobApplication.canStudentRespond();
     if (!canRespond.canRespond) {
+      console.log('❌ Student cannot respond:', canRespond.reason);
       return res.status(400).json({
         success: false,
         message: canRespond.reason
       });
     }
 
+    console.log('✅ Student can respond to job application');
+
     // Record the response
     await jobApplication.recordStudentResponse(applied, notes, {
       ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
+      responseMethod
     });
 
     // Update job statistics if applied
@@ -240,6 +351,11 @@ const submitStudentResponse = async (req, res) => {
       const job = await Job.findById(jobId);
       await job.incrementApplicationCount(student.userId.department);
     }
+
+    // Send notifications to staff (async, don't wait)
+    notifyStaffOfResponse(jobApplication, applied, responseMethod).catch(err => {
+      console.error('Error sending staff notifications:', err);
+    });
 
     console.log('✅ Student response recorded successfully');
 
@@ -249,7 +365,8 @@ const submitStudentResponse = async (req, res) => {
       data: {
         status: jobApplication.status,
         appliedAt: jobApplication.appliedAt,
-        responseAt: jobApplication.responseAt
+        responseAt: jobApplication.responseAt,
+        responseMethod
       }
     });
   } catch (error) {
@@ -566,6 +683,160 @@ const getApplicationDetails = async (req, res) => {
   }
 };
 
+// Get pending responses for current student
+const getPendingResponses = async (req, res) => {
+  try {
+    console.log('🔍 Fetching pending responses for student:', req.user._id);
+
+    // Get student information
+    const student = await Student.findOne({ userId: req.user._id });
+    if (!student) {
+      console.log('⚠️ Student profile not found, returning empty pending responses');
+      return res.status(200).json({
+        success: true,
+        data: {
+          pendingResponses: [],
+          count: 0
+        }
+      });
+    }
+
+    // Find applications where student clicked apply but hasn't responded
+    const pendingApplications = await JobApplication.find({
+      student: student._id,
+      'externalApplication.linkClicked': true,
+      'studentResponse.applied': null,
+      status: 'Pending Response'
+    })
+    .populate('job', 'title company.name company.logo location deadline status')
+    .sort({ 'externalApplication.linkClickedAt': -1 })
+    .lean();
+
+    console.log('🔍 Found pending applications before filtering:', pendingApplications.length);
+
+    // Filter out expired jobs
+    const validPendingApplications = pendingApplications.filter(app => {
+      const isValid = app.job && app.job.status === 'Active' && new Date(app.job.deadline) > new Date();
+      if (!isValid && app.job) {
+        console.log('🔍 Filtering out job:', {
+          title: app.job.title,
+          status: app.job.status,
+          deadline: app.job.deadline,
+          isExpired: new Date(app.job.deadline) <= new Date()
+        });
+      }
+      return isValid;
+    });
+
+    console.log('🔍 Valid pending applications after filtering:', validPendingApplications.length);
+
+    console.log('✅ Found', validPendingApplications.length, 'pending responses');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pendingResponses: validPendingApplications,
+        count: validPendingApplications.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching pending responses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching pending responses',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Check if response is required for a specific job
+const getResponseStatus = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    console.log('🔍 Checking response status for job:', jobId, 'student:', req.user._id);
+
+    // Get student information
+    const student = await Student.findOne({ userId: req.user._id });
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Find job application
+    const jobApplication = await JobApplication.findOne({
+      job: jobId,
+      student: student._id
+    }).populate('job', 'title company.name company.logo location deadline status');
+
+    if (!jobApplication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job application record not found'
+      });
+    }
+
+    // Check if response is required
+    const responseRequired = (
+      jobApplication.externalApplication.linkClicked &&
+      jobApplication.studentResponse.applied === null &&
+      jobApplication.job.status === 'Active' &&
+      new Date(jobApplication.job.deadline) > new Date()
+    );
+
+    console.log('✅ Response status checked:', responseRequired ? 'Required' : 'Not required');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        responseRequired,
+        job: jobApplication.job,
+        clickedAt: jobApplication.externalApplication.linkClickedAt,
+        hasResponded: jobApplication.studentResponse.applied !== null,
+        currentStatus: jobApplication.status
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error checking response status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking response status',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Helper function to notify staff of student responses
+const notifyStaffOfResponse = async (jobApplication, applied, responseMethod) => {
+  try {
+    // Import notification services
+    const { sendNotificationToStaff } = require('../services/emailService');
+    
+    const notificationData = {
+      type: 'student_application_response',
+      jobId: jobApplication.job._id,
+      jobTitle: jobApplication.job.title,
+      companyName: jobApplication.job.company.name,
+      studentName: jobApplication.student.personalInfo?.fullName || 'Student',
+      studentId: jobApplication.student.studentId,
+      applied: applied,
+      responseMethod: responseMethod,
+      responseAt: new Date(),
+      notes: jobApplication.studentResponse.notes
+    };
+
+    // Send notifications to relevant staff
+    await sendNotificationToStaff(notificationData);
+    
+    console.log('✅ Staff notifications sent for student response');
+  } catch (error) {
+    console.error('❌ Error sending staff notifications:', error);
+    // Don't throw error as this is a background task
+  }
+};
+
 module.exports = {
   recordJobView,
   recordApplicationClick,
@@ -573,5 +844,7 @@ module.exports = {
   getStudentApplications,
   getJobApplications,
   getJobAnalytics,
-  getApplicationDetails
+  getApplicationDetails,
+  getPendingResponses,
+  getResponseStatus
 };

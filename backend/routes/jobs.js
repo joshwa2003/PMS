@@ -171,6 +171,13 @@ router.get('/utils/job-statuses', auth, (req, res) => {
 });
 
 /**
+ * @route   GET /api/v1/jobs/pending-responses
+ * @desc    Get pending responses for current student
+ * @access  Private (Students only)
+ */
+router.get('/pending-responses', auth, jobApplicationController.getPendingResponses);
+
+/**
  * @route   GET /api/v1/jobs/applications/my
  * @desc    Get student's job applications
  * @access  Private (Students only)
@@ -268,6 +275,13 @@ router.post('/:jobId/click', auth, jobApplicationController.recordApplicationCli
  * @body    applied (boolean), notes (optional)
  */
 router.post('/:jobId/response', auth, jobApplicationController.submitStudentResponse);
+
+/**
+ * @route   GET /api/v1/jobs/:jobId/response-status
+ * @desc    Check if response is required for a specific job
+ * @access  Private (Students only)
+ */
+router.get('/:jobId/response-status', auth, jobApplicationController.getResponseStatus);
 
 /**
  * @route   GET /api/v1/jobs/:jobId/applications

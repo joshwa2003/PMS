@@ -55,6 +55,15 @@ const jobApplicationSchema = new mongoose.Schema({
       type: String,
       trim: true,
       maxlength: [500, 'Notes cannot exceed 500 characters']
+    },
+    responseMethod: {
+      type: String,
+      enum: ['voluntary', 'forced', 'reminder'],
+      default: 'voluntary'
+    },
+    responsePromptShownAt: {
+      type: Date,
+      default: null
     }
   },
   
@@ -376,6 +385,12 @@ jobApplicationSchema.methods.addJourneyEntry = function(action, details = '', me
 
 // Instance method to record external link click
 jobApplicationSchema.methods.recordLinkClick = function(metadata = {}) {
+  // Prevent multiple parallel saves by checking if already saving
+  if (this.$__.saving) {
+    console.log('⚠️ Document is already being saved, skipping link click recording');
+    return Promise.resolve(this);
+  }
+  
   this.externalApplication.linkClicked = true;
   this.externalApplication.clickCount += 1;
   this.externalApplication.lastClickedAt = new Date();
@@ -385,9 +400,21 @@ jobApplicationSchema.methods.recordLinkClick = function(metadata = {}) {
   }
   
   // Add journey entry
-  this.addJourneyEntry('Visited External Link', 'Student clicked on application link', metadata);
+  this.journey.push({
+    action: 'Visited External Link',
+    details: 'Student clicked on application link',
+    ipAddress: metadata.ipAddress,
+    userAgent: metadata.userAgent,
+    timestamp: new Date()
+  });
   
-  return this.save();
+  return this.save().catch(error => {
+    if (error.message.includes('parallel')) {
+      console.log('⚠️ Parallel save detected, ignoring error');
+      return this;
+    }
+    throw error;
+  });
 };
 
 // Instance method to record student response
@@ -395,12 +422,26 @@ jobApplicationSchema.methods.recordStudentResponse = function(applied, notes = '
   this.studentResponse.applied = applied;
   this.studentResponse.notes = notes;
   this.studentResponse.responseDate = new Date();
+  this.studentResponse.responseMethod = metadata.responseMethod || 'voluntary';
   
-  // Add journey entry
+  // Add journey entry directly to avoid parallel save
   const action = applied ? 'Applied' : 'Not Applied';
-  this.addJourneyEntry('Responded', `Student responded: ${action}`, metadata);
+  const methodText = metadata.responseMethod === 'forced' ? ' (Mandatory Response)' : '';
+  this.journey.push({
+    action: 'Responded',
+    details: `Student responded: ${action}${methodText}`,
+    ipAddress: metadata.ipAddress,
+    userAgent: metadata.userAgent,
+    timestamp: new Date()
+  });
   
-  return this.save();
+  return this.save().catch(error => {
+    if (error.message.includes('parallel')) {
+      console.log('⚠️ Parallel save detected in recordStudentResponse, ignoring error');
+      return this;
+    }
+    throw error;
+  });
 };
 
 // Instance method to check if student can still respond
