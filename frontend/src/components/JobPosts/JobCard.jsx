@@ -9,7 +9,7 @@ import {
   Visibility as ViewIcon,
   BookmarkBorder as SaveIcon,
   Star as StarIcon,
-  AccessTime as TimeIcon
+  AccessTime as TimeIcon,
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -194,6 +194,22 @@ const JobCard = ({ job, onApply }) => {
           </MDTypography>
         </MDBox>
 
+        {/* New: Documents and Google Drive Link Preview Indicator */}
+        {(job.documents && job.documents.length > 0) || job.googleDriveLink ? (
+          <MDBox display="flex" flexDirection="column" gap={1} mb={3}>
+            {job.documents && job.documents.length > 0 && (
+              <MDTypography variant="body2" color={darkMode ? "white" : "text"}>
+                📎 {job.documents.length} document{job.documents.length > 1 ? 's' : ''}
+              </MDTypography>
+            )}
+            {job.googleDriveLink && (
+              <MDTypography variant="body2" color={darkMode ? "white" : "text"}>
+                📄 Document Preview Available
+              </MDTypography>
+            )}
+          </MDBox>
+        ) : null}
+
         {/* Skills */}
         {displaySkills.length > 0 && (
           <MDBox mb={3}>
@@ -311,4 +327,3 @@ const JobCard = ({ job, onApply }) => {
 };
 
 export default JobCard;
-

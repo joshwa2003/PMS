@@ -313,6 +313,13 @@ const jobSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+
+  // Google Drive Link for document preview
+  googleDriveLink: {
+    type: String,
+    trim: true,
+    default: null
+  },
   
   // Job Statistics (for analytics)
   stats: {

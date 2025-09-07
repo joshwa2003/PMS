@@ -27,6 +27,7 @@ import {
   CheckCircle as CheckIcon,
   Language as WebsiteIcon,
   CalendarToday as CalendarIcon,
+  AttachMoney as AttachMoneyIcon,
   AttachMoney as SalaryIcon
 } from '@mui/icons-material';
 
@@ -35,6 +36,7 @@ import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
 import MDBadge from 'components/MDBadge';
+import GoogleDrivePreview from 'components/GoogleDrivePreview';
 
 // Material Dashboard 2 React examples
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
@@ -519,6 +521,70 @@ const JobDetailPage = () => {
                   </List>
                 </MDBox>
               )}
+
+              {/* Documents and Google Drive Link Preview */}
+              {(job.documents && job.documents.length > 0) || job.googleDriveLink ? (
+                <MDBox
+                  p={4}
+                  borderRadius={3}
+                  sx={{
+                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
+                    border: 1,
+                    borderColor: 'divider',
+                    boxShadow: (theme) => theme.shadows[1],
+                    mb: 4
+                  }}
+                >
+                  <MDTypography variant="h4" fontWeight="bold" color={darkMode ? "white" : "dark"} mb={3}>
+                    Documents & Links
+                  </MDTypography>
+                  
+                  {/* Uploaded Documents */}
+                  {job.documents && job.documents.length > 0 && (
+                    <MDBox mb={3}>
+                      <MDTypography variant="h6" fontWeight="medium" color={darkMode ? "white" : "dark"} mb={2}>
+                        Uploaded Documents
+                      </MDTypography>
+                      <List>
+                        {job.documents.map((doc, index) => (
+                          <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <AttachMoneyIcon sx={{ color: 'info.main', fontSize: 24 }} />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <MDTypography
+                                  variant="body1"
+                                  color={darkMode ? "white" : "text"}
+                                  sx={{ fontSize: '16px' }}
+                                >
+                                  <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                                    {doc.name}
+                                  </a>
+                                </MDTypography>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </MDBox>
+                  )}
+                  
+                  {/* Google Drive Link with Preview */}
+                  {job.googleDriveLink && (
+                    <MDBox>
+                      <MDTypography variant="h6" fontWeight="medium" color={darkMode ? "white" : "dark"} mb={2}>
+                        Document Preview
+                      </MDTypography>
+                      <GoogleDrivePreview 
+                        link={job.googleDriveLink} 
+                        title={`${job.title} - Document`}
+                        showPreview={true}
+                      />
+                    </MDBox>
+                  )}
+                </MDBox>
+              ) : null}
 
               {/* Requirements */}
               {job.requirements && job.requirements.length > 0 && (

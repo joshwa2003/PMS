@@ -40,6 +40,7 @@ import {
 import MDBox from 'components/MDBox';
 import MDButton from 'components/MDButton';
 import MDTypography from 'components/MDTypography';
+import GoogleDrivePreview from 'components/GoogleDrivePreview';
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 
@@ -80,6 +81,7 @@ const CreateJobPageEnhanced = () => {
     deadline: '',
     deadlineDate: '',
     deadlineTime: '23:59',
+    googleDriveLink: '',
     salary: {
       min: '',
       max: '',
@@ -602,6 +604,56 @@ const CreateJobPageEnhanced = () => {
               />
             </Grid>
 
+            {/* Google Drive Link Input */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Google Drive Link (optional)"
+                value={formData.googleDriveLink || ''}
+                onChange={(e) => handleInputChange('googleDriveLink', e.target.value)}
+                placeholder="https://drive.google.com/file/d/..."
+                variant="outlined"
+              />
+            </Grid>
+
+            {/* File Upload Input */}
+            <Grid item xs={12}>
+              <input
+                accept="image/*,application/pdf"
+                id="job-documents-upload"
+                multiple
+                type="file"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setDocuments(files);
+                }}
+              />
+              <label htmlFor="job-documents-upload">
+                <MDButton variant="outlined" component="span" color="info" startIcon={<CloudUploadIcon />}>
+                  Upload Images or PDFs
+                </MDButton>
+              </label>
+            </Grid>
+
+            {/* Preview uploaded files */}
+            {documents && documents.length > 0 && (
+              <Grid item xs={12}>
+                <MDBox>
+                  <MDTypography variant="subtitle1" mb={1}>
+                    Uploaded Files:
+                  </MDTypography>
+                  <ul>
+                    {documents.map((file, index) => (
+                      <li key={index}>
+                        {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                      </li>
+                    ))}
+                  </ul>
+                </MDBox>
+              </Grid>
+            )}
+
             <Grid item xs={12}>
               {renderArrayField('keyResponsibilities', 'Key Responsibilities', 'Enter a key responsibility...')}
             </Grid>
@@ -1081,6 +1133,42 @@ const CreateJobPageEnhanced = () => {
                       </ul>
                     </>
                   )}
+
+                  {/* Documents and Google Drive Link Preview in Review */}
+                  {(documents && documents.length > 0) || formData.googleDriveLink ? (
+                    <>
+                      <Divider sx={{ my: 2 }} />
+                      <MDTypography variant="h6" mb={1}>Documents & Links</MDTypography>
+                      {documents && documents.length > 0 && (
+                        <MDBox mb={2}>
+                          <MDTypography variant="body2" mb={1}>
+                            Uploaded Documents:
+                          </MDTypography>
+                          <ul>
+                            {documents.map((file, index) => (
+                              <li key={index}>
+                                <MDTypography variant="body2">
+                                  {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                                </MDTypography>
+                              </li>
+                            ))}
+                          </ul>
+                        </MDBox>
+                      )}
+                      {formData.googleDriveLink && (
+                        <MDBox mb={2}>
+                          <MDTypography variant="body2">
+                            Google Drive Document Preview:
+                          </MDTypography>
+                          <GoogleDrivePreview 
+                            link={formData.googleDriveLink} 
+                            title={`${formData.title} - Document Preview`}
+                            showPreview={true}
+                          />
+                        </MDBox>
+                      )}
+                    </>
+                  ) : null}
 
                   {formData.company.about && (
                     <>

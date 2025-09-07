@@ -290,6 +290,7 @@ const createJob = async (req, res) => {
       postingType,
       targetDepartments,
       documents,
+      googleDriveLink,
       status = 'Draft',
       // Enhanced fields
       keyResponsibilities,
@@ -377,6 +378,7 @@ const createJob = async (req, res) => {
       postingType,
       targetDepartments: targetDepartments || [],
       documents: documents || [],
+      googleDriveLink: googleDriveLink || null,
       status,
       createdBy: userId,
       // Enhanced fields
@@ -891,7 +893,7 @@ const getPublicJob = async (req, res) => {
       keyResponsibilities requirements skillsRequired otherRequirements
       workEnvironmentRequirements benefits educationQualifications
       eligibility stats.totalViews stats.totalApplications createdAt
-      targetDepartments
+      targetDepartments documents googleDriveLink
     `)
     .lean();
     
