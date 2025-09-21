@@ -92,33 +92,25 @@ class AdministratorProfileService {
     }
   }
 
-  // Upload profile image
-  async uploadProfileImage(file) {
+  // Update profile image with Google Drive link
+  async updateProfileImage(googleDriveUrl) {
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('profileImage', file);
+      console.log('AdministratorProfileService - updateProfileImage called with:', googleDriveUrl);
+      console.log('AdministratorProfileService - Making API call to /administrators/profile-image');
       
-      // Get token for authorization
-      const token = localStorage.getItem('pms_token');
-      
-      // Use fetch for file upload since axios has issues with FormData
-      const response = await fetch(`${api.defaults.baseURL}/administrator-profiles/upload-profile-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+      const response = await api.post('/administrators/profile-image', {
+        googleDriveUrl: googleDriveUrl
       });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to upload profile image');
+      
+      console.log('AdministratorProfileService - API response:', response);
+      
+      if (response.success) {
+        return response;
       }
-
-      return result;
+      
+      throw new Error(response.message || 'Failed to update profile image');
     } catch (error) {
+      console.error('AdministratorProfileService - updateProfileImage error:', error);
       throw error;
     }
   }

@@ -346,17 +346,22 @@ export const StudentProfileProvider = ({ children }) => {
     dispatch({ type: ACTIONS.RESET_FORM });
   };
 
-  // Upload profile image function
-  const uploadProfileImage = async (file) => {
+  // Update profile image with Google Drive link
+  const updateProfileImage = async (googleDriveUrl) => {
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
 
     try {
-      const response = await studentApi.uploadProfileImage(file);
+      const response = await studentApi.updateProfileImage(googleDriveUrl);
       
       // Update form data with new profile image URL
       updateFormData('profileImageUrl', response.profileImageUrl);
       
-      return { success: true, profileImageUrl: response.profileImageUrl };
+      // Update the user's profile picture in AuthContext so it shows in navbar and sidebar
+      if (updateProfilePicture) {
+        updateProfilePicture(response.profileImageUrl);
+      }
+      
+      return { success: true, profileImageUrl: response.profileImageUrl, thumbnailUrl: response.thumbnailUrl };
     } catch (error) {
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       return { success: false, error: error.message };
@@ -365,18 +370,18 @@ export const StudentProfileProvider = ({ children }) => {
     }
   };
 
-  // Upload resume function
-  const uploadResume = async (file) => {
+  // Update resume with Google Drive link
+  const updateResume = async (googleDriveUrl) => {
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
 
     try {
-      const response = await studentApi.uploadResume(file);
+      const response = await studentApi.updateResume(googleDriveUrl);
       
       // Update form data with new resume link
       updateFormData('placement.resumeLink', response.resumeLink);
       updateFormData('placement.resumeLastUpdated', new Date().toISOString());
       
-      return { success: true, resumeLink: response.resumeLink };
+      return { success: true, resumeLink: response.resumeLink, embedUrl: response.embedUrl };
     } catch (error) {
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       return { success: false, error: error.message };
@@ -465,8 +470,8 @@ export const StudentProfileProvider = ({ children }) => {
     setActiveTab,
     clearError,
     resetForm,
-    uploadProfileImage,
-    uploadResume,
+    updateProfileImage,
+    updateResume,
 
     // Array operations
     addArrayItem,

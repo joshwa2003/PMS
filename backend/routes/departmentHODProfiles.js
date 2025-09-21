@@ -7,7 +7,7 @@ const {
   getAllProfiles,
   deleteProfile,
   getProfileStats,
-  uploadProfileImage
+  updateProfileImage
 } = require('../controllers/departmentHODProfileController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateProfileUpdate } = require('../middleware/validation');
@@ -23,9 +23,9 @@ router.get('/profile', protect, getProfile);
 router.put('/profile', protect, validateProfileUpdate, updateProfile);
 
 // @route   POST /api/v1/department-hod-profiles/upload-profile-image
-// @desc    Upload department HOD profile image
+// @desc    Update department HOD profile image with Google Drive link
 // @access  Private
-router.post('/upload-profile-image', protect, uploadProfileImage);
+router.post('/upload-profile-image', protect, updateProfileImage);
 
 // @route   GET /api/v1/department-hod-profiles/stats
 // @desc    Get department HOD profile statistics

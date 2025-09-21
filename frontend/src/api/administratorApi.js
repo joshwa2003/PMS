@@ -31,23 +31,18 @@ class AdministratorApi {
     }
   }
 
-  // Upload profile image
-  async uploadProfileImage(file) {
+  // Update profile image with Google Drive link
+  async updateProfileImage(googleDriveUrl) {
     try {
-      const formData = new FormData();
-      formData.append('profileImage', file);
-
-      const response = await api.post('/administrators/profile-image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await api.post('/administrators/profile-image', {
+        googleDriveUrl: googleDriveUrl
       });
       
       if (response.success) {
         return response;
       }
       
-      throw new Error(response.message || 'Failed to upload profile image');
+      throw new Error(response.message || 'Failed to update profile image');
     } catch (error) {
       throw error;
     }

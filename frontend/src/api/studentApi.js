@@ -31,45 +31,35 @@ class StudentApi {
     }
   }
 
-  // Upload profile image
-  async uploadProfileImage(file) {
+  // Update profile image with Google Drive link
+  async updateProfileImage(googleDriveUrl) {
     try {
-      const formData = new FormData();
-      formData.append('profileImage', file);
-
-      const response = await api.post('/students/profile-image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await api.post('/students/profile-image', {
+        googleDriveUrl
       });
       
       if (response.success) {
         return response;
       }
       
-      throw new Error(response.message || 'Failed to upload profile image');
+      throw new Error(response.message || 'Failed to update profile image');
     } catch (error) {
       throw error;
     }
   }
 
-  // Upload resume
-  async uploadResume(file) {
+  // Update resume with Google Drive link
+  async updateResume(googleDriveUrl) {
     try {
-      const formData = new FormData();
-      formData.append('resume', file);
-
-      const response = await api.post('/students/resume', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await api.post('/students/resume', {
+        googleDriveUrl
       });
       
       if (response.success) {
         return response;
       }
       
-      throw new Error(response.message || 'Failed to upload resume');
+      throw new Error(response.message || 'Failed to update resume');
     } catch (error) {
       throw error;
     }

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStudentProfile } from '../../context/StudentProfileContext';
 
@@ -15,12 +15,15 @@ import PhotoCamera from "@mui/icons-material/PhotoCamera";
 // S.A. Engineering College React components
 import MDBox from "../MDBox";
 import MDTypography from "../MDTypography";
+import MDInput from "../MDInput";
+import MDButton from "../MDButton";
 
 function ProfileHeader() {
   const { user, updateProfilePicture } = useAuth();
-  const { formData, uploadProfileImage, isSaving } = useStudentProfile();
-  const fileInputRef = useRef(null);
+  const { formData, updateProfileImage, isSaving } = useStudentProfile();
   const [uploadStatus, setUploadStatus] = useState({ open: false, message: '', severity: 'success' });
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   // Helper function to get role display name
   const getRoleDisplayName = (role) => {
@@ -36,42 +39,26 @@ function ProfileHeader() {
     return roleMap[role] || 'User';
   };
 
-  // Handle profile picture upload
-  const handleProfilePictureUpload = () => {
-    console.log('Profile picture upload clicked');
-    fileInputRef.current?.click();
+  // Handle profile picture update with Google Drive URL
+  const handleProfilePictureUpdate = () => {
+    console.log('Profile picture update clicked');
+    setShowUrlInput(!showUrlInput);
   };
 
-  // Handle file selection
-  const handleFileSelect = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+  // Handle Google Drive URL update
+  const handleImageUpdate = async () => {
+    if (!googleDriveUrl.trim()) {
       setUploadStatus({
         open: true,
-        message: 'Please select a valid image file (JPEG, PNG, or WebP)',
-        severity: 'error'
-      });
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setUploadStatus({
-        open: true,
-        message: 'File size must be less than 5MB',
+        message: 'Please enter a Google Drive URL',
         severity: 'error'
       });
       return;
     }
 
     try {
-      console.log('Uploading profile image:', file.name);
-      const result = await uploadProfileImage(file);
+      console.log('Updating profile image with Google Drive URL:', googleDriveUrl);
+      const result = await updateProfileImage(googleDriveUrl);
       
       if (result.success) {
         // Update the user's profile picture in AuthContext so it shows in navbar and sidebar
@@ -79,29 +66,28 @@ function ProfileHeader() {
         
         setUploadStatus({
           open: true,
-          message: 'Profile image uploaded successfully!',
+          message: 'Profile image updated successfully!',
           severity: 'success'
         });
-        console.log('Profile image uploaded successfully:', result.profileImageUrl);
+        setGoogleDriveUrl('');
+        setShowUrlInput(false);
+        console.log('Profile image updated successfully:', result.profileImageUrl);
       } else {
         setUploadStatus({
           open: true,
-          message: result.error || 'Failed to upload profile image',
+          message: result.error || 'Failed to update profile image',
           severity: 'error'
         });
-        console.error('Profile image upload failed:', result.error);
+        console.error('Profile image update failed:', result.error);
       }
     } catch (error) {
       setUploadStatus({
         open: true,
-        message: 'An error occurred while uploading the image',
+        message: 'An error occurred while updating the image',
         severity: 'error'
       });
-      console.error('Profile image upload error:', error);
+      console.error('Profile image update error:', error);
     }
-
-    // Clear the file input
-    event.target.value = '';
   };
 
   // Close snackbar
@@ -138,8 +124,9 @@ function ProfileHeader() {
               '&:disabled': { backgroundColor: 'grey.400' }
             }}
             size="small"
-            onClick={handleProfilePictureUpload}
+            onClick={handleProfilePictureUpdate}
             disabled={isSaving}
+            title="Update profile image with Google Drive link"
           >
             {isSaving ? (
               <CircularProgress size={16} color="inherit" />
@@ -147,15 +134,6 @@ function ProfileHeader() {
               <PhotoCamera fontSize="small" />
             )}
           </IconButton>
-          
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            accept="image/jpeg,image/jpg,image/png,image/webp"
-            style={{ display: 'none' }}
-          />
         </MDBox>
         <MDBox>
           <MDTypography variant="h4" fontWeight="medium">
@@ -168,6 +146,42 @@ function ProfileHeader() {
             {user.email}
           </MDTypography>
         </MDBox>
+
+        {/* Google Drive URL Input */}
+        {showUrlInput && (
+          <MDBox mt={2}>
+            <MDInput
+              fullWidth
+              label="Google Drive Image URL"
+              value={googleDriveUrl}
+              onChange={(e) => setGoogleDriveUrl(e.target.value)}
+              placeholder="https://drive.google.com/file/d/your-file-id/view?usp=sharing"
+              helperText="Share your image on Google Drive and paste the link here"
+            />
+            <MDBox mt={1} display="flex" gap={1}>
+              <MDButton
+                variant="contained"
+                color="info"
+                size="small"
+                onClick={handleImageUpdate}
+                disabled={isSaving || !googleDriveUrl.trim()}
+              >
+                {isSaving ? 'Updating...' : 'Update Image'}
+              </MDButton>
+              <MDButton
+                variant="outlined"
+                color="secondary"
+                size="small"
+                onClick={() => {
+                  setShowUrlInput(false);
+                  setGoogleDriveUrl('');
+                }}
+              >
+                Cancel
+              </MDButton>
+            </MDBox>
+          </MDBox>
+        )}
       </MDBox>
 
       {/* Upload status snackbar */}

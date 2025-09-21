@@ -206,9 +206,13 @@ export const AdministratorProfileProvider = ({ children }) => {
   };
 
   // Load profile function
-  const loadProfile = useCallback(async () => {
-    // Prevent multiple simultaneous calls
-    if (state.isLoading || hasLoadedRef.current) return;
+  const loadProfile = useCallback(async (forceReload = false) => {
+    // Prevent multiple simultaneous calls unless it's a forced reload
+    if (!forceReload && (state.isLoading || hasLoadedRef.current)) return;
+    
+    if (forceReload) {
+      hasLoadedRef.current = false;
+    }
     
     hasLoadedRef.current = true;
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
@@ -349,25 +353,38 @@ export const AdministratorProfileProvider = ({ children }) => {
     dispatch({ type: ACTIONS.RESET_FORM });
   };
 
-  // Upload profile image function
-  const uploadProfileImage = async (file) => {
+  // Update profile image with Google Drive link
+  const updateProfileImage = async (googleDriveUrl) => {
+    console.log('AdministratorProfileContext - updateProfileImage called with:', googleDriveUrl);
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
 
     try {
-      // Use the administratorProfileService to upload the image
-      const result = await administratorProfileService.uploadProfileImage(file);
+      console.log('AdministratorProfileContext - Calling administratorProfileService.updateProfileImage');
+      // Use the administratorProfileService to update the image with Google Drive URL
+      const result = await administratorProfileService.updateProfileImage(googleDriveUrl);
       
+      console.log('AdministratorProfileContext - Service result:', result);
       const profilePhotoUrl = result.profilePhotoUrl;
       
-      // Update form data with new profile image URL
-      updateFormData('profilePhotoUrl', profilePhotoUrl);
+      // Update form data with new profile image URL immediately
+      dispatch({ 
+        type: ACTIONS.UPDATE_FORM_DATA, 
+        payload: { field: 'profilePhotoUrl', value: profilePhotoUrl } 
+      });
       
-      // Also save the profile to persist the image URL
-      await saveProfile({ profilePhotoUrl });
+      // Update the profile picture in AuthContext as well
+      if (updateProfilePicture) {
+        updateProfilePicture(profilePhotoUrl);
+      }
       
+      // Reload the complete profile to ensure all data is fresh
+      console.log('AdministratorProfileContext - Reloading profile after image update');
+      await loadProfile(true); // Force reload
+      
+      console.log('AdministratorProfileContext - Profile image updated and profile reloaded successfully');
       return { success: true, profilePhotoUrl };
     } catch (error) {
-      console.error('Upload profile image error:', error);
+      console.error('Update profile image error:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       return { success: false, error: error.message };
     } finally {
@@ -435,7 +452,7 @@ export const AdministratorProfileProvider = ({ children }) => {
     setActiveTab,
     clearError,
     resetForm,
-    uploadProfileImage,
+    updateProfileImage,
 
     // Helpers
     getFieldValue,
@@ -445,6 +462,15 @@ export const AdministratorProfileProvider = ({ children }) => {
     goToNextTab,
     goToPreviousTab
   };
+
+  console.log('AdministratorProfileContext - Providing context value:', {
+    hasUpdateProfileImage: typeof value.updateProfileImage === 'function',
+    activeTab: value.activeTab,
+    isLoading: value.isLoading,
+    isSaving: value.isSaving,
+    error: value.error,
+    formDataExists: !!value.formData
+  });
 
   return (
     <AdministratorProfileContext.Provider value={value}>

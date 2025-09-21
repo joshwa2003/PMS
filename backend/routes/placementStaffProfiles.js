@@ -7,7 +7,7 @@ const {
   getAllProfiles,
   deleteProfile,
   getProfileStats,
-  uploadProfileImage
+  updateProfileImage
 } = require('../controllers/placementStaffProfileController');
 const { protect, authorize } = require('../middleware/auth');
 const { validatePlacementStaffProfileUpdate } = require('../middleware/validation');
@@ -23,9 +23,9 @@ router.get('/profile', protect, getProfile);
 router.put('/profile', protect, validatePlacementStaffProfileUpdate, updateProfile);
 
 // @route   POST /api/v1/placement-staff-profiles/upload-profile-image
-// @desc    Upload placement staff profile image
+// @desc    Update placement staff profile image with Google Drive link
 // @access  Private
-router.post('/upload-profile-image', protect, uploadProfileImage);
+router.post('/upload-profile-image', protect, updateProfileImage);
 
 // @route   GET /api/v1/placement-staff-profiles/stats
 // @desc    Get placement staff profile statistics

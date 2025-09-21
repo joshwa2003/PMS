@@ -1,7 +1,7 @@
 const Student = require('../models/Student');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
-const supabaseStorage = require('../services/supabaseStorage');
+const googleDriveService = require('../services/googleDriveService');
 
 // @desc    Get current student's profile
 // @route   GET /api/students/profile
@@ -417,15 +417,17 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-// @desc    Upload profile image (Student only)
+// @desc    Update profile image with Google Drive link (Student only)
 // @route   POST /api/students/profile-image
 // @access  Private (Student only)
-const uploadProfileImage = async (req, res) => {
+const updateProfileImage = async (req, res) => {
   try {
-    if (!req.file) {
+    const { googleDriveUrl } = req.body;
+
+    if (!googleDriveUrl) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: 'Google Drive URL is required'
       });
     }
 
@@ -438,53 +440,49 @@ const uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Delete old profile image if exists
-    if (student.profileImageUrl) {
-      const oldPath = student.profileImageUrl.split('/').slice(-2).join('/');
-      await supabaseStorage.deleteFile(oldPath);
-    }
-
-    // Upload new profile image to Supabase
-    const uploadResult = await supabaseStorage.uploadProfileImage(
-      req.file.buffer,
-      req.file.originalname,
+    // Process and validate Google Drive URL
+    const processResult = await googleDriveService.processProfileImageUrl(
+      googleDriveUrl,
       req.user.id
     );
 
-    if (!uploadResult.success) {
-      return res.status(500).json({
+    if (!processResult.success) {
+      return res.status(400).json({
         success: false,
-        message: uploadResult.error || 'Failed to upload profile image'
+        message: processResult.error || 'Invalid Google Drive URL'
       });
     }
 
     // Update student profile with new image URL
-    student.profileImageUrl = uploadResult.url;
+    student.profileImageUrl = processResult.url;
     await student.save();
 
     res.status(200).json({
       success: true,
-      message: 'Profile image uploaded successfully',
-      profileImageUrl: uploadResult.url
+      message: 'Profile image updated successfully',
+      profileImageUrl: processResult.url,
+      thumbnailUrl: processResult.thumbnailUrl
     });
   } catch (error) {
-    console.error('Upload profile image error:', error);
+    console.error('Update profile image error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while uploading profile image'
+      message: 'Server error while updating profile image'
     });
   }
 };
 
-// @desc    Upload resume (Student only)
+// @desc    Update resume with Google Drive link (Student only)
 // @route   POST /api/students/resume
 // @access  Private (Student only)
-const uploadResume = async (req, res) => {
+const updateResume = async (req, res) => {
   try {
-    if (!req.file) {
+    const { googleDriveUrl } = req.body;
+
+    if (!googleDriveUrl) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: 'Google Drive URL is required'
       });
     }
 
@@ -497,42 +495,36 @@ const uploadResume = async (req, res) => {
       });
     }
 
-    // Delete old resume if exists
-    if (student.placement.resumeLink) {
-      const oldPath = student.placement.resumeLink.split('/').slice(-2).join('/');
-      await supabaseStorage.deleteFile(oldPath);
-    }
-
-    // Upload new resume to Supabase
-    const uploadResult = await supabaseStorage.uploadResume(
-      req.file.buffer,
-      req.file.originalname,
+    // Process and validate Google Drive URL
+    const processResult = await googleDriveService.processResumeUrl(
+      googleDriveUrl,
       req.user.id
     );
 
-    if (!uploadResult.success) {
-      return res.status(500).json({
+    if (!processResult.success) {
+      return res.status(400).json({
         success: false,
-        message: uploadResult.error || 'Failed to upload resume'
+        message: processResult.error || 'Invalid Google Drive URL'
       });
     }
 
     // Update resume link and last updated date
-    student.placement.resumeLink = uploadResult.url;
+    student.placement.resumeLink = processResult.url;
     student.placement.resumeLastUpdated = new Date();
     
     await student.save();
 
     res.status(200).json({
       success: true,
-      message: 'Resume uploaded successfully',
-      resumeLink: uploadResult.url
+      message: 'Resume updated successfully',
+      resumeLink: processResult.url,
+      embedUrl: googleDriveService.getEmbedUrl(processResult.url)
     });
   } catch (error) {
-    console.error('Upload resume error:', error);
+    console.error('Update resume error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while uploading resume'
+      message: 'Server error while updating resume'
     });
   }
 };
@@ -545,6 +537,6 @@ module.exports = {
   updatePlacementStatus,
   getStudentStats,
   deleteStudent,
-  uploadProfileImage,
-  uploadResume
+  updateProfileImage,
+  updateResume
 };

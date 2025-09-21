@@ -1,9 +1,7 @@
 const { validationResult } = require('express-validator');
 const PlacementDirectorProfile = require('../models/PlacementDirectorProfile');
 const User = require('../models/User');
-const multer = require('multer');
-const path = require('path');
-const supabaseStorage = require('../services/supabaseStorage');
+const googleDriveService = require('../services/googleDriveService');
 
 // @desc    Get placement director profile by user ID
 // @route   GET /api/v1/placement-director-profiles/profile
@@ -447,160 +445,117 @@ exports.getProfileStats = async (req, res) => {
   }
 };
 
-// Configure multer for file upload
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Check file type
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
-    }
-  }
-});
-
-// @desc    Upload placement director profile image
-// @route   POST /api/v1/placement-director-profiles/upload-profile-image
+// @desc    Update placement director profile image with Google Drive link
+// @route   POST /api/v1/placement-director-profiles/update-profile-image
 // @access  Private (Own profile only)
-exports.uploadProfileImage = [
-  upload.single('profileImage'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image file provided'
-        });
-      }
+exports.updateProfileImage = async (req, res) => {
+  try {
+    const { googleDriveUrl } = req.body;
 
-      const userId = req.user._id;
-      
-      // Upload to Supabase using the uploadProfileImage method
-      const uploadResult = await supabaseStorage.uploadProfileImage(
-        req.file.buffer, 
-        req.file.originalname, 
-        userId
-      );
-
-      if (!uploadResult.success) {
-        return res.status(500).json({
-          success: false,
-          message: uploadResult.error || 'Failed to upload image to storage'
-        });
-      }
-
-      const profilePhotoUrl = uploadResult.url;
-
-      // Update placement director profile with new image URL
-      let profile = await PlacementDirectorProfile.findOne({ userId });
-      
-      if (profile) {
-        profile.profilePhotoUrl = profilePhotoUrl;
-        await profile.save();
-      }
-
-      // Also update User model
-      await User.findByIdAndUpdate(userId, {
-        profilePhotoUrl: profilePhotoUrl
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded successfully',
-        profilePhotoUrl: profilePhotoUrl
-      });
-    } catch (error) {
-      console.error('Upload profile image error:', error);
-      res.status(500).json({
+    if (!googleDriveUrl) {
+      return res.status(400).json({
         success: false,
-        message: 'Server error while uploading profile image',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Google Drive URL is required'
       });
     }
-  }
-];
 
-// Configure multer for resume upload
-const resumeUpload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit for resumes
-  },
-  fileFilter: (req, file, cb) => {
-    // Check file type for resumes
-    const allowedTypes = /pdf|doc|docx/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const userId = req.user._id;
+    
+    // Process and validate Google Drive URL
+    const processResult = await googleDriveService.processProfileImageUrl(
+      googleDriveUrl,
+      userId
+    );
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only document files are allowed (pdf, doc, docx)'));
+    if (!processResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: processResult.error || 'Invalid Google Drive URL'
+      });
     }
-  }
-});
 
-// @desc    Upload placement director resume
-// @route   POST /api/v1/placement-director-profiles/upload-resume
+    const profilePhotoUrl = processResult.url;
+
+    // Update placement director profile with new image URL
+    let profile = await PlacementDirectorProfile.findOne({ userId });
+    
+    if (profile) {
+      profile.profilePhotoUrl = profilePhotoUrl;
+      await profile.save();
+    }
+
+    // Also update User model
+    await User.findByIdAndUpdate(userId, {
+      profilePhotoUrl: profilePhotoUrl
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile image updated successfully',
+      profilePhotoUrl: profilePhotoUrl,
+      thumbnailUrl: processResult.thumbnailUrl
+    });
+  } catch (error) {
+    console.error('Update profile image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating profile image',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Update placement director resume with Google Drive link
+// @route   POST /api/v1/placement-director-profiles/update-resume
 // @access  Private (Own profile only)
-exports.uploadResume = [
-  resumeUpload.single('resume'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No resume file provided'
-        });
-      }
+exports.updateResume = async (req, res) => {
+  try {
+    const { googleDriveUrl } = req.body;
 
-      const userId = req.user._id;
-      
-      // Upload to Supabase using a resume upload method
-      const uploadResult = await supabaseStorage.uploadResume(
-        req.file.buffer, 
-        req.file.originalname, 
-        userId
-      );
-
-      if (!uploadResult.success) {
-        return res.status(500).json({
-          success: false,
-          message: uploadResult.error || 'Failed to upload resume to storage'
-        });
-      }
-
-      const resumeUrl = uploadResult.url;
-
-      // Update placement director profile with new resume URL
-      let profile = await PlacementDirectorProfile.findOne({ userId });
-      
-      if (profile) {
-        profile.resumeUrl = resumeUrl;
-        await profile.save();
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Resume uploaded successfully',
-        resumeUrl: resumeUrl
-      });
-    } catch (error) {
-      console.error('Upload resume error:', error);
-      res.status(500).json({
+    if (!googleDriveUrl) {
+      return res.status(400).json({
         success: false,
-        message: 'Server error while uploading resume',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Google Drive URL is required'
       });
     }
+
+    const userId = req.user._id;
+    
+    // Process and validate Google Drive URL
+    const processResult = await googleDriveService.processResumeUrl(
+      googleDriveUrl,
+      userId
+    );
+
+    if (!processResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: processResult.error || 'Invalid Google Drive URL'
+      });
+    }
+
+    const resumeUrl = processResult.url;
+
+    // Update placement director profile with new resume URL
+    let profile = await PlacementDirectorProfile.findOne({ userId });
+    
+    if (profile) {
+      profile.resumeUrl = resumeUrl;
+      await profile.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Resume updated successfully',
+      resumeUrl: resumeUrl,
+      embedUrl: googleDriveService.getEmbedUrl(resumeUrl)
+    });
+  } catch (error) {
+    console.error('Update resume error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating resume',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
-];
+};

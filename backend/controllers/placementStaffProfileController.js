@@ -1,9 +1,7 @@
 const { validationResult } = require('express-validator');
 const PlacementStaffProfile = require('../models/PlacementStaffProfile');
 const User = require('../models/User');
-const multer = require('multer');
-const path = require('path');
-const supabaseStorage = require('../services/supabaseStorage');
+const googleDriveService = require('../services/googleDriveService');
 
 // @desc    Get placement staff profile by user ID
 // @route   GET /api/v1/placement-staff-profiles/profile
@@ -566,177 +564,124 @@ exports.getProfileStats = async (req, res) => {
   }
 };
 
-// Configure multer for file upload
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    try {
-      // Check file type
-      const allowedTypes = /jpeg|jpg|png|gif/;
-      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-      const mimetype = allowedTypes.test(file.mimetype);
-
-      if (mimetype && extname) {
-        return cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
-      }
-    } catch (error) {
-      cb(new Error('Invalid file format'));
-    }
-  }
-});
-
-// @desc    Upload placement staff profile image
-// @route   POST /api/v1/placement-staff-profiles/upload-profile-image
+// @desc    Update placement staff profile image with Google Drive link
+// @route   POST /api/v1/placement-staff-profiles/update-profile-image
 // @access  Private (Own profile only)
-exports.uploadProfileImage = async (req, res) => {
-  // Apply multer middleware
-  upload.single('profileImage')(req, res, async (err) => {
-    try {
-      // Handle multer errors
-      if (err) {
-        console.error('Multer error:', err);
-        if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({
-              success: false,
-              message: 'File size too large. Maximum size is 5MB.'
-            });
-          }
-          return res.status(400).json({
-            success: false,
-            message: `File upload error: ${err.message}`
-          });
-        }
-        return res.status(400).json({
-          success: false,
-          message: err.message || 'File upload failed'
-        });
-      }
+exports.updateProfileImage = async (req, res) => {
+  try {
+    const { googleDriveUrl } = req.body;
 
-      // Check if file was provided
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image file provided. Please select an image file.'
-        });
-      }
-
-      const userId = req.user._id;
-      console.log('Starting profile image upload for user:', userId);
-      console.log('File details:', {
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      });
-
-      // Ensure placement staff profile exists before uploading image
-      let profile = await PlacementStaffProfile.findOne({ userId });
-      
-      if (!profile) {
-        console.log('Profile not found, creating new profile for user:', userId);
-        
-        // Get user data to create profile
-        const user = await User.findById(userId);
-        if (!user) {
-          return res.status(404).json({
-            success: false,
-            message: 'User not found'
-          });
-        }
-
-        // Create new profile with minimal required data
-        profile = new PlacementStaffProfile({
-          userId: user._id,
-          employeeId: user.employeeId || `EMP${Date.now()}`,
-          name: {
-            firstName: user.firstName || 'Staff',
-            lastName: user.lastName || 'Member'
-          },
-          email: user.email,
-          mobileNumber: user.mobileNumber || user.phone || '0000000000',
-          gender: user.gender || 'Other',
-          role: user.role === 'placement_staff' ? 'staff' : 'other',
-          department: user.department || 'OTHER',
-          designation: user.designation || 'Staff Coordinator',
-          dateOfJoining: user.dateOfJoining || new Date(),
-          officeLocation: user.officeLocation || 'Main Campus',
-          officialEmail: user.officialEmail || user.email,
-          experienceYears: user.experienceYears || 0,
-          qualifications: user.qualifications || [],
-          assignedStudents: [],
-          responsibilitiesText: user.responsibilitiesText || '',
-          trainingProgramsHandled: user.trainingProgramsHandled || [],
-          languagesSpoken: user.languagesSpoken || [],
-          availabilityTimeSlots: user.availabilityTimeSlots || [],
-          contact: user.contact || {
-            alternatePhone: '',
-            emergencyContact: '',
-            address: {
-              street: '',
-              city: '',
-              state: '',
-              pincode: '',
-              country: 'India'
-            }
-          },
-          adminNotes: user.adminNotes || '',
-          createdBy: user._id,
-          lastLoginAt: user.lastLogin
-        });
-        
-        // Save with validation disabled initially
-        await profile.save({ validateBeforeSave: false });
-        console.log('New profile created successfully');
-      }
-      
-      // Upload to storage using the uploadProfileImage method
-      console.log('Uploading to storage service...');
-      const uploadResult = await supabaseStorage.uploadProfileImage(
-        req.file.buffer, 
-        req.file.originalname, 
-        userId
-      );
-
-      if (!uploadResult.success) {
-        console.error('Storage upload failed:', uploadResult.error);
-        return res.status(500).json({
-          success: false,
-          message: uploadResult.error || 'Failed to upload image to storage'
-        });
-      }
-
-      const profilePhotoUrl = uploadResult.url;
-      console.log('Storage upload successful, URL:', profilePhotoUrl);
-
-      // Update placement staff profile with new image URL
-      profile.profilePhotoUrl = profilePhotoUrl;
-      await profile.save({ validateBeforeSave: false });
-      console.log('Profile updated with new image URL');
-
-      // Also update User model
-      await User.findByIdAndUpdate(userId, {
-        profilePhotoUrl: profilePhotoUrl
-      });
-      console.log('User model updated with new image URL');
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded successfully',
-        profilePhotoUrl: profilePhotoUrl
-      });
-    } catch (error) {
-      console.error('Upload profile image error:', error);
-      res.status(500).json({
+    if (!googleDriveUrl) {
+      return res.status(400).json({
         success: false,
-        message: 'Server error while uploading profile image',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Google Drive URL is required'
       });
     }
-  });
+
+    const userId = req.user._id;
+    console.log('Starting profile image update for user:', userId);
+
+    // Ensure placement staff profile exists before updating image
+    let profile = await PlacementStaffProfile.findOne({ userId });
+    
+    if (!profile) {
+      console.log('Profile not found, creating new profile for user:', userId);
+      
+      // Get user data to create profile
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Create new profile with minimal required data
+      profile = new PlacementStaffProfile({
+        userId: user._id,
+        employeeId: user.employeeId || `EMP${Date.now()}`,
+        name: {
+          firstName: user.firstName || 'Staff',
+          lastName: user.lastName || 'Member'
+        },
+        email: user.email,
+        mobileNumber: user.mobileNumber || user.phone || '0000000000',
+        gender: user.gender || 'Other',
+        role: user.role === 'placement_staff' ? 'staff' : 'other',
+        department: user.department || 'OTHER',
+        designation: user.designation || 'Staff Coordinator',
+        dateOfJoining: user.dateOfJoining || new Date(),
+        officeLocation: user.officeLocation || 'Main Campus',
+        officialEmail: user.officialEmail || user.email,
+        experienceYears: user.experienceYears || 0,
+        qualifications: user.qualifications || [],
+        assignedStudents: [],
+        responsibilitiesText: user.responsibilitiesText || '',
+        trainingProgramsHandled: user.trainingProgramsHandled || [],
+        languagesSpoken: user.languagesSpoken || [],
+        availabilityTimeSlots: user.availabilityTimeSlots || [],
+        contact: user.contact || {
+          alternatePhone: '',
+          emergencyContact: '',
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India'
+          }
+        },
+        adminNotes: user.adminNotes || '',
+        createdBy: user._id,
+        lastLoginAt: user.lastLogin
+      });
+      
+      // Save with validation disabled initially
+      await profile.save({ validateBeforeSave: false });
+      console.log('New profile created successfully');
+    }
+    
+    // Process and validate Google Drive URL
+    console.log('Processing Google Drive URL...');
+    const processResult = await googleDriveService.processProfileImageUrl(
+      googleDriveUrl,
+      userId
+    );
+
+    if (!processResult.success) {
+      console.error('Google Drive URL processing failed:', processResult.error);
+      return res.status(400).json({
+        success: false,
+        message: processResult.error || 'Invalid Google Drive URL'
+      });
+    }
+
+    const profilePhotoUrl = processResult.url;
+    console.log('Google Drive URL processed successfully, URL:', profilePhotoUrl);
+
+    // Update placement staff profile with new image URL
+    profile.profilePhotoUrl = profilePhotoUrl;
+    await profile.save({ validateBeforeSave: false });
+    console.log('Profile updated with new image URL');
+
+    // Also update User model
+    await User.findByIdAndUpdate(userId, {
+      profilePhotoUrl: profilePhotoUrl
+    });
+    console.log('User model updated with new image URL');
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile image updated successfully',
+      profilePhotoUrl: profilePhotoUrl,
+      thumbnailUrl: processResult.thumbnailUrl
+    });
+  } catch (error) {
+    console.error('Update profile image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating profile image',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };

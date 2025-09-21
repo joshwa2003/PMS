@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Card, Avatar, IconButton, CircularProgress } from '@mui/material';
-import { PhotoCamera, Person } from '@mui/icons-material';
+import React, { useEffect, useState } from 'react';
+import { Card, Avatar } from '@mui/material';
+import { Person } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
@@ -8,52 +8,43 @@ import { useAdministratorProfile } from '../../context/AdministratorProfileConte
 import { useAuth } from '../../context/AuthContext';
 
 function ProfileHeader() {
-  const { user, updateProfilePicture } = useAuth();
-  const { formData, uploadProfileImage, isSaving, getProfileCompletion } = useAdministratorProfile();
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const { user } = useAuth();
+  const { formData, getProfileCompletion, profile } = useAdministratorProfile();
+  const [imageKey, setImageKey] = useState(Date.now()); // Force image refresh
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
+  // Convert Google Drive URL to thumbnail for display
+  const getGoogleDriveThumbnail = (url) => {
+    if (!url) return null;
+    
+    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      // Use backend proxy to avoid CORS issues
+      return `/api/google-drive-image?id=${fileIdMatch[1]}`;
+    }
+    return url;
   };
 
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, or WebP)');
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const result = await uploadProfileImage(file);
-      if (result.success) {
-        // Update the profile picture in AuthContext as well
-        updateProfilePicture(result.profilePhotoUrl);
-        console.log('Profile image uploaded successfully');
-      } else {
-        alert(result.error || 'Failed to upload image');
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      alert('Failed to upload image. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // Update image key when profile image changes to force refresh
+  useEffect(() => {
+    console.log('ProfileHeader - Profile data changed:', {
+      formDataProfilePhotoUrl: formData.profilePhotoUrl,
+      userProfilePicture: user?.profilePicture,
+      profilePhotoUrl: profile?.profilePhotoUrl
+    });
+    setImageKey(Date.now());
+  }, [formData.profilePhotoUrl, user?.profilePicture, profile?.profilePhotoUrl]);
 
   const profileCompletion = getProfileCompletion();
-  const profileImage = formData.profilePhotoUrl || user?.profilePicture;
+  
+  // Priority order: formData > profile > user
+  const profileImageUrl = formData.profilePhotoUrl || profile?.profilePhotoUrl || user?.profilePicture;
+  const profileImage = getGoogleDriveThumbnail(profileImageUrl);
+  
+  console.log('ProfileHeader - Rendering with image:', {
+    profileImageUrl,
+    profileImage,
+    imageKey
+  });
 
   const getCompletionColor = (percentage) => {
     if (percentage >= 80) return 'success';
@@ -72,54 +63,17 @@ function ProfileHeader() {
           {/* Profile Image */}
           <MDBox position="relative" mr={3}>
             <Avatar
-              src={profileImage}
+              src={profileImage ? `${profileImage}?t=${imageKey}` : null}
+              key={imageKey}
               sx={{
                 width: 80,
                 height: 80,
-                cursor: 'pointer',
                 border: '3px solid',
-                borderColor: 'info.main',
-                '&:hover': {
-                  opacity: 0.8
-                }
+                borderColor: 'info.main'
               }}
-              onClick={handleImageClick}
             >
               {!profileImage && <Person sx={{ fontSize: 40 }} />}
             </Avatar>
-            
-            {/* Upload Button Overlay */}
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: -5,
-                right: -5,
-                backgroundColor: 'info.main',
-                color: 'white',
-                width: 30,
-                height: 30,
-                '&:hover': {
-                  backgroundColor: 'info.dark'
-                }
-              }}
-              onClick={handleImageClick}
-              disabled={isUploading || isSaving}
-            >
-              {isUploading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PhotoCamera sx={{ fontSize: 16 }} />
-              )}
-            </IconButton>
-
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-            />
           </MDBox>
 
           {/* Profile Info */}

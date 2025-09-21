@@ -7,8 +7,8 @@ const {
   getAllProfiles,
   deleteProfile,
   getProfileStats,
-  uploadProfileImage,
-  uploadResume
+  updateProfileImage,
+  updateResume
 } = require('../controllers/placementDirectorProfileController');
 const { protect, authorize } = require('../middleware/auth');
 const { validatePlacementDirectorProfileUpdate } = require('../middleware/validation');
@@ -24,14 +24,14 @@ router.get('/profile', protect, authorize('placement_director'), getProfile);
 router.put('/profile', protect, authorize('placement_director'), validatePlacementDirectorProfileUpdate, updateProfile);
 
 // @route   POST /api/v1/placement-director-profiles/upload-profile-image
-// @desc    Upload placement director profile image
+// @desc    Update placement director profile image with Google Drive link
 // @access  Private (Placement Director role only)
-router.post('/upload-profile-image', protect, authorize('placement_director'), uploadProfileImage);
+router.post('/upload-profile-image', protect, authorize('placement_director'), updateProfileImage);
 
 // @route   POST /api/v1/placement-director-profiles/upload-resume
-// @desc    Upload placement director resume
+// @desc    Update placement director resume with Google Drive link
 // @access  Private (Placement Director role only)
-router.post('/upload-resume', protect, authorize('placement_director'), uploadResume);
+router.post('/upload-resume', protect, authorize('placement_director'), updateResume);
 
 // @route   GET /api/v1/placement-director-profiles/stats
 // @desc    Get placement director profile statistics

@@ -34,7 +34,39 @@ const GoogleDrivePreview = ({ link, title = "Document Preview", showPreview = tr
     return null;
   };
 
+  // Convert Google Drive share link to direct image URL for images using backend proxy
+  const getDirectImageUrl = (shareUrl) => {
+    if (!shareUrl) return null;
+
+    let fileId = null;
+
+    const viewMatch = shareUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (viewMatch) {
+      fileId = viewMatch[1];
+    }
+
+    const openMatch = shareUrl.match(/[?&]id=([a-zA-Z0-9-_]+)/);
+    if (openMatch) {
+      fileId = openMatch[1];
+    }
+
+    if (fileId) {
+      // Use backend proxy to avoid CORS issues
+      return `/api/google-drive-image?id=${fileId}`;
+    }
+
+    return null;
+  };
+
+  // Simple check if the link is an image based on extension
+  const isImageLink = (url) => {
+    if (!url) return false;
+    return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(url);
+  };
+
   const embedUrl = getEmbedUrl(link);
+  const directImageUrl = getDirectImageUrl(link);
+  const showImagePreview = isImageLink(link);
 
   if (!link) return null;
 
@@ -48,7 +80,7 @@ const GoogleDrivePreview = ({ link, title = "Document Preview", showPreview = tr
 
   return (
     <MDBox>
-      {showPreview && embedUrl ? (
+      {showPreview && (embedUrl || directImageUrl) ? (
         <MDBox>
           {/* Inline Preview */}
           <MDBox 
@@ -56,21 +88,30 @@ const GoogleDrivePreview = ({ link, title = "Document Preview", showPreview = tr
               border: '1px solid #e0e0e0', 
               borderRadius: '8px', 
               overflow: 'hidden',
-              mb: 2
+              mb: 2,
+              textAlign: 'center'
             }}
           >
-            <iframe
-              src={embedUrl}
-              width="100%"
-              height="400"
-              frameBorder="0"
-              title={title}
-              style={{ display: 'block' }}
-            />
+            {showImagePreview && directImageUrl ? (
+              <img
+                src={directImageUrl}
+                alt={title}
+                style={{ maxWidth: '100%', maxHeight: 400, display: 'inline-block' }}
+              />
+            ) : (
+              <iframe
+                src={embedUrl}
+                width="100%"
+                height="400"
+                frameBorder="0"
+                title={title}
+                style={{ display: 'block' }}
+              />
+            )}
           </MDBox>
           
           {/* Action Buttons */}
-          <MDBox display="flex" gap={1} alignItems="center">
+          <MDBox display="flex" gap={1} alignItems="center" justifyContent="center">
             <MDButton
               variant="outlined"
               color="info"
@@ -104,7 +145,7 @@ const GoogleDrivePreview = ({ link, title = "Document Preview", showPreview = tr
               View Document
             </a>
           </MDTypography>
-          {embedUrl && (
+          {(embedUrl || directImageUrl) && (
             <IconButton size="small" onClick={handlePreviewClick} color="primary">
               <VisibilityIcon fontSize="small" />
             </IconButton>
@@ -130,8 +171,14 @@ const GoogleDrivePreview = ({ link, title = "Document Preview", showPreview = tr
             </IconButton>
           </MDBox>
         </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          {embedUrl ? (
+        <DialogContent sx={{ p: 0, textAlign: 'center' }}>
+          {showImagePreview && directImageUrl ? (
+            <img
+              src={directImageUrl}
+              alt={title}
+              style={{ maxWidth: '100%', maxHeight: '100%', display: 'inline-block' }}
+            />
+          ) : embedUrl ? (
             <iframe
               src={embedUrl}
               width="100%"

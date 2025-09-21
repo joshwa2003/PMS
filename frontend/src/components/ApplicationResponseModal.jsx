@@ -101,7 +101,7 @@ const ApplicationResponseModal = ({
       <DialogTitle sx={{ pb: 1 }}>
         <MDBox display="flex" alignItems="center" gap={2} mb={1}>
           <JobIcon sx={{ color: 'info.main', fontSize: 28 }} />
-          <MDTypography variant="h4" fontWeight="bold" color="dark">
+          <MDTypography variant="h6" fontWeight="bold" color="dark">
             Application Confirmation Required
           </MDTypography>
         </MDBox>

@@ -21,6 +21,7 @@ const courseCategoryRoutes = require('./routes/courseCategories');
 const departmentRoutes = require('./routes/departments');
 const dashboardRoutes = require('./routes/dashboard');
 const jobRoutes = require('./routes/jobs');
+const googleDriveProxyRouter = require('./routes/googleDriveProxy');
 
 const app = express();
 
@@ -97,6 +98,9 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV
   });
 });
+
+app.use('/api/proxy', googleDriveProxyRouter);
+app.use('/api/google-drive-image', googleDriveProxyRouter);
 
 // Root endpoint
 app.get('/', (req, res) => {

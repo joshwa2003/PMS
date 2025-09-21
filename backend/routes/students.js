@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const { body } = require('express-validator');
 
 // Import middleware
@@ -16,49 +14,9 @@ const {
   updatePlacementStatus,
   getStudentStats,
   deleteStudent,
-  uploadProfileImage,
-  uploadResume
+  updateProfileImage,
+  updateResume
 } = require('../controllers/studentController');
-
-// Configure multer for file uploads (using memory storage for Supabase)
-const storage = multer.memoryStorage();
-
-// File filter for profile images
-const imageFileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
-  }
-};
-
-// File filter for PDF files (resumes)
-const pdfFileFilter = (req, file, cb) => {
-  if (file.mimetype === 'application/pdf') {
-    cb(null, true);
-  } else {
-    cb(new Error('Only PDF files are allowed'), false);
-  }
-};
-
-// Multer configuration for profile images
-const uploadImage = multer({
-  storage: storage,
-  fileFilter: imageFileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for images
-  }
-});
-
-// Multer configuration for PDF files
-const uploadPDF = multer({
-  storage: storage,
-  fileFilter: pdfFileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit for PDFs
-  }
-});
 
 // Validation middleware
 const validateStudentProfile = [
@@ -264,14 +222,14 @@ router.get('/profile', auth, requireStudent, getStudentProfile);
 router.put('/profile', auth, requireStudent, validateStudentProfile, updateStudentProfile);
 
 // @route   POST /api/students/profile-image
-// @desc    Upload profile image
+// @desc    Update profile image with Google Drive link
 // @access  Private (Student only)
-router.post('/profile-image', auth, requireStudent, uploadImage.single('profileImage'), uploadProfileImage);
+router.post('/profile-image', auth, requireStudent, updateProfileImage);
 
 // @route   POST /api/students/resume
-// @desc    Upload resume
+// @desc    Update resume with Google Drive link
 // @access  Private (Student only)
-router.post('/resume', auth, requireStudent, uploadPDF.single('resume'), uploadResume);
+router.post('/resume', auth, requireStudent, updateResume);
 
 // @route   GET /api/students/stats
 // @desc    Get student statistics
@@ -313,33 +271,5 @@ router.put('/:id/placement', auth, requirePlacementAccess, [
 // @desc    Delete student profile
 // @access  Private (Admin only)
 router.delete('/:id', auth, requireAdmin, deleteStudent);
-
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        message: 'File too large. Maximum size exceeded.'
-      });
-    }
-  }
-  
-  if (error.message === 'Only PDF files are allowed') {
-    return res.status(400).json({
-      success: false,
-      message: 'Only PDF files are allowed for resume upload.'
-    });
-  }
-  
-  if (error.message === 'Only JPEG, PNG, and WebP images are allowed') {
-    return res.status(400).json({
-      success: false,
-      message: 'Only JPEG, PNG, and WebP images are allowed for profile image upload.'
-    });
-  }
-  
-  next(error);
-});
 
 module.exports = router;

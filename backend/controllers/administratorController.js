@@ -1,7 +1,7 @@
 const Administrator = require('../models/Administrator');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
-const supabaseStorage = require('../services/supabaseStorage');
+const googleDriveService = require('../services/googleDriveService');
 
 // @desc    Get current administrator's profile
 // @route   GET /api/administrators/profile
@@ -446,12 +446,7 @@ const deleteAdministrator = async (req, res) => {
       });
     }
 
-    // Delete profile image if exists
-    if (administrator.profilePhotoUrl) {
-      const imagePath = administrator.profilePhotoUrl.split('/').slice(-2).join('/');
-      await supabaseStorage.deleteFile(imagePath);
-    }
-
+    // Note: Google Drive files are managed externally, no deletion needed
     await Administrator.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
@@ -467,61 +462,93 @@ const deleteAdministrator = async (req, res) => {
   }
 };
 
-// @desc    Upload profile image (Administrator only)
+// @desc    Update profile image with Google Drive link (Administrator only)
 // @route   POST /api/administrators/profile-image
 // @access  Private (Administrator only)
-const uploadProfileImage = async (req, res) => {
+const updateProfileImage = async (req, res) => {
   try {
-    if (!req.file) {
+    const { googleDriveUrl } = req.body;
+
+    if (!googleDriveUrl) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: 'Google Drive URL is required'
       });
     }
 
-    const administrator = await Administrator.findOne({ userId: req.user.id });
-    
-    if (!administrator) {
-      return res.status(404).json({
-        success: false,
-        message: 'Administrator profile not found'
-      });
-    }
-
-    // Delete old profile image if exists
-    if (administrator.profilePhotoUrl) {
-      const oldPath = administrator.profilePhotoUrl.split('/').slice(-2).join('/');
-      await supabaseStorage.deleteFile(oldPath);
-    }
-
-    // Upload new profile image to Supabase
-    const uploadResult = await supabaseStorage.uploadProfileImage(
-      req.file.buffer,
-      req.file.originalname,
+    // Process and validate Google Drive URL first
+    const processResult = await googleDriveService.processProfileImageUrl(
+      googleDriveUrl,
       req.user.id
     );
 
-    if (!uploadResult.success) {
-      return res.status(500).json({
+    if (!processResult.success) {
+      return res.status(400).json({
         success: false,
-        message: uploadResult.error || 'Failed to upload profile image'
+        message: processResult.error || 'Invalid Google Drive URL'
       });
     }
 
-    // Update administrator profile with new image URL
-    administrator.profilePhotoUrl = uploadResult.url;
-    await administrator.save();
+    let administrator = await Administrator.findOne({ userId: req.user.id });
+    
+    if (!administrator) {
+      // Create a basic administrator profile if it doesn't exist
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      administrator = new Administrator({
+        userId: req.user.id,
+        employeeId: `ADMIN${Date.now()}`, // Generate a temporary employee ID
+        name: {
+          firstName: user.firstName || 'System',
+          lastName: user.lastName || 'Administrator'
+        },
+        email: user.email,
+        mobileNumber: user.phone || '',
+        gender: 'Other',
+        profilePhotoUrl: processResult.url,
+        role: user.role || 'admin',
+        department: 'ADMIN',
+        designation: 'System Administrator',
+        status: 'active',
+        dateOfJoining: new Date(),
+        registrationDate: new Date(),
+        authProvider: 'local',
+        accessLevel: 'admin',
+        officeLocation: 'Main Office',
+        createdBy: req.user.id
+      });
+      
+      await administrator.save();
+      console.log('New administrator profile created with profile image');
+    } else {
+      // Update existing administrator profile with new image URL
+      administrator.profilePhotoUrl = processResult.url;
+      await administrator.save();
+      console.log('Administrator profile image updated successfully');
+    }
+
+    // Also update the User model's profilePicture field for consistency
+    await User.findByIdAndUpdate(req.user.id, {
+      profilePicture: processResult.url
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Profile image uploaded successfully',
-      profilePhotoUrl: uploadResult.url
+      message: 'Profile image updated successfully',
+      profilePhotoUrl: processResult.url,
+      thumbnailUrl: processResult.thumbnailUrl
     });
   } catch (error) {
-    console.error('Upload profile image error:', error);
+    console.error('Update profile image error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while uploading profile image'
+      message: 'Server error while updating profile image'
     });
   }
 };
@@ -534,5 +561,5 @@ module.exports = {
   updateAdministratorStatus,
   getAdministratorStats,
   deleteAdministrator,
-  uploadProfileImage
+  updateProfileImage
 };

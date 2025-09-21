@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "context/AuthContext";
 import userService from "services/userService";
+import administratorProfileService from "services/administratorProfileService";
 
 // @mui material components
 import Grid from "@mui/material/Grid";
@@ -8,7 +9,16 @@ import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
 import Avatar from "@mui/material/Avatar";
 import IconButton from "@mui/material/IconButton";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import PhotoCamera from "@mui/icons-material/PhotoCamera";
+import { Link as LinkIcon } from "@mui/icons-material";
+import Visibility from "@mui/icons-material/Visibility";
+import Info from "@mui/icons-material/Info";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -16,12 +26,21 @@ import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 import MDAlert from "components/MDAlert";
+import GoogleDrivePreview from "components/GoogleDrivePreview";
 
 function ProfileForm() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, updateProfilePicture } = useAuth();
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ show: false, message: "", type: "success" });
+  
+  // Google Drive image upload states
+  const [imageUploadDialog, setImageUploadDialog] = useState(false);
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
+  const [isUpdatingImage, setIsUpdatingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [imageUploadSuccess, setImageUploadSuccess] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -126,6 +145,166 @@ function ProfileForm() {
       setLoading(false);
     }
   };
+
+  // Google Drive image upload functions
+  const validateGoogleDriveUrl = (url) => {
+    if (!url || !url.trim()) {
+      return 'Please enter a Google Drive URL';
+    }
+
+    const googleDrivePatterns = [
+      /^https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/,
+      /^https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/
+    ];
+
+    const isValid = googleDrivePatterns.some(pattern => pattern.test(url.trim()));
+    
+    if (!isValid) {
+      return 'Please provide a valid Google Drive share link';
+    }
+
+    return null;
+  };
+
+  const handleGoogleDriveUrlChange = (e) => {
+    const url = e.target.value;
+    setGoogleDriveUrl(url);
+    setImageUploadError('');
+    setImageUploadSuccess('');
+    
+    // Show preview if URL looks valid
+    if (url && validateGoogleDriveUrl(url) === null) {
+      setShowPreview(true);
+    } else {
+      setShowPreview(false);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    // Clear previous messages
+    setImageUploadError('');
+    setImageUploadSuccess('');
+
+    // Validate URL
+    const error = validateGoogleDriveUrl(googleDriveUrl);
+    if (error) {
+      setImageUploadError(error);
+      return;
+    }
+
+    setIsUpdatingImage(true);
+
+    try {
+      // Check if user has administrator role for the specialized API
+      const allowedRoles = ['admin', 'director', 'staff', 'hod'];
+      if (allowedRoles.includes(user.role)) {
+        // Use administrator profile service for admin users
+        const result = await administratorProfileService.updateProfileImage(googleDriveUrl.trim());
+        
+          if (result.success) {
+            setImageUploadSuccess('Profile image updated successfully!');
+            
+            // Update the user's profile picture in AuthContext immediately
+            if (updateProfilePicture) {
+              // Use the thumbnail URL for better display
+              const thumbnailUrl = result.thumbnailUrl || result.profilePhotoUrl;
+              // Convert to direct Google Drive image URL for proper display
+              const directImageUrl = getGoogleDriveThumbnail(thumbnailUrl);
+              updateProfilePicture(directImageUrl);
+            }
+            
+            // Update the form data to reflect the new image
+            if (user) {
+              user.profilePicture = getGoogleDriveThumbnail(result.thumbnailUrl || result.profilePhotoUrl);
+            }
+            
+            // Update formData state to trigger re-render of Avatar with new image
+            setFormData(prev => ({
+              ...prev,
+              profilePicture: getGoogleDriveThumbnail(result.thumbnailUrl || result.profilePhotoUrl)
+            }));
+            
+            // Close dialog and refresh after a short delay
+            setTimeout(() => {
+              setImageUploadDialog(false);
+              setGoogleDriveUrl('');
+              setShowPreview(false);
+              setImageUploadSuccess('');
+              
+              // Force a complete page refresh to ensure image updates
+              window.location.reload();
+            }, 1500);
+          } else {
+            setImageUploadError(result.error || 'Failed to update profile image');
+          }
+      } else {
+        // For other user types, use the generic user service
+        // Note: This would need to be implemented in userService if needed
+        setImageUploadError('Profile image upload is currently only available for administrators');
+      }
+    } catch (error) {
+      console.error('Profile image update error:', error);
+      setImageUploadError(error.message || 'An error occurred while updating profile image');
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
+
+  const getGoogleDriveThumbnail = (url) => {
+    if (!url) return null;
+
+    // Handle different Google Drive URL formats
+    let fileId = null;
+
+    // Extract file ID from various Google Drive URL formats
+    const patterns = [
+      /\/file\/d\/([a-zA-Z0-9-_]+)/,
+      /[?&]id=([a-zA-Z0-9-_]+)/,
+      /\/open\?id=([a-zA-Z0-9-_]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        fileId = match[1];
+        break;
+      }
+    }
+
+    if (fileId) {
+      // Use backend proxy URL to avoid CSP issues
+      return `/api/proxy/google-drive-image?id=${fileId}`;
+    }
+
+    return url;
+  };
+
+  // Helper function to extract file ID and return backend proxy URL
+  const getGoogleDriveProxyUrl = (shareUrl) => {
+    if (!shareUrl) return null;
+    let fileId = null;
+    const viewMatch = shareUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (viewMatch) {
+      fileId = viewMatch[1];
+    } else {
+      const openMatch = shareUrl.match(/[?&]id=([a-zA-Z0-9-_]+)/);
+      if (openMatch) {
+        fileId = openMatch[1];
+      }
+    }
+    if (fileId) {
+      return `/api/google-drive-image?id=${fileId}&t=${Date.now()}`;
+    }
+    return null;
+  };
+
+  const getSharingInstructions = () => [
+    '1. Open your image file in Google Drive',
+    '2. Right-click and select "Share"',
+    '3. Click "Change to anyone with the link"',
+    '4. Set permission to "Viewer"',
+    '5. Click "Copy link" and paste it below'
+  ];
 
   const getRoleDisplayName = (role) => {
     const roleNames = {
@@ -272,28 +451,34 @@ function ProfileForm() {
 
         {/* Profile Header */}
         <MDBox display="flex" alignItems="center" mb={3}>
-          <MDBox position="relative">
-            <Avatar
-              src={user.profilePicture}
-              alt={user.fullName}
-              sx={{ width: 100, height: 100, mr: 3 }}
-            >
-              {!user.profilePicture && user.firstName?.[0]}
-            </Avatar>
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: 0,
-                right: 20,
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': { backgroundColor: 'primary.dark' }
-              }}
-              size="small"
-            >
-              <PhotoCamera fontSize="small" />
-            </IconButton>
-          </MDBox>
+        <MDBox position="relative">
+          <Avatar
+            src={user.profilePicture ? getGoogleDriveProxyUrl(user.profilePicture) : null}
+            alt={user.fullName}
+            sx={{ width: 100, height: 100, mr: 3 }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/default-profile.png'; // fallback image path
+            }}
+          >
+            {!user.profilePicture && user.firstName?.[0]}
+          </Avatar>
+          <IconButton
+            onClick={() => setImageUploadDialog(true)}
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              right: 20,
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '&:hover': { backgroundColor: 'primary.dark' }
+            }}
+            size="small"
+          >
+            <PhotoCamera fontSize="small" />
+          </IconButton>
+        </MDBox>
+
           <MDBox>
             <MDTypography variant="h4" fontWeight="medium">
               {user.fullName}
@@ -418,6 +603,123 @@ function ProfileForm() {
             </Grid>
           </Grid>
         </MDBox>
+
+        {/* Google Drive Image Upload Dialog */}
+        <Dialog 
+          open={imageUploadDialog} 
+          onClose={() => setImageUploadDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <MDTypography variant="h6" fontWeight="medium">
+              Update Profile Image
+            </MDTypography>
+          </DialogTitle>
+          
+          <DialogContent>
+            <MDBox mb={3}>
+              <MDTypography variant="h6" fontWeight="medium" mb={2}>
+                Upload with Google Drive Link
+              </MDTypography>
+
+              <MDBox mb={2}>
+                <MDInput
+                  type="url"
+                  label="Google Drive Image URL"
+                  value={googleDriveUrl}
+                  onChange={handleGoogleDriveUrlChange}
+                  fullWidth
+                  placeholder="https://drive.google.com/file/d/..."
+                  InputProps={{
+                    startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                  error={!!imageUploadError}
+                  helperText={imageUploadError}
+                />
+              </MDBox>
+
+              <MDBox display="flex" gap={1} mb={2}>
+                <MDButton
+                  variant="gradient"
+                  color="info"
+                  onClick={handleImageUpload}
+                  disabled={!googleDriveUrl || isUpdatingImage}
+                  startIcon={isUpdatingImage ? <CircularProgress size={16} /> : <PhotoCamera />}
+                  fullWidth
+                >
+                  {isUpdatingImage ? 'Updating...' : 'Update Profile Image'}
+                </MDButton>
+                
+                {googleDriveUrl && (
+                  <MDButton
+                    variant="outlined"
+                    color="info"
+                    onClick={() => setShowPreview(!showPreview)}
+                    startIcon={<Visibility />}
+                  >
+                    {showPreview ? 'Hide' : 'Preview'}
+                  </MDButton>
+                )}
+              </MDBox>
+
+              {/* Success Message */}
+              {imageUploadSuccess && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {imageUploadSuccess}
+                </Alert>
+              )}
+
+              {/* Preview Section */}
+              {showPreview && googleDriveUrl && !imageUploadError && (
+                <MDBox mb={3}>
+                  <MDTypography variant="h6" fontWeight="medium" mb={2}>
+                    Preview
+                  </MDTypography>
+                  <GoogleDrivePreview 
+                    link={googleDriveUrl} 
+                    title="Profile Image Preview"
+                    showPreview={true}
+                  />
+                </MDBox>
+              )}
+
+              {/* Instructions */}
+              <Alert severity="info" icon={<Info />}>
+                <MDTypography variant="h6" fontWeight="medium" mb={1}>
+                  How to share your Google Drive image:
+                </MDTypography>
+                <MDBox component="ol" pl={2}>
+                  {getSharingInstructions().map((instruction, index) => (
+                    <MDBox component="li" key={index} mb={0.5}>
+                      <MDTypography variant="body2">
+                        {instruction}
+                      </MDTypography>
+                    </MDBox>
+                  ))}
+                </MDBox>
+              <MDTypography variant="body2" mt={1} fontWeight="medium" color="warning">
+                Note: Make sure your image file is accessible to anyone with the link for it to display properly.
+              </MDTypography>
+              </Alert>
+            </MDBox>
+          </DialogContent>
+          
+          <DialogActions>
+            <MDButton 
+              onClick={() => {
+                setImageUploadDialog(false);
+                setGoogleDriveUrl('');
+                setShowPreview(false);
+                setImageUploadError('');
+                setImageUploadSuccess('');
+              }}
+              color="secondary"
+            >
+              Close
+            </MDButton>
+          </DialogActions>
+        </Dialog>
       </MDBox>
     </Card>
   );

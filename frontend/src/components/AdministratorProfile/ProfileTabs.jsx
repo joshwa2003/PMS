@@ -1,7 +1,8 @@
 import React from 'react';
 import { Tabs, Tab, Box } from '@mui/material';
-import { Person, Work, ContactPhone, Notes } from '@mui/icons-material';
+import { Person, Work, ContactPhone, Notes, PhotoCamera } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
+import MDTypography from 'components/MDTypography';
 import { useAdministratorProfile } from '../../context/AdministratorProfileContext';
 
 // Administrator Profile Form Components
@@ -10,6 +11,7 @@ import BasicInfoForm from "./BasicInfoForm";
 import ProfessionalDetailsForm from "./ProfessionalDetailsForm";
 import ContactDetailsForm from "./ContactDetailsForm";
 import AdministrativeNotesForm from "./AdministrativeNotesForm";
+import ProfileImageForm from "./ProfileImageForm";
 
 function ProfileTabs() {
   const {
@@ -20,6 +22,7 @@ function ProfileTabs() {
   } = useAdministratorProfile();
 
   const handleTabChange = (event, newValue) => {
+    console.log('Tab changed to:', newValue);
     setActiveTab(newValue);
   };
 
@@ -40,16 +43,23 @@ function ProfileTabs() {
       component: <ContactDetailsForm />
     },
     {
+      label: "Profile Image",
+      icon: <PhotoCamera />,
+      component: <ProfileImageForm />
+    },
+    {
       label: "Notes",
       icon: <Notes />,
       component: <AdministrativeNotesForm />
     }
   ];
 
+  console.log('ProfileTabs render - activeTab:', activeTab, 'tabs length:', tabs.length);
+
   if (isLoading) {
     return (
       <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <MDBox>Loading administrator profile...</MDBox>
+        <MDTypography variant="h6">Loading administrator profile...</MDTypography>
       </MDBox>
     );
   }
@@ -57,7 +67,7 @@ function ProfileTabs() {
   if (error) {
     return (
       <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <MDBox color="error.main">Error: {error}</MDBox>
+        <MDTypography variant="h6" color="error">Error: {error}</MDTypography>
       </MDBox>
     );
   }
@@ -115,6 +125,7 @@ function ProfileTabs() {
         >
           {activeTab === index && (
             <MDBox>
+              {console.log(`Rendering tab ${index}: ${tab.label}`, tab.component)}
               {tab.component}
             </MDBox>
           )}

@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const { body } = require('express-validator');
 
 // Import middleware
@@ -15,30 +14,8 @@ const {
   updateAdministratorStatus,
   getAdministratorStats,
   deleteAdministrator,
-  uploadProfileImage
+  updateProfileImage
 } = require('../controllers/administratorController');
-
-// Configure multer for file uploads (using memory storage for Supabase)
-const storage = multer.memoryStorage();
-
-// File filter for profile images
-const imageFileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
-  }
-};
-
-// Multer configuration for profile images
-const uploadImage = multer({
-  storage: storage,
-  fileFilter: imageFileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for images
-  }
-});
 
 // Validation middleware
 const validateAdministratorProfile = [
@@ -194,9 +171,9 @@ router.get('/profile', auth, requireAdministrator, getAdministratorProfile);
 router.put('/profile', auth, requireAdministrator, validateAdministratorProfile, updateAdministratorProfile);
 
 // @route   POST /api/administrators/profile-image
-// @desc    Upload profile image
+// @desc    Update profile image with Google Drive link
 // @access  Private (Administrator only)
-router.post('/profile-image', auth, requireAdministrator, uploadImage.single('profileImage'), uploadProfileImage);
+router.post('/profile-image', auth, requireAdministrator, updateProfileImage);
 
 // @route   GET /api/administrators/stats
 // @desc    Get administrator statistics
@@ -226,26 +203,5 @@ router.put('/:id/status', auth, requireSuperAdmin, [
 // @desc    Delete administrator profile
 // @access  Private (Super Admin only)
 router.delete('/:id', auth, requireSuperAdmin, deleteAdministrator);
-
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        message: 'File too large. Maximum size exceeded.'
-      });
-    }
-  }
-  
-  if (error.message === 'Only JPEG, PNG, and WebP images are allowed') {
-    return res.status(400).json({
-      success: false,
-      message: 'Only JPEG, PNG, and WebP images are allowed for profile image upload.'
-    });
-  }
-  
-  next(error);
-});
 
 module.exports = router;

@@ -1,9 +1,7 @@
 const { validationResult } = require('express-validator');
 const DepartmentHODProfile = require('../models/DepartmentHODProfile');
 const User = require('../models/User');
-const multer = require('multer');
-const path = require('path');
-const supabaseStorage = require('../services/supabaseStorage');
+const googleDriveService = require('../services/googleDriveService');
 
 // @desc    Get department HOD profile by user ID
 // @route   GET /api/v1/department-hod-profiles/profile
@@ -519,84 +517,62 @@ exports.getProfileStats = async (req, res) => {
   }
 };
 
-// Configure multer for file upload
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Check file type
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
-    }
-  }
-});
-
-// @desc    Upload department HOD profile image
-// @route   POST /api/v1/department-hod-profiles/upload-profile-image
+// @desc    Update department HOD profile image with Google Drive link
+// @route   POST /api/v1/department-hod-profiles/update-profile-image
 // @access  Private (Own profile only)
-exports.uploadProfileImage = [
-  upload.single('profileImage'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image file provided'
-        });
-      }
+exports.updateProfileImage = async (req, res) => {
+  try {
+    const { googleDriveUrl } = req.body;
 
-      const userId = req.user._id;
-      
-      // Upload to Supabase using the uploadProfileImage method
-      const uploadResult = await supabaseStorage.uploadProfileImage(
-        req.file.buffer, 
-        req.file.originalname, 
-        userId
-      );
-
-      if (!uploadResult.success) {
-        return res.status(500).json({
-          success: false,
-          message: uploadResult.error || 'Failed to upload image to storage'
-        });
-      }
-
-      const profilePhotoUrl = uploadResult.url;
-
-      // Update department HOD profile with new image URL
-      let profile = await DepartmentHODProfile.findOne({ userId });
-      
-      if (profile) {
-        profile.profilePhotoUrl = profilePhotoUrl;
-        await profile.save();
-      }
-
-      // Also update User model
-      await User.findByIdAndUpdate(userId, {
-        profilePhotoUrl: profilePhotoUrl
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded successfully',
-        profilePhotoUrl: profilePhotoUrl
-      });
-    } catch (error) {
-      console.error('Upload profile image error:', error);
-      res.status(500).json({
+    if (!googleDriveUrl) {
+      return res.status(400).json({
         success: false,
-        message: 'Server error while uploading profile image',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Google Drive URL is required'
       });
     }
+
+    const userId = req.user._id;
+    
+    // Process and validate Google Drive URL
+    const processResult = await googleDriveService.processProfileImageUrl(
+      googleDriveUrl,
+      userId
+    );
+
+    if (!processResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: processResult.error || 'Invalid Google Drive URL'
+      });
+    }
+
+    const profilePhotoUrl = processResult.url;
+
+    // Update department HOD profile with new image URL
+    let profile = await DepartmentHODProfile.findOne({ userId });
+    
+    if (profile) {
+      profile.profilePhotoUrl = profilePhotoUrl;
+      await profile.save();
+    }
+
+    // Also update User model
+    await User.findByIdAndUpdate(userId, {
+      profilePhotoUrl: profilePhotoUrl
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile image updated successfully',
+      profilePhotoUrl: profilePhotoUrl,
+      thumbnailUrl: processResult.thumbnailUrl
+    });
+  } catch (error) {
+    console.error('Update profile image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating profile image',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
-];
+};
