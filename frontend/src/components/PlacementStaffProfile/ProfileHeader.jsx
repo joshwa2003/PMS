@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Card, Avatar, IconButton, CircularProgress, Box, Snackbar, Alert } from '@mui/material';
-import { PhotoCamera, Edit } from '@mui/icons-material';
+import { Card, Avatar, IconButton, CircularProgress, Box, Snackbar, Alert, Typography } from '@mui/material';
+import { PhotoCamera } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
 import MDBadge from 'components/MDBadge';
 import { usePlacementStaffProfile } from '../../context/PlacementStaffProfileContext';
+import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
   const {
@@ -64,10 +65,14 @@ function ProfileHeader() {
   };
 
   const profileCompletion = getProfileCompletion();
+
   const displayName = formData?.name ? `${formData.name.firstName} ${formData.name.lastName}`.trim() : 'Placement Staff';
   const displayDesignation = formData?.designation || 'Staff Coordinator';
   const displayDepartment = formData?.department || 'Department';
   const displayEmployeeId = formData?.employeeId || 'Employee ID';
+  
+  const profileImageUrl = formData?.profilePhotoUrl || profile?.profilePhotoUrl;
+  const processedImageUrl = getGoogleDriveThumbnail(profileImageUrl);
 
   return (
     <>
@@ -77,20 +82,60 @@ function ProfileHeader() {
             {/* Profile Image and Basic Info */}
             <MDBox display="flex" alignItems="center">
               <MDBox position="relative" mr={3}>
-                <Avatar
-                  src={formData?.profilePhotoUrl || profile?.profilePhotoUrl}
-                  sx={{ 
-                    width: 80, 
-                    height: 80,
-                    fontSize: '2rem',
-                    bgcolor: 'grey.300',
-                    color: 'grey.700',
-                    border: '2px solid',
-                    borderColor: 'primary.main'
-                  }}
-                >
-                  {displayName.charAt(0).toUpperCase()}
-                </Avatar>
+                {profileImageUrl && isGoogleDriveUrl(profileImageUrl) ? (
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      border: '2px solid',
+                      borderColor: 'primary.main'
+                    }}
+                    onClick={() => window.open(profileImageUrl, '_blank')}
+                  >
+                    <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
+                      {displayName.charAt(0).toUpperCase()}
+                    </Typography>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        bgcolor: 'rgba(0,0,0,0.7)',
+                        color: 'white',
+                        textAlign: 'center',
+                        py: 0.5
+                      }}
+                    >
+                      <Typography variant="caption" fontSize="10px">
+                        Google Drive
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Avatar
+                    src={processedImageUrl}
+                    sx={{ 
+                      width: 80, 
+                      height: 80,
+                      fontSize: '2rem',
+                      bgcolor: 'grey.300',
+                      color: 'grey.700',
+                      border: '2px solid',
+                      borderColor: 'primary.main'
+                    }}
+                  >
+                    {displayName.charAt(0).toUpperCase()}
+                  </Avatar>
+                )}
                 
                 {/* Upload Button Overlay */}
                 <IconButton

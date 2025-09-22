@@ -3,7 +3,6 @@ const AdministratorProfile = require('../models/AdministratorProfile');
 const User = require('../models/User');
 const multer = require('multer');
 const path = require('path');
-const supabaseStorage = require('../services/supabaseStorage');
 
 // @desc    Get administrator profile by user ID
 // @route   GET /api/v1/administrator-profiles/profile
@@ -466,63 +465,4 @@ const upload = multer({
   }
 });
 
-// @desc    Upload administrator profile image
-// @route   POST /api/v1/administrator-profiles/upload-profile-image
-// @access  Private (Own profile only)
-exports.uploadProfileImage = [
-  upload.single('profileImage'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image file provided'
-        });
-      }
-
-      const userId = req.user._id;
-      
-      // Upload to Supabase using the uploadProfileImage method
-      const uploadResult = await supabaseStorage.uploadProfileImage(
-        req.file.buffer, 
-        req.file.originalname, 
-        userId
-      );
-
-      if (!uploadResult.success) {
-        return res.status(500).json({
-          success: false,
-          message: uploadResult.error || 'Failed to upload image to storage'
-        });
-      }
-
-      const profilePhotoUrl = uploadResult.url;
-
-      // Update administrator profile with new image URL
-      let profile = await AdministratorProfile.findOne({ userId });
-      
-      if (profile) {
-        profile.profilePhotoUrl = profilePhotoUrl;
-        await profile.save();
-      }
-
-      // Also update User model
-      await User.findByIdAndUpdate(userId, {
-        profilePhotoUrl: profilePhotoUrl
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded successfully',
-        profilePhotoUrl: profilePhotoUrl
-      });
-    } catch (error) {
-      console.error('Upload profile image error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Server error while uploading profile image',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-];
+// Removed Supabase upload endpoint since storage is not used in this project.

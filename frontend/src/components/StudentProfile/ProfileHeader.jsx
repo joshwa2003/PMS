@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStudentProfile } from '../../context/StudentProfileContext';
+import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 // @mui material components
 import Avatar from "@mui/material/Avatar";
 import IconButton from "@mui/material/IconButton";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -99,20 +102,61 @@ function ProfileHeader() {
     return null;
   }
 
+
   // Get profile image URL from formData or user data
   const profileImageUrl = formData?.profileImageUrl || user.profilePicture;
+  const processedImageUrl = getGoogleDriveThumbnail(profileImageUrl);
 
   return (
     <>
       <MDBox display="flex" alignItems="center" mb={3}>
         <MDBox position="relative">
-          <Avatar
-            src={profileImageUrl}
-            alt={user.fullName || user.firstName + ' ' + user.lastName}
-            sx={{ width: 100, height: 100, mr: 3 }}
-          >
-            {!profileImageUrl && (user.firstName?.[0] || user.fullName?.[0] || user.email?.[0])}
-          </Avatar>
+          {profileImageUrl && isGoogleDriveUrl(profileImageUrl) ? (
+            <Box
+              sx={{
+                width: 100,
+                height: 100,
+                borderRadius: '50%',
+                bgcolor: 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden',
+                mr: 3
+              }}
+              onClick={() => window.open(profileImageUrl, '_blank')}
+            >
+              <Typography sx={{ fontSize: 40, color: 'white', fontWeight: 'bold' }}>
+                {(user.firstName?.[0] || user.fullName?.[0] || user.email?.[0])?.toUpperCase()}
+              </Typography>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  bgcolor: 'rgba(0,0,0,0.7)',
+                  color: 'white',
+                  textAlign: 'center',
+                  py: 0.5
+                }}
+              >
+                <Typography variant="caption" fontSize="10px">
+                  Google Drive
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Avatar
+              src={processedImageUrl}
+              alt={user.fullName || user.firstName + ' ' + user.lastName}
+              sx={{ width: 100, height: 100, mr: 3 }}
+            >
+              {!profileImageUrl && (user.firstName?.[0] || user.fullName?.[0] || user.email?.[0])}
+            </Avatar>
+          )}
           <IconButton
             sx={{
               position: 'absolute',

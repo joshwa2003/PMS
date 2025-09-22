@@ -38,6 +38,7 @@ import { getApplicationStatusColor } from 'services/jobService';
 
 // Components
 import LoadingSpinner from 'components/LoadingSpinner';
+import ExportMenu from 'components/ExportMenu';
 
 function DepartmentApplications() {
   const { jobId, departmentId } = useParams();
@@ -201,6 +202,28 @@ function DepartmentApplications() {
     columns: applicationColumns,
     rows: applications || [],
   };
+
+  // Export config
+  const exportColumns = [
+    { field: 'student', headerName: 'Student' },
+    { field: 'studentId', headerName: 'Student ID' },
+    { field: 'email', headerName: 'Email' },
+    { field: 'cgpa', headerName: 'CGPA' },
+    { field: 'backlogs', headerName: 'Backlogs' },
+    { field: 'status', headerName: 'Status' },
+    { field: 'appliedDate', headerName: 'Applied Date' },
+    { field: 'responseDate', headerName: 'Response Date' },
+  ];
+  const exportRows = (applications || []).map((a) => ({
+    student: a.student?.personalInfo?.fullName || 'N/A',
+    studentId: a.student?.studentId || 'N/A',
+    email: a.user?.email || 'N/A',
+    cgpa: a.student?.academic?.cgpa ?? 'N/A',
+    backlogs: a.student?.academic?.backlogs ?? 'N/A',
+    status: a.status || 'N/A',
+    appliedDate: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Not Applied',
+    responseDate: a.responseAt ? new Date(a.responseAt).toLocaleDateString() : 'No Response',
+  }));
 
   if (!canViewApplications) {
     return (
@@ -368,13 +391,22 @@ function DepartmentApplications() {
         {/* Applications Table */}
         <Card>
           <CardContent>
-            <MDBox mb={2}>
-              <MDTypography variant="h6" fontWeight="medium">
-                Student Applications
-              </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Applications from {departmentData?.name} department
-              </MDTypography>
+            <MDBox mb={2} display="flex" alignItems="center" justifyContent="space-between" gap={2}>
+              <MDBox>
+                <MDTypography variant="h6" fontWeight="medium">
+                  Student Applications
+                </MDTypography>
+                <MDTypography variant="body2" color="text">
+                  Applications from {departmentData?.name} department
+                </MDTypography>
+              </MDBox>
+              <ExportMenu 
+                rows={exportRows}
+                columns={exportColumns}
+                filename={`department-applications-${departmentData?.code || ''}`}
+                title={`Department Applications`}
+                headerLines={[`Department: ${departmentData?.name} (${departmentData?.code})`, `Job: ${jobData?.title || '-'}`]}
+              />
             </MDBox>
             
             <DataTable

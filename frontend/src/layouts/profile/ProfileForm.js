@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "context/AuthContext";
 import userService from "services/userService";
 import administratorProfileService from "services/administratorProfileService";
+import { getGoogleDriveThumbnail, getGoogleDriveDirectImageUrl } from "utils/googleDriveUtils";
 
 // @mui material components
 import Grid from "@mui/material/Grid";
@@ -9,6 +10,8 @@ import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
 import Avatar from "@mui/material/Avatar";
 import IconButton from "@mui/material/IconButton";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -26,7 +29,7 @@ import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 import MDAlert from "components/MDAlert";
-import GoogleDrivePreview from "components/GoogleDrivePreview";
+import ProfileImageDriveSection from "components/Profile/ProfileImageDriveSection";
 
 function ProfileForm() {
   const { user, updateUser, updateProfilePicture } = useAuth();
@@ -282,20 +285,15 @@ function ProfileForm() {
   // Helper function to extract file ID and return backend proxy URL
   const getGoogleDriveProxyUrl = (shareUrl) => {
     if (!shareUrl) return null;
-    let fileId = null;
-    const viewMatch = shareUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-    if (viewMatch) {
-      fileId = viewMatch[1];
-    } else {
-      const openMatch = shareUrl.match(/[?&]id=([a-zA-Z0-9-_]+)/);
-      if (openMatch) {
-        fileId = openMatch[1];
-      }
+    
+    const processedUrl = getGoogleDriveThumbnail(shareUrl);
+    if (processedUrl && processedUrl !== shareUrl) {
+      // Add timestamp to force refresh
+      return `${processedUrl}&t=${Date.now()}`;
     }
-    if (fileId) {
-      return `/api/google-drive-image?id=${fileId}&t=${Date.now()}`;
-    }
-    return null;
+    
+    // If it's not a Google Drive URL, return as-is
+    return shareUrl;
   };
 
   const getSharingInstructions = () => [
@@ -453,30 +451,16 @@ function ProfileForm() {
         <MDBox display="flex" alignItems="center" mb={3}>
         <MDBox position="relative">
           <Avatar
-            src={user.profilePicture ? getGoogleDriveProxyUrl(user.profilePicture) : null}
+            src={user.profilePicture ? getGoogleDriveProxyUrl(user.profilePicture) : undefined}
             alt={user.fullName}
-            sx={{ width: 100, height: 100, mr: 3 }}
+            sx={{ width: 100, height: 100, mr: 3, bgcolor: 'grey.300', color: 'grey.700', fontSize: 32, fontWeight: 'bold' }}
+            imgProps={{ referrerPolicy: 'no-referrer' }}
             onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/default-profile.png'; // fallback image path
+              e.currentTarget.removeAttribute('src');
             }}
           >
-            {!user.profilePicture && user.firstName?.[0]}
+            {(user.firstName?.[0] || '').toUpperCase()}{(user.lastName?.[0] || '').toUpperCase()}
           </Avatar>
-          <IconButton
-            onClick={() => setImageUploadDialog(true)}
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              right: 20,
-              backgroundColor: 'primary.main',
-              color: 'white',
-              '&:hover': { backgroundColor: 'primary.dark' }
-            }}
-            size="small"
-          >
-            <PhotoCamera fontSize="small" />
-          </IconButton>
         </MDBox>
 
           <MDBox>
@@ -495,6 +479,13 @@ function ProfileForm() {
         <Divider />
 
         {/* Profile Form */}
+        <MDBox mt={3}>
+          <ProfileImageDriveSection initialUrl={user?.profilePhotoUrl || user?.profilePicture || ''} />
+        </MDBox>
+
+        <Divider sx={{ mt: 3 }} />
+
+        {/* Existing form below */}
         <MDBox component="form" onSubmit={handleSubmit} mt={3}>
           <Grid container spacing={3}>
             {/* Basic Information */}
@@ -676,11 +667,43 @@ function ProfileForm() {
                   <MDTypography variant="h6" fontWeight="medium" mb={2}>
                     Preview
                   </MDTypography>
-                  <GoogleDrivePreview 
-                    link={googleDriveUrl} 
-                    title="Profile Image Preview"
-                    showPreview={true}
-                  />
+                  {getGoogleDriveThumbnail(googleDriveUrl) ? (
+                    <img
+                      src={getGoogleDriveThumbnail(googleDriveUrl)}
+                      alt="Profile Image Preview"
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: 400, 
+                        display: 'inline-block',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 400,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        borderRadius: '8px',
+                        border: '2px dashed',
+                        borderColor: 'grey.300',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => window.open(googleDriveUrl, '_blank')}
+                    >
+                      <PhotoCamera sx={{ fontSize: 48, color: 'grey.500', mb: 2 }} />
+                      <Typography variant="h6" color="text.secondary" mb={1}>
+                        Google Drive Image
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Click to view in Google Drive
+                      </Typography>
+                    </Box>
+                  )}
                 </MDBox>
               )}
 

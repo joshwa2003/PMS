@@ -58,6 +58,7 @@ import {
 
 // Auth context
 import { useAuth } from "context/AuthContext";
+import { getGoogleDriveThumbnail } from "utils/googleDriveUtils";
 
 function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) {
   const [navbarType, setNavbarType] = useState();
@@ -254,11 +255,13 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
                     onClick={handleOpenProfileMenu}
                   >
                     <Avatar
-                      src={user.profilePicture}
+                      src={getGoogleDriveThumbnail(user.profilePicture || user.profilePhotoUrl)}
                       alt={user.fullName || `${user.firstName} ${user.lastName}`}
                       sx={{ width: 32, height: 32 }}
+                      imgProps={{ referrerPolicy: 'no-referrer' }}
+                      onError={(e) => { e.currentTarget.removeAttribute('src'); }}
                     >
-                      {!user.profilePicture && (user.firstName?.[0] || 'U')}
+                      {!(user.profilePicture || user.profilePhotoUrl) && (user.firstName?.[0] || 'U')}
                     </Avatar>
                   </IconButton>
                 </MDBox>

@@ -6,8 +6,6 @@ import {
   CardContent, 
   IconButton, 
   Tooltip, 
-  Box,
-  Chip,
   LinearProgress
 } from '@mui/material';
 import { 
@@ -23,7 +21,7 @@ import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
 import MDAlert from 'components/MDAlert';
-import MDBadge from 'components/MDBadge';
+// import MDBadge from 'components/MDBadge';
 
 // Material Dashboard 2 React example components
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
@@ -39,6 +37,7 @@ import { jobApi } from 'services/jobService';
 
 // Components
 import LoadingSpinner from 'components/LoadingSpinner';
+import ExportMenu from 'components/ExportMenu';
 
 function JobAnalytics() {
   const { jobId } = useParams();
@@ -220,6 +219,21 @@ function JobAnalytics() {
     rows: departmentStats || [],
   };
 
+  // Prepare export config
+  const exportColumns = [
+    { field: 'departmentName', headerName: 'Department' },
+    { field: 'departmentCode', headerName: 'Code' },
+    { field: 'totalStudents', headerName: 'Total Students' },
+    { field: 'appliedCount', headerName: 'Applied' },
+    { field: 'notAppliedCount', headerName: 'Not Applied' },
+    { field: 'pendingCount', headerName: 'Pending' },
+    { field: 'applicationRate', headerName: 'Application Rate (%)' },
+  ];
+  const exportRows = (departmentStats || []).map((r) => ({
+    ...r,
+    applicationRate: Number(r.applicationRate ?? 0).toFixed(1),
+  }));
+
   if (!canViewAnalytics) {
     return (
       <DashboardLayout>
@@ -386,13 +400,23 @@ function JobAnalytics() {
         {/* Department Analytics Table */}
         <Card>
           <CardContent>
-            <MDBox mb={2}>
-              <MDTypography variant="h6" fontWeight="medium">
-                Department-wise Analytics
-              </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Click on a department to view detailed applications
-              </MDTypography>
+            <MDBox mb={2} display="flex" alignItems="center" justifyContent="space-between" gap={2}>
+              <MDBox>
+                <MDTypography variant="h6" fontWeight="medium">
+                  Department-wise Analytics
+                </MDTypography>
+                <MDTypography variant="body2" color="text">
+                  Click on a department to view detailed applications
+                </MDTypography>
+              </MDBox>
+              <ExportMenu 
+                rows={exportRows}
+                columns={exportColumns}
+                filename={`job-analytics-${jobData?.title || 'job'}`}
+                // Pass job detail lines for PDF header via props using ExportMenu passthrough
+                headerLines={[`Company: ${jobData?.company || '-'}`, `Deadline: ${jobData?.deadline ? new Date(jobData.deadline).toLocaleDateString() : 'No deadline'}`]}
+                title={`Job Analytics`}
+              />
             </MDBox>
             
             <DataTable

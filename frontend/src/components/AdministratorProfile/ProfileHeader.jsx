@@ -1,28 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Avatar } from '@mui/material';
+import { Card, Avatar, Box, Typography } from '@mui/material';
 import { Person } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
 import { useAdministratorProfile } from '../../context/AdministratorProfileContext';
 import { useAuth } from '../../context/AuthContext';
+import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
   const { user } = useAuth();
   const { formData, getProfileCompletion, profile } = useAdministratorProfile();
   const [imageKey, setImageKey] = useState(Date.now()); // Force image refresh
 
-  // Convert Google Drive URL to thumbnail for display
-  const getGoogleDriveThumbnail = (url) => {
-    if (!url) return null;
-    
-    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-    if (fileIdMatch) {
-      // Use backend proxy to avoid CORS issues
-      return `/api/google-drive-image?id=${fileIdMatch[1]}`;
-    }
-    return url;
-  };
 
   // Update image key when profile image changes to force refresh
   useEffect(() => {
@@ -62,18 +52,55 @@ function ProfileHeader() {
         <MDBox display="flex" alignItems="center" mb={2}>
           {/* Profile Image */}
           <MDBox position="relative" mr={3}>
-            <Avatar
-              src={profileImage ? `${profileImage}?t=${imageKey}` : null}
-              key={imageKey}
-              sx={{
-                width: 80,
-                height: 80,
-                border: '3px solid',
-                borderColor: 'info.main'
-              }}
-            >
-              {!profileImage && <Person sx={{ fontSize: 40 }} />}
-            </Avatar>
+            {profileImage && isGoogleDriveUrl(profileImage) ? (
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  bgcolor: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '3px solid',
+                  borderColor: 'info.main'
+                }}
+                onClick={() => window.open(profileImage, '_blank')}
+              >
+                <Person sx={{ fontSize: 40, color: 'white' }} />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    bgcolor: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    textAlign: 'center',
+                    py: 0.5
+                  }}
+                >
+                  <Typography variant="caption" fontSize="10px">
+                    Google Drive
+                  </Typography>
+                </Box>
+              </Box>
+            ) : (
+              <Avatar
+                src={profileImage}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  border: '3px solid',
+                  borderColor: 'info.main'
+                }}
+              >
+                {!profileImage && <Person sx={{ fontSize: 40 }} />}
+              </Avatar>
+            )}
           </MDBox>
 
           {/* Profile Info */}

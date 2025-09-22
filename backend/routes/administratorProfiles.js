@@ -6,8 +6,7 @@ const {
   getProfileById,
   getAllProfiles,
   deleteProfile,
-  getProfileStats,
-  uploadProfileImage
+  getProfileStats
 } = require('../controllers/administratorProfileController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateProfileUpdate } = require('../middleware/validation');
@@ -22,10 +21,7 @@ router.get('/profile', protect, getProfile);
 // @access  Private
 router.put('/profile', protect, validateProfileUpdate, updateProfile);
 
-// @route   POST /api/v1/administrator-profiles/upload-profile-image
-// @desc    Upload administrator profile image
-// @access  Private
-router.post('/upload-profile-image', protect, uploadProfileImage);
+// Removed upload-profile-image route (Supabase removed)
 
 // @route   GET /api/v1/administrator-profiles/stats
 // @desc    Get administrator profile statistics

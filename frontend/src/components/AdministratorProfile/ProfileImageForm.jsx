@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Grid, Alert, CircularProgress, Avatar } from '@mui/material';
+import { Card, Grid, Alert, CircularProgress, Avatar, Box, Typography } from '@mui/material';
 import { PhotoCamera, Link as LinkIcon, Visibility, Info } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
@@ -8,6 +8,7 @@ import MDButton from 'components/MDButton';
 import GoogleDrivePreview from 'components/GoogleDrivePreview';
 import { useAdministratorProfile } from '../../context/AdministratorProfileContext';
 import { useAuth } from '../../context/AuthContext';
+import { getGoogleDriveThumbnail, getGoogleDriveDirectImageUrl, validateGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileImageForm() {
   console.log('ProfileImageForm component rendering...');
@@ -51,24 +52,10 @@ function ProfileImageForm() {
     setImageKey(Date.now());
   }, [formData.profilePhotoUrl, profile?.profilePhotoUrl, user?.profilePicture, currentProfileImage]);
 
-  // Validate Google Drive URL
-  const validateGoogleDriveUrl = (url) => {
-    if (!url || !url.trim()) {
-      return 'Please enter a Google Drive URL';
-    }
-
-    const googleDrivePatterns = [
-      /^https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/,
-      /^https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/
-    ];
-
-    const isValid = googleDrivePatterns.some(pattern => pattern.test(url.trim()));
-    
-    if (!isValid) {
-      return 'Please provide a valid Google Drive share link';
-    }
-
-    return null;
+  // Validate Google Drive URL using utility function
+  const validateGoogleDriveUrlLocal = (url) => {
+    const result = validateGoogleDriveUrl(url);
+    return result.isValid ? null : result.error;
   };
 
   // Handle URL input change
@@ -79,7 +66,7 @@ function ProfileImageForm() {
     setSuccessMessage('');
     
     // Show preview if URL looks valid
-    if (url && validateGoogleDriveUrl(url) === null) {
+    if (url && validateGoogleDriveUrlLocal(url) === null) {
       setShowPreview(true);
     } else {
       setShowPreview(false);
@@ -93,7 +80,7 @@ function ProfileImageForm() {
     setSuccessMessage('');
 
     // Validate URL
-    const error = validateGoogleDriveUrl(googleDriveUrl);
+    const error = validateGoogleDriveUrlLocal(googleDriveUrl);
     if (error) {
       setValidationError(error);
       return;
@@ -124,17 +111,6 @@ function ProfileImageForm() {
     }
   };
 
-  // Convert Google Drive URL to thumbnail for display using backend proxy
-  const getGoogleDriveThumbnail = (url) => {
-    if (!url) return null;
-
-    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-    if (fileIdMatch) {
-      // Use backend proxy to avoid CORS issues
-      return `/api/google-drive-image?id=${fileIdMatch[1]}`;
-    }
-    return url;
-  };
 
   // Get sharing instructions
   const getSharingInstructions = () => [
@@ -270,11 +246,54 @@ function ProfileImageForm() {
                 <MDTypography variant="h6" fontWeight="medium" mb={2}>
                   Preview
                 </MDTypography>
-                <GoogleDrivePreview 
-                  link={googleDriveUrl} 
-                  title="Profile Image Preview"
-                  showPreview={true}
-                />
+                <MDBox 
+                  sx={{ 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: '8px', 
+                    overflow: 'hidden',
+                    mb: 2,
+                    textAlign: 'center',
+                    p: 2
+                  }}
+                >
+                  {getGoogleDriveThumbnail(googleDriveUrl) ? (
+                    <img
+                      src={getGoogleDriveThumbnail(googleDriveUrl)}
+                      alt="Profile Image Preview"
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: 400, 
+                        display: 'inline-block',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 400,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        borderRadius: '8px',
+                        border: '2px dashed',
+                        borderColor: 'grey.300',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => window.open(googleDriveUrl, '_blank')}
+                    >
+                      <PhotoCamera sx={{ fontSize: 48, color: 'grey.500', mb: 2 }} />
+                      <Typography variant="h6" color="text.secondary" mb={1}>
+                        Google Drive Image
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Click to view in Google Drive
+                      </Typography>
+                    </Box>
+                  )}
+                </MDBox>
               </MDBox>
             </Grid>
           )}

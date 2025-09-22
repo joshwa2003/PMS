@@ -23,7 +23,7 @@ async function getConfirmationToken(fileId) {
 }
 
 // Proxy endpoint to fetch Google Drive image by file ID
-router.get('/google-drive-image', async (req, res) => {
+router.get('/', async (req, res) => {
   const fileId = req.query.id;
   if (!fileId) {
     return res.status(400).send('Missing file ID');
@@ -54,8 +54,13 @@ router.get('/google-drive-image', async (req, res) => {
       }
     }
 
-    // Set CORS headers to allow frontend to load image
+    // Set headers to allow cross-origin embedding of the image
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'inline');
     res.setHeader('Content-Type', response.headers['content-type']);
 
     // Pipe the image stream to the response

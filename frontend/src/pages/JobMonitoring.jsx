@@ -33,6 +33,7 @@ import ApplicationDetailsModal from 'components/JobMonitoring/ApplicationDetails
 import JobMonitoringFilters from 'components/JobMonitoring/JobMonitoringFilters';
 import JobStatisticsCards from 'components/JobMonitoring/JobStatisticsCards';
 import ExportDataModal from 'components/JobMonitoring/ExportDataModal';
+import ExportMenu from 'components/ExportMenu';
 
 // Services
 import { formatSalary, getDaysUntilDeadline, getJobStatusColor, getApplicationStatusColor } from 'services/jobService';
@@ -464,6 +465,32 @@ function JobMonitoring() {
 
             {/* Jobs Tab */}
             <TabPanel value={currentTab} index={0}>
+              <MDBox mb={2} display="flex" justifyContent="flex-end">
+                <ExportMenu 
+                  rows={(jobs || []).map(j => ({
+                    title: j.title,
+                    company: j.company?.name,
+                    location: j.location,
+                    status: j.status,
+                    deadline: j.deadline ? new Date(j.deadline).toLocaleDateString() : '-',
+                    totalViews: j.stats?.totalViews || 0,
+                    totalApplications: j.stats?.totalApplications || 0,
+                  }))}
+                  columns={[
+                    { field: 'title', headerName: 'Job Title' },
+                    { field: 'company', headerName: 'Company' },
+                    { field: 'location', headerName: 'Location' },
+                    { field: 'status', headerName: 'Status' },
+                    { field: 'deadline', headerName: 'Deadline' },
+                    { field: 'totalViews', headerName: 'Views' },
+                    { field: 'totalApplications', headerName: 'Applications' },
+                  ]}
+                  filename={`jobs-list`}
+                  title={`Jobs Overview`}
+                  headerLines={[`Exported: ${new Date().toLocaleString()}`]}
+                />
+              </MDBox>
+
               <DataTable
                 table={jobTableData}
                 showTotalEntries={true}
@@ -517,6 +544,37 @@ function JobMonitoring() {
                 </MDBox>
               )}
               
+              <MDBox mb={2} display="flex" justifyContent="flex-end">
+                <ExportMenu 
+                  rows={(applications || []).map(a => ({
+                    student: a.student?.personalInfo?.fullName || 'N/A',
+                    studentId: a.student?.studentId || 'N/A',
+                    department: a.department?.name || 'N/A',
+                    email: a.user?.email || 'N/A',
+                    cgpa: a.student?.academic?.cgpa ?? 'N/A',
+                    status: a.status || 'N/A',
+                    appliedDate: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Not Applied',
+                    responseDate: a.responseAt ? new Date(a.responseAt).toLocaleDateString() : 'No Response',
+                  }))}
+                  columns={[
+                    { field: 'student', headerName: 'Student' },
+                    { field: 'studentId', headerName: 'Student ID' },
+                    { field: 'department', headerName: 'Department' },
+                    { field: 'email', headerName: 'Email' },
+                    { field: 'cgpa', headerName: 'CGPA' },
+                    { field: 'status', headerName: 'Status' },
+                    { field: 'appliedDate', headerName: 'Applied Date' },
+                    { field: 'responseDate', headerName: 'Response Date' },
+                  ]}
+                  filename={`applications-${selectedJob?.title || 'job'}`}
+                  title={`Applications`}
+                  headerLines={selectedJob ? [
+                    `Job: ${selectedJob.title}`,
+                    `Company: ${selectedJob.company?.name || '-'}`
+                  ] : undefined}
+                />
+              </MDBox>
+
               <DataTable
                 table={applicationTableData}
                 showTotalEntries={true}

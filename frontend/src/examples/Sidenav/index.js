@@ -60,6 +60,7 @@ import {
 
 // Auth context
 import { useAuth } from "context/AuthContext";
+import { getGoogleDriveThumbnail } from "utils/googleDriveUtils";
 
 function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useMaterialUIController();
@@ -411,15 +412,17 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           <MDBox px={3} py={2}>
             <MDBox display="flex" alignItems="center" mb={1}>
               <Avatar
-                src={user.profilePicture}
+                src={getGoogleDriveThumbnail(user.profilePicture || user.profilePhotoUrl)}
                 alt={user.fullName || `${user.firstName} ${user.lastName}`}
                 sx={{ 
                   width: miniSidenav ? 32 : 48, 
                   height: miniSidenav ? 32 : 48,
                   mr: miniSidenav ? 0 : 2
                 }}
+                imgProps={{ referrerPolicy: 'no-referrer' }}
+                onError={(e) => { e.currentTarget.removeAttribute('src'); }}
               >
-                {!user.profilePicture && (user.firstName?.[0] || 'U')}
+                {!(user.profilePicture || user.profilePhotoUrl) && (user.firstName?.[0] || 'U')}
               </Avatar>
               {!miniSidenav && (
                 <MDBox>

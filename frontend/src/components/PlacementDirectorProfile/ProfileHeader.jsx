@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Card, Avatar, IconButton, CircularProgress } from '@mui/material';
+import { Card, Avatar, IconButton, CircularProgress, Box, Typography } from '@mui/material';
 import { PhotoCamera, Person } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
 import { usePlacementDirectorProfile } from '../../context/PlacementDirectorProfileContext';
 import { useAuth } from '../../context/AuthContext';
+import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
   const { user, updateProfilePicture } = useAuth();
@@ -53,7 +54,10 @@ function ProfileHeader() {
   };
 
   const profileCompletion = getProfileCompletion();
+  
+  
   const profileImage = formData.profilePhotoUrl || user?.profilePicture;
+  const processedImageUrl = getGoogleDriveThumbnail(profileImage);
 
   const getCompletionColor = (percentage) => {
     if (percentage >= 80) return 'success';
@@ -71,22 +75,63 @@ function ProfileHeader() {
         <MDBox display="flex" alignItems="center" mb={2}>
           {/* Profile Image */}
           <MDBox position="relative" mr={3}>
-            <Avatar
-              src={profileImage}
-              sx={{
-                width: 80,
-                height: 80,
-                cursor: 'pointer',
-                border: '3px solid',
-                borderColor: 'info.main',
-                '&:hover': {
-                  opacity: 0.8
-                }
-              }}
-              onClick={handleImageClick}
-            >
-              {!profileImage && <Person sx={{ fontSize: 40 }} />}
-            </Avatar>
+            {profileImage && isGoogleDriveUrl(profileImage) ? (
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  bgcolor: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '3px solid',
+                  borderColor: 'info.main',
+                  '&:hover': {
+                    opacity: 0.8
+                  }
+                }}
+                onClick={() => window.open(profileImage, '_blank')}
+              >
+                <Person sx={{ fontSize: 40, color: 'white' }} />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    bgcolor: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    textAlign: 'center',
+                    py: 0.5
+                  }}
+                >
+                  <Typography variant="caption" fontSize="10px">
+                    Google Drive
+                  </Typography>
+                </Box>
+              </Box>
+            ) : (
+              <Avatar
+                src={processedImageUrl}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  cursor: 'pointer',
+                  border: '3px solid',
+                  borderColor: 'info.main',
+                  '&:hover': {
+                    opacity: 0.8
+                  }
+                }}
+                onClick={handleImageClick}
+              >
+                {!profileImage && <Person sx={{ fontSize: 40 }} />}
+              </Avatar>
+            )}
             
             {/* Upload Button Overlay */}
             <IconButton

@@ -39,6 +39,7 @@ import { getApplicationStatusColor } from 'services/jobService';
 
 // Components
 import LoadingSpinner from 'components/LoadingSpinner';
+import ExportMenu from 'components/ExportMenu';
 
 function AllJobApplications() {
   const { jobId } = useParams();
@@ -235,6 +236,32 @@ function AllJobApplications() {
     columns: applicationColumns,
     rows: filteredApplications || [],
   };
+
+  // Export config
+  const exportColumns = [
+    { field: 'student', headerName: 'Student' },
+    { field: 'studentId', headerName: 'Student ID' },
+    { field: 'department', headerName: 'Department' },
+    { field: 'departmentCode', headerName: 'Code' },
+    { field: 'email', headerName: 'Email' },
+    { field: 'cgpa', headerName: 'CGPA' },
+    { field: 'backlogs', headerName: 'Backlogs' },
+    { field: 'status', headerName: 'Status' },
+    { field: 'appliedDate', headerName: 'Applied Date' },
+    { field: 'responseDate', headerName: 'Response Date' },
+  ];
+  const exportRows = (filteredApplications || []).map((a) => ({
+    student: a.student?.personalInfo?.fullName || 'N/A',
+    studentId: a.student?.studentId || 'N/A',
+    department: a.department?.name || 'N/A',
+    departmentCode: a.department?.code || 'N/A',
+    email: a.user?.email || 'N/A',
+    cgpa: a.student?.academic?.cgpa ?? 'N/A',
+    backlogs: a.student?.academic?.backlogs ?? 'N/A',
+    status: a.status || 'N/A',
+    appliedDate: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Not Applied',
+    responseDate: a.responseAt ? new Date(a.responseAt).toLocaleDateString() : 'No Response',
+  }));
 
   if (!canViewApplications) {
     return (
@@ -468,13 +495,22 @@ function AllJobApplications() {
         {/* Applications Table */}
         <Card>
           <CardContent>
-            <MDBox mb={2}>
-              <MDTypography variant="h6" fontWeight="medium">
-                All Student Applications
-              </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Showing {filteredApplications.length} of {applications.length} applications
-              </MDTypography>
+            <MDBox mb={2} display="flex" alignItems="center" justifyContent="space-between" gap={2}>
+              <MDBox>
+                <MDTypography variant="h6" fontWeight="medium">
+                  All Student Applications
+                </MDTypography>
+                <MDTypography variant="body2" color="text">
+                  Showing {filteredApplications.length} of {applications.length} applications
+                </MDTypography>
+              </MDBox>
+              <ExportMenu 
+                rows={exportRows}
+                columns={exportColumns}
+                filename={`all-applications-${jobData?.title || 'job'}`}
+                title={`All Applications`}
+                headerLines={[`Job: ${jobData?.title || '-'}`, `Company: ${jobData?.company || '-'}`]}
+              />
             </MDBox>
             
             <DataTable
