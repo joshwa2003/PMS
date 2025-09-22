@@ -344,6 +344,40 @@ export const getJobAnalytics = async (jobId) => {
   }
 };
 
+/**
+ * Get job analytics by department
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const getJobAnalyticsByDepartment = async (jobId) => {
+  try {
+    const response = await api.get(`${API_BASE_URL}/${jobId}/analytics/departments`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching job analytics by department:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Get job applications for specific department
+ * @param {string} jobId - Job ID
+ * @param {string} departmentId - Department ID
+ * @param {number} page - Page number
+ * @returns {Promise} API response
+ */
+export const getJobApplicationsByDepartment = async (jobId, departmentId, page = 1) => {
+  try {
+    const response = await api.get(`${API_BASE_URL}/${jobId}/departments/${departmentId}/applications`, {
+      params: { page }
+    });
+    return response;
+  } catch (error) {
+    console.error('Error fetching department applications:', error);
+    throw error.response?.data || error;
+  }
+};
+
 // ============================================================================
 // STUDENT APPLICATION SERVICES
 // ============================================================================
@@ -551,7 +585,8 @@ export const getPublicJobById = async (jobId) => {
   }
 };
 
-export default {
+// Create jobApi object for easy importing
+export const jobApi = {
   // Job Management
   getAllJobs,
   getStudentJobs,
@@ -572,6 +607,8 @@ export default {
   submitStudentResponse,
   getJobApplications,
   getJobAnalytics,
+  getJobAnalyticsByDepartment,
+  getJobApplicationsByDepartment,
   
   // Student Applications
   getStudentApplications,
@@ -589,3 +626,5 @@ export default {
   getJobStatusColor,
   getApplicationStatusColor
 };
+
+export default jobApi;

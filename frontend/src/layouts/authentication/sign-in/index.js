@@ -46,7 +46,7 @@ import BasicLayout from "layouts/authentication/components/BasicLayout";
 import { useAuth } from "context/AuthContext";
 
 // Images
-import bgImage from "assets/images/bg-sign-in-basic.jpeg";
+import bgImage from "assets/images/saecwall3.jpg";
 
 function Basic() {
   const [formData, setFormData] = useState({

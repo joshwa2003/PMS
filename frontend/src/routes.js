@@ -57,6 +57,9 @@ import DepartmentBatches from "pages/DepartmentBatches";
 import JobManagementNew from "pages/JobManagementNew";
 import CreateJobPageEnhanced from "pages/CreateJobPageEnhanced";
 import JobMonitoring from "pages/JobMonitoring";
+import JobAnalytics from "pages/JobAnalytics";
+import DepartmentApplications from "pages/DepartmentApplications";
+import AllJobApplications from "pages/AllJobApplications";
 import JobPosts from "pages/JobPosts";
 import JobDetailPage from "pages/JobDetailPage";
 import SignIn from "layouts/authentication/sign-in";
@@ -212,6 +215,42 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <JobMonitoring />
+      </ProtectedRoute>
+    ),
+  },
+  // Job Analytics (hidden from sidebar - accessed via job monitoring)
+  {
+    type: "route",
+    name: "Job Analytics",
+    key: "job-analytics",
+    route: "/job-monitoring/:jobId/analytics",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <JobAnalytics />
+      </ProtectedRoute>
+    ),
+  },
+  // Department Applications (hidden from sidebar - accessed via job analytics)
+  {
+    type: "route",
+    name: "Department Applications",
+    key: "department-applications",
+    route: "/job-monitoring/:jobId/department/:departmentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <DepartmentApplications />
+      </ProtectedRoute>
+    ),
+  },
+  // All Job Applications (hidden from sidebar - accessed via job analytics)
+  {
+    type: "route",
+    name: "All Job Applications",
+    key: "all-job-applications",
+    route: "/job-monitoring/:jobId/applications",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <AllJobApplications />
       </ProtectedRoute>
     ),
   },

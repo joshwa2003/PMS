@@ -48,8 +48,8 @@ function BasicLayout({ image, children }) {
           backgroundImage: ({ functions: { linearGradient, rgba }, palette: { gradients } }) =>
             image &&
             `${linearGradient(
-              rgba(gradients.dark.main, 0.6),
-              rgba(gradients.dark.state, 0.6)
+              rgba(gradients.dark.main, 0.3),
+              rgba(gradients.dark.state, 0.3)
             )}, url(${image})`,
           backgroundSize: "cover",
           backgroundPosition: "center",

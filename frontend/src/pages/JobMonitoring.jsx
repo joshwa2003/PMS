@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Grid, Card, CardContent, IconButton, Tooltip, Tab, Tabs, Box } from '@mui/material';
 import { 
   Visibility as ViewIcon, 
   Analytics as AnalyticsIcon,
   GetApp as ExportIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -51,6 +53,7 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 function JobMonitoring() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     jobs,
@@ -143,6 +146,10 @@ function JobMonitoring() {
         type: 'error'
       });
     }
+  };
+
+  const handleViewJobAnalytics = (job) => {
+    navigate(`/job-monitoring/${job._id}/analytics`);
   };
 
   const handleViewApplication = (application) => {
@@ -255,9 +262,9 @@ function JobMonitoring() {
               <ViewIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="View Analytics">
-            <IconButton size="small" onClick={() => handleViewAnalytics(row.original)}>
-              <AnalyticsIcon fontSize="small" />
+          <Tooltip title="View Job Analytics">
+            <IconButton size="small" onClick={() => handleViewJobAnalytics(row.original)}>
+              <AssessmentIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="View Applications">

@@ -298,6 +298,21 @@ router.get('/:jobId/applications', auth, jobApplicationController.getJobApplicat
  */
 router.get('/:jobId/analytics', auth, jobApplicationController.getJobAnalytics);
 
+/**
+ * @route   GET /api/v1/jobs/:jobId/analytics/departments
+ * @desc    Get job analytics by department
+ * @access  Private (Admin, Placement Director, Placement Staff)
+ */
+router.get('/:jobId/analytics/departments', auth, jobApplicationController.getJobAnalyticsByDepartment);
+
+/**
+ * @route   GET /api/v1/jobs/:jobId/departments/:departmentId/applications
+ * @desc    Get job applications for specific department
+ * @access  Private (Admin, Placement Director, Placement Staff)
+ * @query   page, limit
+ */
+router.get('/:jobId/departments/:departmentId/applications', auth, jobApplicationController.getJobApplicationsByDepartment);
+
 // ============================================================================
 // ERROR HANDLING MIDDLEWARE
 // ============================================================================

@@ -4,6 +4,7 @@ const JobView = require('../models/JobView');
 const Job = require('../models/Job');
 const Student = require('../models/Student');
 const User = require('../models/User');
+const Department = require('../models/Department');
 
 // Record job view
 const recordJobView = async (req, res) => {
@@ -616,6 +617,210 @@ const getJobAnalytics = async (req, res) => {
   }
 };
 
+// Get job analytics by department
+const getJobAnalyticsByDepartment = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    console.log('📊 Fetching job analytics by department for job:', jobId);
+
+    // Check permissions
+    if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view job analytics'
+      });
+    }
+
+    // Verify job exists
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Get department-wise statistics
+    const departmentStats = await JobApplication.getDepartmentStatsForJob(jobId);
+
+    // Get all applications for this job with student details
+    const allApplications = await JobApplication.find({ job: jobId })
+      .populate({
+        path: 'student',
+        select: 'personalInfo.fullName studentId academic.cgpa academic.backlogs'
+      })
+      .populate({
+        path: 'user',
+        select: 'firstName lastName email'
+      })
+      .populate('department', 'name code')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Get overall statistics
+    const overallStats = {
+      totalApplications: allApplications.length,
+      appliedCount: allApplications.filter(app => app.status === 'Applied').length,
+      notAppliedCount: allApplications.filter(app => app.status === 'Not Applied').length,
+      pendingCount: allApplications.filter(app => app.status === 'Pending Response').length,
+      totalDepartments: departmentStats.length
+    };
+
+    console.log('✅ Job analytics by department fetched successfully');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        job: {
+          id: job._id,
+          title: job.title,
+          company: job.company.name,
+          status: job.status,
+          deadline: job.deadline,
+          createdAt: job.createdAt
+        },
+        overallStats,
+        departmentStats,
+        allApplications
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching job analytics by department:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching job analytics by department',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get applications for specific department and job
+const getJobApplicationsByDepartment = async (req, res) => {
+  try {
+    const { jobId, departmentId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    console.log('📊 Fetching applications for job:', jobId, 'department:', departmentId);
+
+    // Check permissions
+    if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view job applications'
+      });
+    }
+
+    // Verify job exists
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Verify department exists
+    const department = await Department.findById(departmentId);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found'
+      });
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get applications for specific department
+    const applications = await JobApplication.find({ 
+      job: jobId, 
+      department: departmentId 
+    })
+      .populate({
+        path: 'student',
+        select: 'personalInfo.fullName studentId academic.cgpa academic.backlogs'
+      })
+      .populate({
+        path: 'user',
+        select: 'firstName lastName email'
+      })
+      .populate('department', 'name code')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Get total count
+    const totalApplications = await JobApplication.countDocuments({ 
+      job: jobId, 
+      department: departmentId 
+    });
+    const totalPages = Math.ceil(totalApplications / parseInt(limit));
+
+    // Get department statistics
+    const departmentStats = await JobApplication.aggregate([
+      { $match: { job: new mongoose.Types.ObjectId(jobId), department: new mongoose.Types.ObjectId(departmentId) } },
+      {
+        $group: {
+          _id: '$department',
+          totalStudents: { $sum: 1 },
+          appliedCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'Applied'] }, 1, 0] }
+          },
+          notAppliedCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'Not Applied'] }, 1, 0] }
+          },
+          pendingCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'Pending Response'] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    console.log('✅ Department applications fetched successfully');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        job: {
+          id: job._id,
+          title: job.title,
+          company: job.company.name,
+          status: job.status,
+          deadline: job.deadline
+        },
+        department: {
+          id: department._id,
+          name: department.name,
+          code: department.code
+        },
+        applications,
+        departmentStats: departmentStats[0] || {
+          totalStudents: 0,
+          appliedCount: 0,
+          notAppliedCount: 0,
+          pendingCount: 0
+        },
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalApplications,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching department applications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching department applications',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
 // Get application details
 const getApplicationDetails = async (req, res) => {
   try {
@@ -844,6 +1049,8 @@ module.exports = {
   getStudentApplications,
   getJobApplications,
   getJobAnalytics,
+  getJobAnalyticsByDepartment,
+  getJobApplicationsByDepartment,
   getApplicationDetails,
   getPendingResponses,
   getResponseStatus
