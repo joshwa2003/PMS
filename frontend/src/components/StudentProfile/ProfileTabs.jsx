@@ -31,7 +31,6 @@ import MDAlert from "../MDAlert";
 import MDButton from "../MDButton";
 
 // Student Profile Form Components
-import ProfileHeader from "./ProfileHeader";
 import BasicInfoForm from "./BasicInfoForm";
 import ContactDetailsForm from "./ContactDetailsForm";
 import AcademicDetailsForm from "./AcademicDetailsForm";
@@ -149,12 +148,6 @@ function ProfileTabs() {
 
   return (
     <Card>
-      {/* Profile Header */}
-      <MDBox p={3} pb={0}>
-        <ProfileHeader />
-      </MDBox>
-
-      <Divider />
 
       {/* Content Header */}
       <MDBox p={3} pb={0}>

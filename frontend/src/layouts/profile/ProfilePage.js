@@ -15,6 +15,8 @@ Coded by www.creative-tim.com
 
 // @mui material components
 import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import Divider from "@mui/material/Divider";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -26,7 +28,9 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 
 // Profile components
-import ProfileForm from "layouts/profile/ProfileForm";
+import ProfileImageDriveSection from "components/Profile/ProfileImageDriveSection";
+import ProfileTabs from "components/StudentProfile/ProfileTabs";
+import { StudentProfileProvider } from "context/StudentProfileContext";
 
 // Auth context
 import { useAuth } from "context/AuthContext";
@@ -77,11 +81,46 @@ function ProfilePage() {
         </Grid>
       </MDBox>
 
-      {/* Profile Form */}
+      {/* Profile Image (Google Drive) */}
       <MDBox mb={3}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <ProfileForm />
+            <Card>
+              <MDBox p={3} pb={0}>
+                <MDTypography variant="h5" fontWeight="medium" color="info" mb={1}>
+                  Profile Image
+                </MDTypography>
+                <MDTypography variant="body2" color="text">
+                  Upload or manage your profile image stored on Google Drive.
+                </MDTypography>
+              </MDBox>
+              <Divider />
+              <MDBox p={3}>
+                <ProfileImageDriveSection
+                  title="Profile Image (Google Drive)"
+                  initialUrl={user?.profilePhotoUrl || user?.profilePicture || ""}
+                />
+              </MDBox>
+            </Card>
+          </Grid>
+        </Grid>
+      </MDBox>
+
+      {/* Student Profile Management */}
+      <MDBox mb={3}>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <MDBox mb={1} mx={1}>
+              <MDTypography variant="h5" fontWeight="medium" color="info">
+                Student Profile Management
+              </MDTypography>
+              <MDTypography variant="body2" color="text">
+                Manage your student details. Use the tabs to navigate sections.
+              </MDTypography>
+            </MDBox>
+            <StudentProfileProvider>
+              <ProfileTabs />
+            </StudentProfileProvider>
           </Grid>
         </Grid>
       </MDBox>

@@ -364,45 +364,7 @@ function StudentProfileSidenav({ color, brand, brandName, ...rest }) {
         }
       />
       
-      {/* User Profile Section */}
-      {user && (
-        <>
-          <MDBox px={3} py={2}>
-            <MDBox display="flex" alignItems="center" mb={1}>
-              <Avatar
-                src={user.profilePicture}
-                alt={user.fullName || `${user.firstName} ${user.lastName}`}
-                sx={{ 
-                  width: miniSidenav ? 32 : 48, 
-                  height: miniSidenav ? 32 : 48,
-                  mr: miniSidenav ? 0 : 2
-                }}
-              >
-                {!user.profilePicture && (user.firstName?.[0] || 'U')}
-              </Avatar>
-              {!miniSidenav && (
-                <MDBox>
-                  <MDTypography variant="button" fontWeight="medium" color={textColor} noWrap>
-                    {user.fullName || `${user.firstName} ${user.lastName}`}
-                  </MDTypography>
-                  <MDTypography variant="caption" color={textColor} display="block" noWrap>
-                    {getRoleDisplayName(user.role)}
-                  </MDTypography>
-                  <MDTypography variant="caption" color={textColor} display="block" noWrap>
-                    {user.email}
-                  </MDTypography>
-                </MDBox>
-              )}
-            </MDBox>
-          </MDBox>
-          <Divider
-            light={
-              (!darkMode && !whiteSidenav && !transparentSidenav) ||
-              (darkMode && !transparentSidenav && whiteSidenav)
-            }
-          />
-        </>
-      )}
+      {/* Intentionally removed student profile section (avatar, name, email) from sidebar */}
 
       {/* Profile Progress Section */}
       <MDBox px={3} py={2}>

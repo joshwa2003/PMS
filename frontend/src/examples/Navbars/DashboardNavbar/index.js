@@ -71,7 +71,7 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
   const navigate = useNavigate();
   
   // Auth context
-  const { user, logout } = useAuth();
+  const { user, logout, isStudent } = useAuth();
 
   useEffect(() => {
     // Setting the navbar type
@@ -108,7 +108,11 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
 
   const handleProfileClick = () => {
     handleCloseProfileMenu();
-    navigate('/profile');
+    if (typeof isStudent === 'function' && isStudent()) {
+      navigate('/student-profile');
+    } else {
+      navigate('/profile');
+    }
   };
 
   const handleLogout = async () => {

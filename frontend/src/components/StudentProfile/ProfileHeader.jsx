@@ -179,17 +179,7 @@ function ProfileHeader() {
             )}
           </IconButton>
         </MDBox>
-        <MDBox>
-          <MDTypography variant="h4" fontWeight="medium">
-            {user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'}
-          </MDTypography>
-          <MDTypography variant="body2" color="text">
-            {getRoleDisplayName(user.role)}
-          </MDTypography>
-          <MDTypography variant="body2" color="text">
-            {user.email}
-          </MDTypography>
-        </MDBox>
+        {/* Intentionally removed student name, role, and email display */}
 
         {/* Google Drive URL Input */}
         {showUrlInput && (
