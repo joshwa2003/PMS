@@ -457,6 +457,11 @@ const updateProfileImage = async (req, res) => {
     student.profileImageUrl = processResult.url;
     await student.save();
 
+    // Also update the User model so the image persists across sessions (used by AuthContext)
+    await User.findByIdAndUpdate(req.user._id || req.user.id, {
+      profilePicture: processResult.url
+    });
+
     res.status(200).json({
       success: true,
       message: 'Profile image updated successfully',
