@@ -32,7 +32,7 @@ function ProfileHeader() {
   const getRoleDisplayName = (role) => {
     const roleMap = {
       'student': 'Student',
-      'alumni': 'Alumni',
+  
       'admin': 'Administrator',
       'placement_director': 'Placement Director',
       'placement_staff': 'Placement Staff',

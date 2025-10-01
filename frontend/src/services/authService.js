@@ -209,9 +209,7 @@ class AuthService {
     return this.hasRole('student');
   }
 
-  isAlumni() {
-    return this.hasRole('alumni');
-  }
+
 
   // Check if user is staff member (any staff role)
   isStaff() {

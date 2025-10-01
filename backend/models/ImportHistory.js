@@ -13,7 +13,7 @@ const importHistorySchema = new mongoose.Schema({
   importType: {
     type: String,
     required: [true, 'Import type is required'],
-    enum: ['staff', 'student', 'alumni'],
+    enum: ['staff', 'student'],
     default: 'staff'
   },
   totalRecords: {

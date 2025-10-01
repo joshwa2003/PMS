@@ -312,7 +312,7 @@ function ProfileForm() {
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-      alumni: 'Alumni',
+  
     };
     return roleNames[role] || role;
   };
@@ -383,47 +383,7 @@ function ProfileForm() {
           </>
         );
 
-      case 'alumni':
-        return (
-          <>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="Student ID"
-                value={formData.studentId || ""}
-                onChange={(e) => handleInputChange('studentId', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="number"
-                label="Graduation Year"
-                value={formData.graduationYear || ""}
-                onChange={(e) => handleInputChange('graduationYear', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="Current Company"
-                value={formData.currentCompany || ""}
-                onChange={(e) => handleInputChange('currentCompany', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                type="text"
-                label="Current Position"
-                value={formData.currentPosition || ""}
-                onChange={(e) => handleInputChange('currentPosition', e.target.value)}
-                fullWidth
-              />
-            </Grid>
-          </>
-        );
+
 
       default:
         return null;

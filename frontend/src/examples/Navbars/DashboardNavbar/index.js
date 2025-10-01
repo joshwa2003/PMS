@@ -129,7 +129,7 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-      alumni: 'Alumni',
+  
     };
     return roleNames[role] || role;
   };

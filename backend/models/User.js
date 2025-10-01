@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Role is required'],
     enum: {
-      values: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'],
+      values: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student'],
       message: 'Invalid role specified'
     }
   },
@@ -74,20 +74,6 @@ const userSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'CGPA cannot be negative'],
     max: [10, 'CGPA cannot exceed 10']
-  },
-  
-  // Alumni-specific fields
-  graduationYear: {
-    type: Number,
-    min: [1990, 'Invalid graduation year']
-  },
-  currentCompany: {
-    type: String,
-    trim: true
-  },
-  currentPosition: {
-    type: String,
-    trim: true
   },
   
   
@@ -300,8 +286,7 @@ userSchema.statics.getRolePermissions = function(role) {
     placement_staff: ['read', 'write', 'manage_jobs'],
     department_hod: ['read', 'view_reports'],
     other_staff: ['read'],
-    student: ['read'],
-    alumni: ['read', 'write']
+    student: ['read']
   };
   
   return rolePermissions[role] || ['read'];

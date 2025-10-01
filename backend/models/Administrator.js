@@ -51,7 +51,7 @@ const administratorSchema = new mongoose.Schema({
   role: { 
     type: String, 
     enum: {
-      values: ['admin', 'director', 'staff', 'hod', 'other', 'student', 'alumni', 'company'],
+      values: ['admin', 'director', 'staff', 'hod', 'other', 'student', 'company'],
       message: 'Invalid role specified'
     },
     required: [true, 'Role is required']

@@ -202,9 +202,7 @@ class UserService {
     return this.getUsersByRole('student', params);
   }
 
-  async getAlumni(params = {}) {
-    return this.getUsersByRole('alumni', params);
-  }
+
 
   async getPlacementStaff(params = {}) {
     return this.getUsersByRole('placement_staff', params);
@@ -270,11 +268,7 @@ class UserService {
         batch: user.batch,
         cgpa: user.cgpa
       }),
-      ...(user.role === 'alumni' && {
-        graduationYear: user.graduationYear,
-        currentCompany: user.currentCompany,
-        currentPosition: user.currentPosition
-      }),
+        }),
       ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
         employeeId: user.employeeId,
         designation: user.designation
@@ -291,7 +285,7 @@ class UserService {
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-      alumni: 'Alumni'
+  
     };
     return roleNames[role] || role;
   }

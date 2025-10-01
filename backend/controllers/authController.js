@@ -96,10 +96,6 @@ exports.register = async (req, res) => {
     if (role === 'student') {
       userData.studentId = studentId;
       userData.batch = batch;
-    } else if (role === 'alumni') {
-      userData.graduationYear = graduationYear;
-      userData.currentCompany = currentCompany;
-      userData.currentPosition = currentPosition;
     } else if (['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(role)) {
       userData.employeeId = employeeId;
       userData.designation = designation;
@@ -245,11 +241,6 @@ exports.getMe = async (req, res) => {
           studentId: user.studentId,
           batch: user.batch,
           cgpa: user.cgpa
-        }),
-        ...(user.role === 'alumni' && {
-          graduationYear: user.graduationYear,
-          currentCompany: user.currentCompany,
-          currentPosition: user.currentPosition
         }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
           employeeId: user.employeeId,

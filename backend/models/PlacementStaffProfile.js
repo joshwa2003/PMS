@@ -52,7 +52,7 @@ const placementStaffProfileSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['admin', 'director', 'staff', 'hod', 'other', 'student', 'alumni', 'company'],
+    enum: ['admin', 'director', 'staff', 'hod', 'other', 'student', 'company'],
     default: 'staff'
   },
   department: {

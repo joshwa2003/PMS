@@ -256,7 +256,7 @@ class PlacementStaffProfileService {
       hod: 'Head of Department',
       other: 'Other',
       student: 'Student',
-      alumni: 'Alumni',
+  
       company: 'Company'
     };
     return roleNames[role] || role;
@@ -398,7 +398,7 @@ class PlacementStaffProfileService {
     }
 
     if (!isUpdate || profileData.role) {
-      const validRoles = ['admin', 'director', 'staff', 'hod', 'other', 'student', 'alumni', 'company'];
+      const validRoles = ['admin', 'director', 'staff', 'hod', 'other', 'student', 'company'];
       if (!profileData.role || !validRoles.includes(profileData.role)) {
         errors.push('Please select a valid role');
       }

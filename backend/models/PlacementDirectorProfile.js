@@ -58,7 +58,7 @@ const placementDirectorProfileSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['admin', 'placement_director', 'staff', 'hod', 'other', 'student', 'alumni', 'company'],
+    enum: ['admin', 'placement_director', 'staff', 'hod', 'other', 'student', 'company'],
     default: 'placement_director'
   },
   department: {

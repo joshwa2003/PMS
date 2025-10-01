@@ -198,7 +198,7 @@ function StudentProfileSidenav({ color, brand, brandName, ...rest }) {
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-      alumni: 'Alumni',
+  
     };
     return roleNames[role] || role;
   };

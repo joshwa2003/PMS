@@ -26,7 +26,7 @@ const phoneValidation = body('phone')
   .withMessage('Phone number must be exactly 10 digits');
 
 const roleValidation = body('role')
-  .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
+  .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student'])
   .withMessage('Invalid role specified');
 
 const departmentValidation = body('department')
@@ -64,25 +64,7 @@ exports.validateRegister = [
     .isFloat({ min: 0, max: 10 })
     .withMessage('CGPA must be between 0 and 10'),
   
-  // Alumni-specific validations
-  body('graduationYear')
-    .if(body('role').equals('alumni'))
-    .notEmpty()
-    .withMessage('Graduation year is required for alumni')
-    .isInt({ min: 1990, max: new Date().getFullYear() })
-    .withMessage('Invalid graduation year'),
-  
-  body('currentCompany')
-    .if(body('role').equals('alumni'))
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Current company name cannot exceed 100 characters'),
-  
-  body('currentPosition')
-    .if(body('role').equals('alumni'))
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Current position cannot exceed 100 characters'),
+  // Staff-specific validations
   
   // Staff-specific validations
   body('employeeId')

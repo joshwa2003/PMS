@@ -264,60 +264,7 @@ const dummyUsers = [
     bio: 'Third year CSE student passionate about cybersecurity and blockchain.'
   },
 
-  // Alumni
-  {
-    firstName: 'Deepak',
-    lastName: 'Verma',
-    email: 'deepak.alumni@gmail.com',
-    password: 'Alumni@123',
-    role: 'alumni',
-    department: 'CSE',
-    phone: '9876543227',
-    graduationYear: 2020,
-    currentCompany: 'Google India',
-    currentPosition: 'Software Engineer',
-    isActive: true,
-    isVerified: true,
-    bio: 'CSE graduate working at Google India, passionate about mentoring current students.'
-  },
-  {
-    firstName: 'Neha',
-    lastName: 'Kapoor',
-    email: 'neha.alumni@gmail.com',
-    password: 'Alumni@123',
-    role: 'alumni',
-    department: 'ECE',
-    phone: '9876543228',
-    graduationYear: 2019,
-    currentCompany: 'Microsoft',
-    currentPosition: 'Senior Software Developer',
-    isActive: true,
-    isVerified: true,
-    bio: 'ECE graduate at Microsoft, specializing in cloud technologies and AI.'
-  },
-  {
-    firstName: 'Amit',
-    lastName: 'Singh',
-    email: 'amit.alumni@gmail.com',
-    password: 'Alumni@123',
-    role: 'alumni',
-    department: 'CSE',
-    phone: '9876543229',
-    graduationYear: 2018,
-    currentCompany: 'Amazon',
-    currentPosition: 'Principal Engineer',
-    isActive: true,
-    isVerified: true,
-    bio: 'Senior engineer at Amazon with expertise in distributed systems.'
-  },
-  {
-    firstName: 'Pooja',
-    lastName: 'Rao',
-    email: 'pooja.alumni@gmail.com',
-    password: 'Alumni@123',
-    role: 'alumni',
-    department: 'EEE',
-    phone: '9876543230',
+  // Next entry
     graduationYear: 2021,
     currentCompany: 'Tesla',
     currentPosition: 'Electrical Engineer',
@@ -410,7 +357,6 @@ const seedUsers = async () => {
     console.log('   Admin: admin@saec.edu.in / Admin@123');
     console.log('   Placement Director: priya.director@saec.edu.in / Director@123');
     console.log('   Student: arjun.2021cse001@saec.edu.in / Student@123');
-    console.log('   Alumni: deepak.alumni@gmail.com / Alumni@123');
 
     console.log('\n🎉 User seeding completed successfully!');
   } catch (error) {

@@ -223,7 +223,7 @@ export const AuthProvider = ({ children }) => {
   const isDepartmentHOD = () => hasRole('department_hod');
   const isOtherStaff = () => hasRole('other_staff');
   const isStudent = () => hasRole('student');
-  const isAlumni = () => hasRole('alumni');
+
 
   const isStaff = () => {
     return hasAnyRole(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff']);
@@ -272,7 +272,7 @@ export const AuthProvider = ({ children }) => {
     isDepartmentHOD,
     isOtherStaff,
     isStudent,
-    isAlumni,
+
     isStaff,
     canManageUsers,
     canManageJobs,

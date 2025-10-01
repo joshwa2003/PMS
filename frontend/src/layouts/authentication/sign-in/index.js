@@ -71,7 +71,7 @@ function Basic() {
     department_hod: { email: "ramesh.hod.cse@saec.edu.in", password: "HOD@123" },
     other_staff: { email: "anita.staff@saec.edu.in", password: "Staff@123" },
     student: { email: "arjun.2021cse001@saec.edu.in", password: "Student@123" },
-    alumni: { email: "deepak.alumni@gmail.com", password: "Alumni@123" },
+    
   };
 
   // Redirect if already authenticated
@@ -136,7 +136,7 @@ function Basic() {
       department_hod: "Department HOD",
       other_staff: "Other Staff",
       student: "Student",
-      alumni: "Alumni",
+      
     };
     return roleNames[role] || role;
   };

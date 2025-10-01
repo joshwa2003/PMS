@@ -62,11 +62,6 @@ exports.getAllUsers = async (req, res) => {
           batch: user.batch,
           cgpa: user.cgpa
         }),
-        ...(user.role === 'alumni' && {
-          graduationYear: user.graduationYear,
-          currentCompany: user.currentCompany,
-          currentPosition: user.currentPosition
-        }),
         ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
           employeeId: user.employeeId,
           designation: user.designation
@@ -172,7 +167,7 @@ exports.updateProfile = async (req, res) => {
       // Student fields
       'cgpa', 'studentId', 'batch',
       // Alumni fields
-      'currentCompany', 'currentPosition', 'graduationYear',
+
       // Staff/Administrator fields
       'employeeId', 'designation', 'mobileNumber', 'gender', 'profilePhotoUrl',
       'dateOfJoining', 'officeLocation',
