@@ -22,6 +22,7 @@ const departmentRoutes = require('./routes/departments');
 const dashboardRoutes = require('./routes/dashboard');
 const jobRoutes = require('./routes/jobs');
 const googleDriveProxyRouter = require('./routes/googleDriveProxy');
+const departmentWiseStudentsRoutes = require('./routes/departmentWiseStudents');
 
 const app = express();
 
@@ -88,6 +89,7 @@ app.use(`/api/${API_VERSION}/course-categories`, courseCategoryRoutes);
 app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
 app.use(`/api/${API_VERSION}/jobs`, jobRoutes);
+app.use(`/api/${API_VERSION}`, departmentWiseStudentsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

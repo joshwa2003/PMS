@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Grid,
@@ -49,6 +50,7 @@ import AdvancedPagination from 'components/StaffManagement/AdvancedPagination';
 import { useStudentManagement } from 'context/StudentManagementContext';
 
 const StudentDataTable = () => {
+  const navigate = useNavigate();
   const {
     students,
     loading,
@@ -223,8 +225,13 @@ const StudentDataTable = () => {
   };
 
   const handleViewStudent = (studentId) => {
-    // Navigate to student profile page
-    window.open(`/student-profile/${studentId}`, '_blank');
+    const safeId = studentId || '';
+    if (!safeId) {
+      console.warn('No student profile ID available for navigation');
+      return;
+    }
+    // Navigate to student profile page in the same tab using Student profile ID
+    navigate(`/student-profile/${safeId}`);
   };
 
   // Table data formatter
@@ -243,7 +250,7 @@ const StudentDataTable = () => {
             borderRadius: 1
           }
         }}
-        onClick={() => handleViewStudent(student.id)}
+        onClick={() => handleViewStudent(student.profileId || student.id || student._id)}
       >
         <MDAvatar 
           src={`${defaultAvatar}${encodeURIComponent(student.fullName || 'Student')}&size=40&background=4CAF50&color=ffffff`} 
@@ -329,7 +336,7 @@ const StudentDataTable = () => {
           <span>
             <IconButton
               size="small"
-              onClick={() => handleViewStudent(student.id)}
+              onClick={() => handleViewStudent(student.profileId || student.id || student._id)}
               disabled={loading}
               color="info"
             >

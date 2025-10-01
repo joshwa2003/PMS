@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Grid,
@@ -41,7 +42,6 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
   // Fetch students for the batch
   const fetchBatchStudents = useCallback(async (params = {}) => {
     if (!batch?.id) return;
-    
     try {
       setLoading(true);
       setError(null);
@@ -266,6 +266,7 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
 
 // Custom StudentDataTable component for batch-specific functionality
 const BatchStudentDataTable = ({ batchId, students, loading, pagination, onRefresh, onPageChange }) => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -322,9 +323,24 @@ const BatchStudentDataTable = ({ batchId, students, loading, pagination, onRefre
   }
 
   // Create table data from batch-specific students
+  const handleViewStudent = (student) => {
+    const targetId = student?.profileId || student?.id || student?._id;
+    if (!targetId) {
+      console.warn('No student profile ID available for navigation');
+      return;
+    }
+    navigate(`/student-profile/${targetId}`);
+  };
+
   const getTableData = () => {
     const StudentInfo = ({ student }) => (
-      <MDBox display="flex" alignItems="center" lineHeight={1}>
+      <MDBox 
+        display="flex" 
+        alignItems="center" 
+        lineHeight={1}
+        sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 1 } }}
+        onClick={() => handleViewStudent(student)}
+      >
         <MDBox
           display="flex"
           justifyContent="center"

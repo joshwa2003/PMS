@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, Tab, Box } from '@mui/material';
-import { Person, Work, ContactPhone } from '@mui/icons-material';
+import { Person, Work, ContactPhone, Dashboard } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import { usePlacementDirectorProfile } from '../../context/PlacementDirectorProfileContext';
 
@@ -9,6 +9,7 @@ import ProfileHeader from "./ProfileHeader";
 import BasicInfoForm from "./BasicInfoForm";
 import ProfessionalDetailsForm from "./ProfessionalDetailsForm";
 import ContactDetailsForm from "./ContactDetailsForm";
+import DepartmentWiseStudentDashboard from "./DepartmentWiseStudentDashboard";
 
 function ProfileTabs() {
   const {
@@ -37,6 +38,11 @@ function ProfileTabs() {
       label: "Contact",
       icon: <ContactPhone />,
       component: <ContactDetailsForm />
+    },
+    {
+      label: "Department-wise Student Dashboard",
+      icon: <Dashboard />,
+      component: <DepartmentWiseStudentDashboard />
     }
   ];
 

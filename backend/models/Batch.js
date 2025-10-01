@@ -185,18 +185,21 @@ batchSchema.virtual('placementRate').get(function() {
 // Static method to find or create batch
 batchSchema.statics.findOrCreateBatch = async function(batchData) {
   try {
-    // Try to find existing batch
-    let batch = await this.findOne({ 
+    // Use findOneAndUpdate with upsert to atomically find or create batch
+    const filter = {
       batchCode: batchData.batchCode,
-      department: batchData.department 
-    });
-    
-    if (!batch) {
-      // Create new batch
-      batch = new this(batchData);
-      await batch.save();
-    }
-    
+      department: batchData.department
+    };
+    const update = {
+      $setOnInsert: batchData
+    };
+    const options = {
+      new: true,      // Return the new document if upserted
+      upsert: true,   // Create if not found
+      setDefaultsOnInsert: true
+    };
+
+    const batch = await this.findOneAndUpdate(filter, update, options);
     return batch;
   } catch (error) {
     throw new Error(`Error finding or creating batch: ${error.message}`);

@@ -36,7 +36,10 @@ function DepartmentWiseStudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
-  const [overallStats, setOverallStats] = useState(null);
+  const [overallStats, setOverallStats] = useState({
+    departments: { total: 0, active: 0, withoutStaff: 0 },
+    students: { total: 0, placed: 0, unplaced: 0, placementRate: 0, multipleOffers: 0 }
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');

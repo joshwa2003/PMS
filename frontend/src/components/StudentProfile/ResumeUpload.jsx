@@ -383,7 +383,18 @@ function ResumeUpload() {
               variant="gradient"
               color="success"
               disabled={isSaving}
-              onClick={() => saveProfile()}
+              onClick={async () => {
+                const result = await saveProfile();
+                if (result.success) {
+                  // Show success message (could be improved with a toast notification)
+                  alert('Profile completed successfully!');
+                  // Optionally navigate to next tab or page here
+                  // goToNextTab();
+                } else {
+                  // Show error message (could be improved with a toast notification)
+                  alert('Failed to complete profile. Please check the form and try again.');
+                }
+              }}
             >
               {isSaving ? "Saving..." : "Complete Profile"}
             </MDButton>

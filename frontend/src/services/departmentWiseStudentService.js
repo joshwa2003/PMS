@@ -7,6 +7,13 @@ class DepartmentWiseStudentService {
       const response = await api.get('/dashboard/department-wise-students');
       
       if (response.success) {
+        // Add IDs to departments if they don't have them
+        if (response.data && response.data.departments) {
+          response.data.departments = response.data.departments.map(dept => ({
+            ...dept,
+            id: dept._id || dept.id // Ensure each department has an id
+          }));
+        }
         return response;
       }
       
@@ -14,6 +21,27 @@ class DepartmentWiseStudentService {
     } catch (error) {
       throw error;
     }
+  }
+  
+  // Format numbers for display
+  formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  
+  // Get summary text for dashboard
+  getSummaryText(stats) {
+    return `Overview of ${stats.totalDepartments || 0} departments with ${stats.totalStudents || 0} students`;
+  }
+  
+  // Get department color based on index
+  getDepartmentColor(index) {
+    const colors = ['primary', 'info', 'success', 'warning', 'error', 'dark'];
+    return colors[index % colors.length];
+  }
+  
+  // Check if user has permission to view dashboard
+  hasPermission(role) {
+    return ['admin', 'placement_director'].includes(role);
   }
 
   // Get students for a specific department

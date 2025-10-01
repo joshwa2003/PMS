@@ -181,6 +181,7 @@ class StudentManagementService {
   formatStudentData(student) {
     return {
       id: student.id,
+      profileId: student.profileId || null,
       name: student.fullName,
       firstName: student.firstName,
       lastName: student.lastName,

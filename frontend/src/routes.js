@@ -42,6 +42,7 @@ import Notifications from "layouts/notifications";
 import ProfilePage from "layouts/profile/ProfilePage";
 import StudentProfile from "pages/StudentProfile";
 import AdministratorProfile from "pages/AdministratorProfile";
+import StudentProfileViewPage from "pages/StudentProfileViewPage";
 import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
@@ -299,6 +300,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['student']}>
         <StudentProfile />
+      </ProtectedRoute>
+    ),
+  },
+  // Staff view of specific student profile (hidden from sidebar)
+  {
+    type: "route",
+    name: "Student Profile View",
+    key: "student-profile-view",
+    route: "/student-profile/:studentId",
+    component: (
+      <ProtectedRoute requiredRoles={['placement_staff']}>
+        <StudentProfileViewPage />
       </ProtectedRoute>
     ),
   },

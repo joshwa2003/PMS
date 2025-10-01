@@ -262,6 +262,14 @@ export const StudentProfileProvider = ({ children }) => {
       // Clean the data before sending - remove empty strings and null values
       const cleanedData = cleanFormData(dataToSave);
       
+      // Remove department field from academic data for students to prevent 403 error
+      if (user?.role === 'student' && cleanedData.academic && cleanedData.academic.department) {
+        // Create a copy of academic data without modifying the original state
+        cleanedData.academic = { ...cleanedData.academic };
+        // Delete the department field to prevent sending it to the backend
+        delete cleanedData.academic.department;
+      }
+      
       console.log('Saving profile data:', cleanedData);
       
       // Validate data

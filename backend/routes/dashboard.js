@@ -10,7 +10,7 @@ router.use(authorize('admin', 'placement_director'));
 // @route   GET /api/dashboard/department-wise-students
 // @desc    Get department-wise student data for admin and placement director
 // @access  Private (Admin, Placement Director)
-router.get('/department-wise-students', dashboardController.getDepartmentWiseStudents);
+// router.get('/department-wise-students', dashboardController.getDepartmentWiseStudents);
 
 // @route   GET /api/dashboard/department/:departmentId/students
 // @desc    Get students for a specific department with pagination and filters

@@ -1695,6 +1695,8 @@ const getStudentsForBatch = async (req, res) => {
     // Format response data
     const formattedStudents = students.map(student => ({
       id: student._id,
+      // Include student profile ID for accurate navigation to profile view
+      profileId: student.studentProfile?._id || null,
       firstName: student.firstName,
       lastName: student.lastName,
       fullName: `${student.firstName} ${student.lastName}`,
