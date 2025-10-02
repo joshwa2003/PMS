@@ -263,7 +263,7 @@ const dummyUsers = [
     isVerified: true,
     bio: 'Third year CSE student passionate about cybersecurity and blockchain.'
   },
-
+{
   // Next entry
     graduationYear: 2021,
     currentCompany: 'Tesla',

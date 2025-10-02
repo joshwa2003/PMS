@@ -13,6 +13,8 @@ Coded by www.creative-tim.com
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
+import { useState, useEffect } from "react";
+
 // @mui material components
 import Grid from "@mui/material/Grid";
 
@@ -28,15 +30,128 @@ import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 
 // Data
-import reportsBarChartData from "layouts/dashboard/data/reportsBarChartData";
-import reportsLineChartData from "layouts/dashboard/data/reportsLineChartData";
+import defaultBarChartData, { formatJobPostingData } from "layouts/dashboard/data/reportsBarChartData";
+import defaultLineChartData, { formatJobApplicationData, formatActiveStudentsData } from "layouts/dashboard/data/reportsLineChartData";
 
 // Dashboard components
 import Projects from "layouts/dashboard/components/Projects";
 import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
+// Services
+import dashboardService from "services/dashboardService";
+
 function Dashboard() {
-  const { sales, tasks } = reportsLineChartData;
+  // State for dashboard data
+  const [dashboardData, setDashboardData] = useState({
+    totalStudents: 0,
+    placedStudents: 0,
+    unplacedStudents: 0,
+    multipleOffersStudents: 0,
+    placementRate: 0,
+    totalDepartments: 0,
+    activeDepartments: 0,
+    loading: true
+  });
+  const [recentJobs, setRecentJobs] = useState([]);
+  const [jobStats, setJobStats] = useState({
+    totalJobs: 0,
+    activeJobs: 0,
+    totalApplications: 0,
+    applicationRate: 0
+  });
+  const [jobPostingChartData, setJobPostingChartData] = useState(defaultBarChartData);
+  const [jobApplicationChartData, setJobApplicationChartData] = useState(defaultLineChartData.jobApplications);
+  const [activeStudentsChartData, setActiveStudentsChartData] = useState(defaultLineChartData.activeStudents);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch dashboard summary
+        const summaryResponse = await dashboardService.getDashboardSummary();
+        if (summaryResponse.success) {
+          const { departments, students, jobs } = summaryResponse.data;
+          setDashboardData({
+            totalStudents: students.total,
+            placedStudents: students.placed,
+            unplacedStudents: students.unplaced,
+            multipleOffersStudents: students.multipleOffers,
+            placementRate: students.placementRate,
+            totalDepartments: departments.total,
+            activeDepartments: departments.active,
+            loading: false
+          });
+          
+          // Set job stats from dashboard summary
+          setJobStats({
+            totalJobs: jobs?.total || 0,
+            activeJobs: jobs?.active || 0,
+            totalApplications: 0, // We'll update this from job application stats
+            applicationRate: 0
+          });
+        }
+
+        // Fetch recent job postings
+        const jobsResponse = await dashboardService.getRecentJobPostings(5);
+        if (jobsResponse.success) {
+          setRecentJobs(jobsResponse.data.jobs);
+        }
+        
+        // Fetch job application stats specifically
+        const appStatsResponse = await dashboardService.getJobApplicationStats();
+        if (appStatsResponse.success) {
+          // Update application stats from the dedicated endpoint
+          setJobStats(prevStats => ({
+            ...prevStats,
+            totalApplications: appStatsResponse.data.totalApplications || 0,
+            applicationRate: appStatsResponse.data.applicationRate || 0
+          }));
+          
+          // Create mock data for job postings chart based on actual jobs
+          const mockJobPostingData = {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            datasets: { 
+              label: "Job Postings", 
+              data: [
+                jobsResponse.data.jobs.length > 0 ? jobsResponse.data.jobs.length : 0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ] 
+            },
+          };
+          setJobPostingChartData(mockJobPostingData);
+          
+          // Use real monthly job application data from the backend
+          const jobApplicationData = {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            datasets: { 
+              label: "Job Applications", 
+              data: appStatsResponse.data.monthlyData || Array(12).fill(0)
+            },
+          };
+          setJobApplicationChartData(jobApplicationData);
+          
+          // Create mock data for active students chart
+          const mockActiveStudentsData = {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            datasets: { 
+              label: "Active Students", 
+              data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, dashboardData.totalStudents || 0] 
+            },
+          };
+          setActiveStudentsChartData(mockActiveStudentsData);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setDashboardData(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -47,13 +162,13 @@ function Dashboard() {
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="dark"
-                icon="weekend"
-                title="Bookings"
-                count={281}
+                icon="work"
+                title="Total Jobs"
+                count={jobStats.totalJobs}
                 percentage={{
                   color: "success",
-                  amount: "+55%",
-                  label: "than lask week",
+                  amount: `${jobStats.activeJobs} active`,
+                  label: "job postings",
                 }}
               />
             </MDBox>
@@ -62,12 +177,12 @@ function Dashboard() {
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 icon="leaderboard"
-                title="Today's Users"
-                count="2,300"
+                title="Total Students"
+                count={dashboardData.totalStudents}
                 percentage={{
                   color: "success",
-                  amount: "+3%",
-                  label: "than last month",
+                  amount: `${dashboardData.placementRate}%`,
+                  label: "placement rate",
                 }}
               />
             </MDBox>
@@ -76,13 +191,13 @@ function Dashboard() {
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="success"
-                icon="store"
-                title="Revenue"
-                count="34k"
+                icon="person"
+                title="Placed Students"
+                count={dashboardData.placedStudents}
                 percentage={{
                   color: "success",
-                  amount: "+1%",
-                  label: "than yesterday",
+                  amount: `${dashboardData.multipleOffersStudents}`,
+                  label: "with multiple offers",
                 }}
               />
             </MDBox>
@@ -91,13 +206,13 @@ function Dashboard() {
             <MDBox mb={1.5}>
               <ComplexStatisticsCard
                 color="primary"
-                icon="person_add"
-                title="Followers"
-                count="+91"
+                icon="school"
+                title="Departments"
+                count={dashboardData.totalDepartments}
                 percentage={{
                   color: "success",
-                  amount: "",
-                  label: "Just updated",
+                  amount: `${dashboardData.activeDepartments} active`,
+                  label: "departments",
                 }}
               />
             </MDBox>
@@ -109,10 +224,10 @@ function Dashboard() {
               <MDBox mb={3}>
                 <ReportsBarChart
                   color="info"
-                  title="website views"
-                  description="Last Campaign Performance"
-                  date="campaign sent 2 days ago"
-                  chart={reportsBarChartData}
+                  title="Job Postings"
+                  description="Monthly job posting statistics"
+                  date="updated today"
+                  chart={jobPostingChartData}
                 />
               </MDBox>
             </Grid>
@@ -120,14 +235,14 @@ function Dashboard() {
               <MDBox mb={3}>
                 <ReportsLineChart
                   color="success"
-                  title="daily sales"
+                  title="Job Applications"
                   description={
                     <>
-                      (<strong>+15%</strong>) increase in today sales.
+                      (<strong>{jobStats.applicationRate}%</strong>) application rate
                     </>
                   }
-                  date="updated 4 min ago"
-                  chart={sales}
+                  date="updated today"
+                  chart={jobApplicationChartData}
                 />
               </MDBox>
             </Grid>
@@ -135,10 +250,10 @@ function Dashboard() {
               <MDBox mb={3}>
                 <ReportsLineChart
                   color="dark"
-                  title="completed tasks"
-                  description="Last Campaign Performance"
-                  date="just updated"
-                  chart={tasks}
+                  title="Daily Active Students"
+                  description="Student activity on the platform"
+                  date="updated today"
+                  chart={activeStudentsChartData}
                 />
               </MDBox>
             </Grid>
@@ -147,7 +262,7 @@ function Dashboard() {
         <MDBox>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6} lg={8}>
-              <Projects />
+              <Projects recentJobs={recentJobs} />
             </Grid>
             <Grid item xs={12} md={6} lg={4}>
               <OrdersOverview />

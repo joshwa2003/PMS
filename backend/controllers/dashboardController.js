@@ -1,6 +1,7 @@
 const Department = require('../models/Department');
 const Student = require('../models/Student');
 const User = require('../models/User');
+const Job = require('../models/Job');
 
 class DashboardController {
   // Get department-wise student data for admin and placement director
@@ -492,7 +493,9 @@ class DashboardController {
         placedStudents,
         unplacedStudents,
         multipleOffersStudents,
-        departmentsWithStaff
+        departmentsWithStaff,
+        totalJobs,
+        activeJobs
       ] = await Promise.all([
         Department.countDocuments({}),
         Department.countDocuments({ isActive: true }),
@@ -500,7 +503,9 @@ class DashboardController {
         Student.countDocuments({ 'placement.placementStatus': 'Placed' }),
         Student.countDocuments({ 'placement.placementStatus': 'Unplaced' }),
         Student.countDocuments({ 'placement.placementStatus': 'Multiple Offers' }),
-        Department.countDocuments({ placementStaff: { $ne: null } })
+        Department.countDocuments({ placementStaff: { $ne: null } }),
+        Job.countDocuments({}),
+        Job.countDocuments({ status: 'Active' })
       ]);
 
       const placementRate = totalStudents > 0 ? ((placedStudents + multipleOffersStudents) / totalStudents * 100).toFixed(2) : 0;
@@ -521,6 +526,10 @@ class DashboardController {
             unplaced: unplacedStudents,
             multipleOffers: multipleOffersStudents,
             placementRate: parseFloat(placementRate)
+          },
+          jobs: {
+            total: totalJobs,
+            active: activeJobs
           }
         }
       });

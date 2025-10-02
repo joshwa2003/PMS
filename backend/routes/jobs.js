@@ -186,6 +186,13 @@ router.get('/pending-responses', auth, jobApplicationController.getPendingRespon
 router.get('/applications/my', auth, jobApplicationController.getStudentApplications);
 
 /**
+ * @route   GET /api/v1/jobs/applications/stats
+ * @desc    Get job application statistics
+ * @access  Private (All authenticated users)
+ */
+router.get('/applications/stats', auth, jobApplicationController.getApplicationStats);
+
+/**
  * @route   GET /api/v1/jobs/applications/:applicationId
  * @desc    Get application details
  * @access  Private (Student who owns the application, or Staff)
