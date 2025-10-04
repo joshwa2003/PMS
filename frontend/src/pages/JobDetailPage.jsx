@@ -60,6 +60,9 @@ const JobDetailPage = () => {
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
 
+  const { hasApplied, checkIfApplied } = useApplicationResponse();
+  const [isApplied, setIsApplied] = useState(false);
+
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
@@ -70,6 +73,12 @@ const JobDetailPage = () => {
         
         if (response.success) {
           setJob(response.data.job);
+          
+          // Check if user has already applied for this job
+          if (response.data.job._id) {
+            const applied = await checkIfApplied(response.data.job._id);
+            setIsApplied(applied);
+          }
         } else {
           setError(response.message || 'Failed to fetch job details');
         }
@@ -84,7 +93,7 @@ const JobDetailPage = () => {
     if (jobId) {
       fetchJobDetails();
     }
-  }, [jobId]);
+  }, [jobId, checkIfApplied, hasApplied]);
 
   const { recordApplyClick } = useApplicationResponse();
 
@@ -303,13 +312,13 @@ const JobDetailPage = () => {
                 {/* Apply Button */}
                 <MDButton
                   variant="gradient"
-                  color="info"
-                  onClick={handleApply}
-                  startIcon={<OpenIcon />}
+                  color={isApplied ? "success" : "info"}
+                  onClick={isApplied ? null : handleApply}
+                  startIcon={isApplied ? <CheckIcon /> : <OpenIcon />}
                   size="large"
                   sx={{ minWidth: 160, height: 48 }}
                 >
-                  Apply Now
+                  {isApplied ? "Applied" : "Apply Now"}
                 </MDButton>
               </MDBox>
 
@@ -883,14 +892,14 @@ const JobDetailPage = () => {
           >
             <MDButton
               variant="gradient"
-              color="info"
-              onClick={handleApply}
-              startIcon={<OpenIcon />}
+              color={isApplied ? "success" : "info"}
+              onClick={isApplied ? null : handleApply}
+              startIcon={isApplied ? <CheckIcon /> : <OpenIcon />}
               size="large"
               fullWidth
               sx={{ maxWidth: 400 }}
             >
-              Apply Now
+              {isApplied ? "Applied" : "Apply Now"}
             </MDButton>
           </MDBox>
         </Container>

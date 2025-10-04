@@ -10,6 +10,7 @@ import {
   BookmarkBorder as SaveIcon,
   Star as StarIcon,
   AccessTime as TimeIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -25,7 +26,7 @@ import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
 
 
 
-const JobCard = ({ job, onApply }) => {
+const JobCard = ({ job, onApply, showAppliedBadge }) => {
   const navigate = useNavigate();
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
@@ -54,34 +55,50 @@ const JobCard = ({ job, onApply }) => {
     <Card 
       sx={{ 
         mb: 3,
-        borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.37)',
+        borderRadius: '15px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
         backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-        transition: 'all 0.2s ease-in-out',
+        transition: 'all 0.3s ease-in-out',
         cursor: 'pointer',
         width: '100%',
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
         '&:hover': {
-          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.47)',
-          borderColor: '#1976d2',
-          transform: 'translateY(-2px)',
+          boxShadow: '0 12px 28px rgba(0, 0, 0, 0.25)',
+          transform: 'translateY(-5px)',
         },
       }}
       onClick={() => navigate(`/job-detail/${job._id}`)}
     >
-      <CardContent sx={{ p: 4, '&:last-child': { pb: 4 } }}>
+      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
         {/* Header Section */}
-        <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
-          <MDBox display="flex" alignItems="flex-start" gap={3} flex={1}>
+        <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+          <MDBox display="flex" alignItems="flex-start" gap={2} flex={1}>
             {/* Company Logo */}
             {companyLogo ? (
               <Avatar 
                 src={companyLogo} 
-                alt={job.company.name}
-                sx={{ width: 50, height: 50, border: '1px solid #e0e0e0' }}
+                alt={job.company?.name}
+                sx={{ 
+                  width: 60, 
+                  height: 60, 
+                  border: '1px solid',
+                  borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  p: 1,
+                  bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#fff'
+                }}
               />
             ) : (
-              <Avatar sx={{ width: 50, height: 50, bgcolor: '#f5f5f5', color: '#666' }}>
-                <BusinessIcon sx={{ fontSize: 24 }} />
+              <Avatar sx={{ 
+                width: 60, 
+                height: 60, 
+                bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#f5f5f5', 
+                color: darkMode ? '#aaa' : '#666',
+                border: '1px solid',
+                borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+              }}>
+                <BusinessIcon sx={{ fontSize: 30 }} />
               </Avatar>
             )}
             
@@ -99,6 +116,16 @@ const JobCard = ({ job, onApply }) => {
                 }}
               >
                 {job.title}
+                {/* Applied Badge */}
+                {(showAppliedBadge || job.hasApplied) && (
+                  <Chip
+                    icon={<CheckCircleIcon />}
+                    label="Applied"
+                    size="small"
+                    color="success"
+                    sx={{ ml: 1, height: 24, fontSize: '12px' }}
+                  />
+                )}
               </MDTypography>
               
               <MDBox display="flex" alignItems="center" gap={1} mb={2}>
@@ -295,30 +322,37 @@ const JobCard = ({ job, onApply }) => {
               View Details
             </MDButton>
             
-            <MDButton
-              variant="contained"
-              color="primary"
-              size="medium"
-              sx={{
-                px: 3,
-                py: 1,
-                fontSize: '14px',
-                textTransform: 'none',
-                borderRadius: '8px',
-                fontWeight: 600,
-                boxShadow: '0 2px 8px rgba(25,118,210,0.3)',
-                '&:hover': {
-                  boxShadow: '0 4px 12px rgba(25,118,210,0.4)',
-                  transform: 'translateY(-1px)'
-                }
+            {/* Only show Apply Now button if the job has not been applied to */}
+            {!job.hasApplied && !showAppliedBadge && (
+              <MDButton
+                variant="contained"
+                color="primary"
+                size="medium"
+                sx={{
+                  px: 3,
+                  py: 1,
+                  fontSize: '14px',
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(25,118,210,0.3)',
+                  '&:hover': {
+                    boxShadow: '0 4px 12px rgba(25,118,210,0.4)',
+                    transform: 'translateY(-1px)'
+                  }
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                onApply(job);
+                if (onApply) {
+                  onApply(job._id);
+                } else {
+                  navigate(`/job-detail/${job._id}`);
+                }
               }}
             >
               Apply Now
             </MDButton>
+            )}
           </MDBox>
         </MDBox>
       </CardContent>

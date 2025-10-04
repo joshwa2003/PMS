@@ -63,6 +63,7 @@ import DepartmentApplications from "pages/DepartmentApplications";
 import AllJobApplications from "pages/AllJobApplications";
 import JobPosts from "pages/JobPosts";
 import JobDetailPage from "pages/JobDetailPage";
+import AppliedJobs from "pages/AppliedJobs";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
@@ -300,6 +301,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['student']}>
         <StudentProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    type: "collapse",
+    name: "Applied Jobs",
+    key: "applied-jobs",
+    icon: <Icon fontSize="small">work_history</Icon>,
+    route: "/applied-jobs",
+    component: (
+      <ProtectedRoute requiredRoles={['student']}>
+        <AppliedJobs />
       </ProtectedRoute>
     ),
   },

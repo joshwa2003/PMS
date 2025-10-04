@@ -205,6 +205,26 @@ export const ApplicationResponseProvider = ({ children }) => {
     setShowModal(false);
   };
 
+  // Check if user has already applied for a specific job
+  const checkIfApplied = async (jobId) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/v1/jobs/response-status/${jobId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('pms_token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.success && data.data.currentStatus === 'Applied';
+      }
+      return false;
+    } catch (err) {
+      console.error('Error checking if applied:', err);
+      return false;
+    }
+  };
+
   const value = {
     pendingResponse,
     showModal,
@@ -214,7 +234,8 @@ export const ApplicationResponseProvider = ({ children }) => {
     submitResponse,
     forceCheck,
     clearPendingResponse,
-    checkForPendingResponses
+    checkForPendingResponses,
+    checkIfApplied
   };
 
   return (

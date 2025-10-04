@@ -362,7 +362,21 @@ export const JobProvider = ({ children }) => {
     
     try {
       const response = await jobService.getStudentJobs();
-      dispatch({ type: ActionTypes.SET_STUDENT_JOBS, payload: response.data });
+      // Handle different response structures
+      let jobs = [];
+      
+      if (response.data && response.data.jobs) {
+        jobs = response.data.jobs;
+      } else if (response.data) {
+        jobs = response.data;
+      } else if (response.jobs) {
+        jobs = response.jobs;
+      }
+      
+      dispatch({ 
+        type: ActionTypes.SET_STUDENT_JOBS, 
+        payload: { jobs: jobs || [] } 
+      });
     } catch (error) {
       dispatch({
         type: ActionTypes.SET_STUDENT_JOBS_ERROR,
