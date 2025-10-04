@@ -32,4 +32,9 @@ router.get('/departments/:departmentId/batches/:batchId/students', dashboardCont
 // @access  Private (Admin, Placement Director)
 router.get('/summary', dashboardController.getDashboardSummary);
 
+// @route   GET /api/dashboard/daily-active-students
+// @desc    Get daily active students data for the past week
+// @access  Private (Admin, Placement Director)
+router.get('/daily-active-students', dashboardController.getDailyActiveStudents);
+
 module.exports = router;

@@ -70,7 +70,7 @@ function Basic() {
     placement_staff: { email: "meera.cse@saec.edu.in", password: "Staff@123" },
     department_hod: { email: "ramesh.hod.cse@saec.edu.in", password: "HOD@123" },
     other_staff: { email: "anita.staff@saec.edu.in", password: "Staff@123" },
-    student: { email: "arjun.2021cse001@saec.edu.in", password: "Student@123" },
+    student: { email: "nithishkumar.mailbox@gmail.com", password: "Student@123" },
     
   };
 
@@ -99,8 +99,20 @@ function Basic() {
     setError("");
 
     try {
+      // Enhanced validation
       if (!formData.email || !formData.password) {
         throw new Error("Please fill in all fields");
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      // Password validation - at least 6 characters
+      if (formData.password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
       }
 
       const response = await login(formData.email, formData.password);
@@ -113,6 +125,7 @@ function Basic() {
       
       // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
+      console.error("Login error:", error);
       setError(error.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);

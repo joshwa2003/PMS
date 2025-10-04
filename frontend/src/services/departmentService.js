@@ -199,13 +199,42 @@ const departmentService = {
   },
 
   getPlacementStaffDisplayName: (placementStaff) => {
-    if (!placementStaff) return 'Not Assigned';
+    // If no staff is assigned
+    if (!placementStaff) return 'No Staff Assigned';
     
     if (typeof placementStaff === 'object') {
-      return `${placementStaff.firstName} ${placementStaff.lastName}`;
+      // Check if we have firstName and lastName properties
+      if (placementStaff.firstName && placementStaff.lastName) {
+        return `${placementStaff.firstName} ${placementStaff.lastName}`;
+      }
+      
+      // If we have name property (some staff objects might use name instead of firstName/lastName)
+      if (placementStaff.name) {
+        return placementStaff.name;
+      }
+      
+      // If we have email but no name, use email as identifier
+      if (placementStaff.email) {
+        return placementStaff.email;
+      }
+      
+      // If we have _id but no name properties, it's likely an unresolved reference
+      if (placementStaff._id) {
+        return 'No Staff Assigned';
+      }
     }
     
-    return placementStaff;
+    // If it's a string and looks like MongoDB ObjectId (24 hex chars)
+    if (typeof placementStaff === 'string') {
+      if (placementStaff.length === 24 && /^[0-9a-fA-F]{24}$/.test(placementStaff)) {
+        return 'No Staff Assigned';
+      }
+      
+      // If it's a string but not an ObjectId, it might be a name or identifier
+      return placementStaff;
+    }
+    
+    return 'No Staff Assigned';
   },
 
   getRoleDisplayName: (role) => {

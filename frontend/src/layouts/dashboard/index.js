@@ -134,15 +134,28 @@ function Dashboard() {
           };
           setJobApplicationChartData(jobApplicationData);
           
-          // Create mock data for active students chart
-          const mockActiveStudentsData = {
-            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            datasets: { 
-              label: "Active Students", 
-              data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, dashboardData.totalStudents || 0] 
-            },
-          };
-          setActiveStudentsChartData(mockActiveStudentsData);
+          // Fetch real daily active students data
+          const studentActivityResponse = await dashboardService.getDailyActiveStudents();
+          if (studentActivityResponse.success) {
+            const activeStudentsData = {
+              labels: studentActivityResponse.data.labels || ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+              datasets: { 
+                label: "Active Students", 
+                data: studentActivityResponse.data.dailyActiveStudents || Array(7).fill(0)
+              },
+            };
+            setActiveStudentsChartData(activeStudentsData);
+          } else {
+            // Fallback to empty data if API fails
+            const emptyActiveStudentsData = {
+              labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+              datasets: { 
+                label: "Active Students", 
+                data: Array(7).fill(0)
+              },
+            };
+            setActiveStudentsChartData(emptyActiveStudentsData);
+          }
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

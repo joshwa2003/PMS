@@ -7,12 +7,19 @@ import {
   Tooltip,
   Typography,
   Breadcrumbs,
-  Link
+  Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Refresh as RefreshIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Visibility as VisibilityIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -38,6 +45,10 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
     hasNextPage: false,
     hasPrevPage: false
   });
+  
+  // Delete student dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
 
   // Fetch students for the batch
   const fetchBatchStudents = useCallback(async (params = {}) => {
@@ -85,6 +96,63 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
     }
   };
 
+  const handlePageChange = (page) => {
+    fetchBatchStudents({ page });
+  };
+
+  const handleRefreshData = () => {
+    fetchBatchStudents();
+  };
+
+  // Delete student handlers
+  const handleDeleteStudent = (student) => {
+    setStudentToDelete(student);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!studentToDelete) return;
+    
+    try {
+      setLoading(true);
+      await studentManagementService.deleteStudent(studentToDelete.id);
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
+      // Refresh the student list
+      fetchBatchStudents();
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
+  };
+
+  // Actions component for the table
+  const Actions = ({ student }) => (
+    <MDBox display="flex" gap={1}>
+      <Tooltip title="View Student">
+        <IconButton size="small" color="info">
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Delete Student">
+        <IconButton 
+          size="small" 
+          color="error"
+          onClick={() => handleDeleteStudent(student)}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </MDBox>
+  );
+
   if (!batch) {
     return (
       <Card>
@@ -96,6 +164,72 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
       </Card>
     );
   }
+
+  // Table columns definition
+  const columns = [
+    { Header: "Student", accessor: "student", width: "30%" },
+    { Header: "Department", accessor: "department", width: "15%" },
+    { Header: "Status", accessor: "status", width: "10%" },
+    { Header: "Placement", accessor: "placement", width: "15%" },
+    { Header: "Last Login", accessor: "lastLogin", width: "15%" },
+    { Header: "Actions", accessor: "actions", width: "15%" }
+  ];
+
+  // Map students to rows
+  const rows = students.map(student => ({
+    student: (
+      <MDBox display="flex" alignItems="center">
+        <MDBox
+          width="40px"
+          height="40px"
+          borderRadius="50%"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          color="white"
+          bgColor={student.isActive ? "success" : "error"}
+          mr={2}
+        >
+          {student.fullName?.charAt(0)?.toUpperCase() || "S"}
+        </MDBox>
+        <MDBox display="flex" flexDirection="column">
+          <MDTypography variant="button" fontWeight="medium">
+            {student.fullName || "Unknown"}
+          </MDTypography>
+          <MDTypography variant="caption" color="text">
+            {student.studentId || "No ID"}
+          </MDTypography>
+        </MDBox>
+      </MDBox>
+    ),
+    department: (
+      <MDTypography variant="caption" color="text" fontWeight="medium">
+        {student.department?.name || "N/A"}
+      </MDTypography>
+    ),
+    status: (
+      <MDBadge
+        badgeContent={student.isActive ? "Active" : "Inactive"}
+        color={student.isActive ? "success" : "error"}
+        variant="gradient"
+        size="sm"
+      />
+    ),
+    placement: (
+      <MDBadge
+        badgeContent={student.placementStatus || "Not Placed"}
+        color={student.placementStatus === "Placed" ? "success" : "warning"}
+        variant="gradient"
+        size="sm"
+      />
+    ),
+    lastLogin: (
+      <MDTypography variant="caption" color="text" fontWeight="medium">
+        {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : "Never"}
+      </MDTypography>
+    ),
+    actions: <Actions student={student} />
+  }));
 
   return (
     <MDBox>
@@ -191,390 +325,91 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
         </Card>
       </MDBox>
 
-      {/* Action Buttons */}
-      <MDBox mb={3} display="flex" justifyContent="space-between" alignItems="center">
-        <MDButton
-          variant="outlined"
-          color="info"
-          startIcon={<ArrowBackIcon />}
-          onClick={handleBackClick}
-        >
-          Back to Batch Years
-        </MDButton>
-        <MDBox display="flex" gap={1}>
-          <Tooltip title="Refresh">
-            <IconButton onClick={handleRefresh} disabled={loading}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-        </MDBox>
-      </MDBox>
-
-      {/* Error Display */}
-      {error && (
-        <MDBox mb={3}>
-          <Typography color="error" variant="body2">
-            {error}
-          </Typography>
-        </MDBox>
-      )}
-
       {/* Students Table */}
-      <MDBox mb={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            {/* Green Header Bar */}
-            <MDBox
-              mx={0}
-              mt={0}
-              py={3}
-              px={2}
-              variant="gradient"
-              bgColor="success"
-              borderRadius="lg"
-              coloredShadow="success"
-            >
-              <MDBox display="flex" justifyContent="space-between" alignItems="center">
-                <MDTypography variant="h6" color="white">
-                  Students in {batch.batchCode}
-                </MDTypography>
-                <MDBox>
-                  <MDTypography variant="body2" color="white">
-                    {pagination.totalStudents} students found
-                  </MDTypography>
-                </MDBox>
-              </MDBox>
-            </MDBox>
-
-            <MDBox pt={3}>
-              {/* Use a custom version of StudentDataTable that works with batch data */}
-              <BatchStudentDataTable 
-                batchId={batch.id}
-                students={students}
-                loading={loading}
-                pagination={pagination}
-                onRefresh={fetchBatchStudents}
-                onPageChange={(page) => fetchBatchStudents({ page })}
-              />
-            </MDBox>
-          </Grid>
-        </Grid>
-      </MDBox>
-    </MDBox>
-  );
-};
-
-// Custom StudentDataTable component for batch-specific functionality
-const BatchStudentDataTable = ({ batchId, students, loading, pagination, onRefresh, onPageChange }) => {
-  const navigate = useNavigate();
-  const [filters, setFilters] = useState({
-    search: '',
-    status: 'all',
-    placementStatus: 'all',
-    sortBy: 'createdAt',
-    sortOrder: 'desc'
-  });
-
-  const handleFilterChange = (newFilters) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    if (onRefresh) {
-      onRefresh(newFilters);
-    }
-  };
-
-  const handlePageChange = (page) => {
-    if (onPageChange) {
-      onPageChange(page);
-    }
-  };
-
-  const handleRefreshData = () => {
-    if (onRefresh) {
-      onRefresh(filters);
-    }
-  };
-
-  if (loading) {
-    return (
       <Card>
-        <MDBox p={3} textAlign="center">
-          <MDTypography variant="h6" color="text">
-            Loading students...
-          </MDTypography>
-        </MDBox>
-      </Card>
-    );
-  }
-
-  if (students.length === 0 && !loading) {
-    return (
-      <Card>
-        <MDBox p={3} textAlign="center">
-          <SchoolIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-          <MDTypography variant="h6" color="text">
-            No students found in this batch
-          </MDTypography>
-          <MDTypography variant="body2" color="text">
-            Students will appear here once they are assigned to this batch.
-          </MDTypography>
-        </MDBox>
-      </Card>
-    );
-  }
-
-  // Create table data from batch-specific students
-  const handleViewStudent = (student) => {
-    const targetId = student?.profileId || student?.id || student?._id;
-    if (!targetId) {
-      console.warn('No student profile ID available for navigation');
-      return;
-    }
-    navigate(`/student-profile/${targetId}`);
-  };
-
-  const getTableData = () => {
-    const StudentInfo = ({ student }) => (
-      <MDBox 
-        display="flex" 
-        alignItems="center" 
-        lineHeight={1}
-        sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 1 } }}
-        onClick={() => handleViewStudent(student)}
-      >
-        <MDBox
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          width="40px"
-          height="40px"
-          borderRadius="50%"
-          sx={{ 
-            backgroundColor: `${studentManagementService.getStudentStatusColor(student)}.main`,
-            color: 'white',
-            mr: 2
-          }}
-        >
-          {student.firstName?.charAt(0)}{student.lastName?.charAt(0)}
-        </MDBox>
-        <MDBox lineHeight={1}>
-          <MDTypography display="block" variant="button" fontWeight="medium">
-            {student.fullName}
-          </MDTypography>
-          <MDTypography variant="caption" color="text">
-            ID: {student.studentId}
-          </MDTypography>
-        </MDBox>
-      </MDBox>
-    );
-
-    const Department = ({ student }) => (
-      <MDBox lineHeight={1} textAlign="left">
-        <MDTypography display="block" variant="button" fontWeight="medium">
-          {studentManagementService.getDepartmentDisplayName(student.profile?.department)}
-        </MDTypography>
-        <MDTypography variant="caption" color="text">
-          {student.profile?.program || 'Not Specified'}
-        </MDTypography>
-      </MDBox>
-    );
-
-    const Status = ({ student }) => (
-      <MDBox textAlign="center">
-        <MDBadge 
-          badgeContent={studentManagementService.getStudentStatusText(student)} 
-          color={studentManagementService.getStudentStatusColor(student)} 
-          variant="gradient" 
-          size="sm" 
-        />
-      </MDBox>
-    );
-
-    const Placement = ({ student }) => (
-      <MDBox textAlign="center">
-        <MDBadge 
-          badgeContent={studentManagementService.getPlacementStatusDisplayName(student.profile?.placementStatus)} 
-          color={studentManagementService.getPlacementStatusColor(student.profile?.placementStatus)} 
-          variant="gradient" 
-          size="sm" 
-        />
-      </MDBox>
-    );
-
-    const LastLogin = ({ student }) => (
-      <MDBox lineHeight={1} textAlign="left">
-        <MDTypography display="block" variant="caption" fontWeight="medium">
-          {studentManagementService.formatLastLogin(student.lastLogin)}
-        </MDTypography>
-        <MDTypography variant="caption" color="text">
-          Created: {studentManagementService.formatCreationDate(student.createdAt)}
-        </MDTypography>
-      </MDBox>
-    );
-
-    return {
-      columns: [
-        { Header: "student", accessor: "student", width: "30%", align: "left" },
-        { Header: "department", accessor: "department", align: "left" },
-        { Header: "status", accessor: "status", align: "center" },
-        { Header: "placement", accessor: "placement", align: "center" },
-        { Header: "last login", accessor: "lastLogin", align: "left" },
-      ],
-      rows: students.map((student) => ({
-        student: <StudentInfo student={student} />,
-        department: <Department student={student} />,
-        status: <Status student={student} />,
-        placement: <Placement student={student} />,
-        lastLogin: <LastLogin student={student} />,
-      })),
-    };
-  };
-
-  return (
-    <Card>
-      <MDBox>
-        {/* Filter Controls */}
-        <MDBox p={3} pb={0}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <MDBox>
-                <MDTypography variant="caption" fontWeight="bold" color="text">
-                  Search students...
-                </MDTypography>
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or ID"
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange({ search: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <MDBox>
-                <MDTypography variant="caption" fontWeight="bold" color="text">
-                  Status
-                </MDTypography>
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange({ status: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="verified">Verified</option>
-                  <option value="unverified">Unverified</option>
-                </select>
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <MDBox>
-                <MDTypography variant="caption" fontWeight="bold" color="text">
-                  Placement
-                </MDTypography>
-                <select
-                  value={filters.placementStatus}
-                  onChange={(e) => handleFilterChange({ placementStatus: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="all">All Placement</option>
-                  <option value="Unplaced">Unplaced</option>
-                  <option value="Placed">Placed</option>
-                  <option value="Multiple Offers">Multiple Offers</option>
-                </select>
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <MDBox>
-                <MDTypography variant="caption" fontWeight="bold" color="text">
-                  Sort By
-                </MDTypography>
-                <select
-                  value={filters.sortBy}
-                  onChange={(e) => handleFilterChange({ sortBy: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="createdAt">Newest First</option>
-                  <option value="firstName">Name A-Z</option>
-                  <option value="lastName">Last Name A-Z</option>
-                  <option value="studentId">Student ID</option>
-                  <option value="lastLogin">Last Login</option>
-                </select>
-              </MDBox>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <MDBox display="flex" justifyContent="flex-end" alignItems="center" gap={1}>
-                <MDTypography variant="caption" color="text">
-                  {pagination.totalStudents} students found
-                </MDTypography>
-                <Tooltip title="Refresh">
-                  <IconButton onClick={() => onRefresh(filters)} size="small">
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-              </MDBox>
-            </Grid>
-          </Grid>
-        </MDBox>
-
-        {/* Data Table */}
         <MDBox p={3}>
+          <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <MDTypography variant="h5">
+              Students in {batch.batchCode}
+            </MDTypography>
+            <MDBox display="flex" gap={1}>
+              <MDButton
+                variant="outlined"
+                color="info"
+                size="small"
+                onClick={handleBackClick}
+                startIcon={<ArrowBackIcon />}
+              >
+                Back to Batch Years
+              </MDButton>
+              <MDButton
+                variant="outlined"
+                color="info"
+                size="small"
+                onClick={handleRefresh}
+                startIcon={<RefreshIcon />}
+              >
+                Refresh
+              </MDButton>
+            </MDBox>
+          </MDBox>
+
+          {error && (
+            <MDBox mb={2}>
+              <Typography color="error">{error}</Typography>
+            </MDBox>
+          )}
+
           <DataTable
-            table={getTableData()}
-            isSorted={false}
-            entriesPerPage={false}
+            table={{ columns, rows }}
             showTotalEntries={false}
+            isSorted={false}
             noEndBorder
+            entriesPerPage={false}
             canSearch={false}
           />
-        </MDBox>
 
-        {/* Advanced Pagination */}
-        {pagination.totalStudents > 0 && (
-          <MDBox p={3} pt={0}>
-            <AdvancedPagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              totalItems={pagination.totalStudents}
-              itemsPerPage={10}
-              onPageChange={handlePageChange}
-              onItemsPerPageChange={(itemsPerPage) => {
-                // For now, we'll keep it at 10 items per page
-                // You can implement this later if needed
-              }}
-              onRefresh={handleRefreshData}
-              loading={loading}
-              showItemsPerPage={false}
-              showRefresh={true}
-            />
-          </MDBox>
-        )}
-      </MDBox>
-    </Card>
+          {pagination && (
+            <MDBox mt={2} display="flex" justifyContent="center">
+              <AdvancedPagination
+                currentPage={pagination.currentPage || 1}
+                totalPages={pagination.totalPages || 1}
+                totalItems={pagination.totalStudents || 0}
+                itemsPerPage={10}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={() => {}}
+                onRefresh={handleRefresh}
+                loading={loading}
+                showItemsPerPage={false}
+              />
+            </MDBox>
+          )}
+        </MDBox>
+      </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete {studentToDelete?.fullName}? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <MDButton onClick={handleDeleteCancel} color="secondary">
+            Cancel
+          </MDButton>
+          <MDButton onClick={handleDeleteConfirm} color="error">
+            Delete
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+    </MDBox>
   );
 };
 

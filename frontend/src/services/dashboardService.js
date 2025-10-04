@@ -35,7 +35,7 @@ class DashboardService {
   // Get daily active students
   async getDailyActiveStudents() {
     try {
-      const response = await api.get('/jobs/students/activity');
+      const response = await api.get('/dashboard/daily-active-students');
       return response;
     } catch (error) {
       console.error("Error fetching student activity:", error);

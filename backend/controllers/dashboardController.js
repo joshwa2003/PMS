@@ -1,7 +1,10 @@
 const Department = require('../models/Department');
+const Batch = require('../models/Batch');
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Job = require('../models/Job');
+const JobApplication = require('../models/JobApplication');
+const mongoose = require('mongoose');
 
 class DashboardController {
   // Get department-wise student data for admin and placement director
@@ -542,6 +545,58 @@ class DashboardController {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
+  }
+
+  // Get daily active students for the past week
+  async getDailyActiveStudents(req, res) {
+  try {
+    // Check if user has permission
+    if (!['admin', 'placement_director'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only administrators and placement directors can view this data.'
+      });
+    }
+    
+    // Get current date and date 7 days ago
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6); // Get data for past 7 days (including today)
+    
+    // Initialize data array for each day of the week (Sunday to Saturday)
+    const dailyData = Array(7).fill(0);
+    
+    // Query users with login activity in the past week
+    const users = await User.find({
+      role: 'student',
+      lastLogin: { $gte: startDate, $lte: endDate }
+    });
+    
+    // Count logins for each day
+    users.forEach(user => {
+      if (user.lastLogin) {
+        const dayOfWeek = user.lastLogin.getDay(); // 0 = Sunday, 6 = Saturday
+        dailyData[dayOfWeek]++;
+      }
+    });
+    
+    // Return the data
+    return res.status(200).json({
+      success: true,
+      data: {
+        labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        dailyActiveStudents: dailyData,
+        totalActiveStudents: users.length
+      }
+    });
+  } catch (error) {
+    console.error('Error getting daily active students:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error getting daily active students',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+    });
+  }
   }
 }
 

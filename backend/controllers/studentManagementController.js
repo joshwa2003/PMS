@@ -413,8 +413,8 @@ const createBulkStudents = async (req, res) => {
           continue;
         }
 
-        // Generate temporary password
-        const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
+        // Set default password for students
+        const tempPassword = "Student@123";
         
         // Create user account (password will be hashed by User model pre-save middleware)
         const newUser = new User({

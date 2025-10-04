@@ -132,10 +132,14 @@ exports.login = async (req, res) => {
 
     const { email, password } = req.body;
 
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Find user and include password for comparison
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
     
     if (!user) {
+      console.log(`Login attempt failed: User not found for email ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -144,6 +148,7 @@ exports.login = async (req, res) => {
 
     // Check if user is active
     if (!user.isActive) {
+      console.log(`Login attempt failed: Account is deactivated for user ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Account is deactivated. Please contact administrator.'
@@ -153,14 +158,35 @@ exports.login = async (req, res) => {
     // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      console.log(`Login attempt failed: Invalid password for user ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
+    // Update login history
+    const now = new Date();
+    user.lastLogin = now;
+    
+    // Get IP and user agent
+    const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    
+    // Add to login history if the field exists in the model
+    if (user.loginHistory) {
+      user.loginHistory.push({
+        timestamp: now,
+        ipAddress,
+        userAgent
+      });
+      
+      // Limit history to last 100 entries
+      if (user.loginHistory.length > 100) {
+        user.loginHistory = user.loginHistory.slice(-100);
+      }
+    }
+    
     await user.save({ validateBeforeSave: false });
 
     // Check if staff user needs first login setup
