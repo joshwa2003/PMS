@@ -12,6 +12,8 @@ import {
   Star as StarIcon,
   AccessTime as TimeIcon,
   CheckCircle as CheckCircleIcon,
+  RemoveRedEye as EyeIcon,
+  People as PeopleIcon,
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -289,6 +291,22 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
         {/* Footer Section */}
         <MDBox display="flex" justifyContent="space-between" alignItems="center" pt={2} borderTop={`1px solid ${darkMode ? '#444' : '#f0f0f0'}`}>
           <MDBox display="flex" alignItems="center" gap={2}>
+            {/* View Count */}
+            <MDBox display="flex" alignItems="center" gap={0.5}>
+              <EyeIcon sx={{ fontSize: 18, color: darkMode ? '#90caf9' : '#1976d2' }} />
+              <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ fontSize: '13px', fontWeight: 500 }}>
+                {job.stats?.totalViews || 0} views
+              </MDTypography>
+            </MDBox>
+            
+            {/* Apply Count */}
+            <MDBox display="flex" alignItems="center" gap={0.5}>
+              <PeopleIcon sx={{ fontSize: 18, color: darkMode ? '#a5d6a7' : '#388e3c' }} />
+              <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ fontSize: '13px', fontWeight: 500 }}>
+                {job.stats?.totalApplications || 0} applied
+              </MDTypography>
+            </MDBox>
+            
             {/* Urgency Badge */}
             {isUrgent && (
               <Chip
