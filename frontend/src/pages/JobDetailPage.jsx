@@ -48,7 +48,7 @@ import Footer from 'examples/Footer';
 import { useMaterialUIController } from 'context';
 
 // Services
-import { getPublicJobById } from 'services/jobService';
+import { getPublicJobById, recordJobView } from 'services/jobService';
 import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
 
 
@@ -75,6 +75,26 @@ const JobDetailPage = () => {
         
         if (response.success) {
           setJob(response.data.job);
+          
+          // Record job view (only counted for students on first view)
+          if (response.data.job._id) {
+            try {
+              console.log('📊 Attempting to record job view for job:', response.data.job._id);
+              const viewResponse = await recordJobView(response.data.job._id, {
+                viewType: 'Detail View',
+                duration: 0,
+                context: {
+                  source: 'job-detail-page',
+                  timestamp: new Date().toISOString()
+                }
+              });
+              console.log('✅ Job view recorded successfully:', viewResponse);
+            } catch (viewErr) {
+              console.error('❌ Error recording job view:', viewErr);
+              console.error('❌ Error details:', viewErr.message, viewErr.response);
+              // Don't block the page if view recording fails
+            }
+          }
           
           // Check if user has already applied for this job
           if (response.data.job._id) {

@@ -904,11 +904,12 @@ const getPublicJob = async (req, res) => {
       });
     }
 
-    // Increment view count (without user tracking for public view)
-    await Job.findByIdAndUpdate(id, { 
-      $inc: { 'stats.totalViews': 1 } 
-    });
-
+    // NOTE: View count is NOT incremented here
+    // View counting is handled by the recordJobView endpoint in jobApplicationController
+    // which properly tracks:
+    // 1. Only student views (not admin/staff)
+    // 2. Only unique views per student (first view only)
+    
     console.log('✅ Public job found:', job.title);
 
     res.status(200).json({

@@ -89,15 +89,53 @@ const recordJobView = async (req, res) => {
       context = {}
     } = req.body;
 
-    console.log('👁️ Recording job view for job:', jobId, 'by user:', req.user._id);
+    console.log('👁️ Recording job view for job:', jobId, 'by user:', req.user._id, 'role:', req.user.role);
 
-    // Get student information
-    const student = await Student.findOne({ userId: req.user._id }).populate('userId', 'department');
+    // ONLY count views for students - check user role first
+    if (req.user.role !== 'student') {
+      console.log('⚠️ Non-student user viewing job - view count will NOT be incremented');
+      return res.status(200).json({
+        success: true,
+        message: 'Job view recorded (non-student, no count increment)',
+        data: {
+          counted: false,
+          reason: 'Only student views are counted'
+        }
+      });
+    }
+
+    // Get student information - populate userId to get department
+    const student = await Student.findOne({ userId: req.user._id })
+      .populate({
+        path: 'userId',
+        select: 'department',
+        populate: {
+          path: 'department',
+          select: 'name code'
+        }
+      })
+      .populate('batchId', 'name year');
+    
     if (!student) {
       return res.status(404).json({
         success: false,
         message: 'Student profile not found'
       });
+    }
+
+    // Get department ID from the populated userId.department
+    const departmentId = student.userId?.department?._id || student.userId?.department || null;
+    
+    console.log('📋 Student info:', {
+      studentId: student._id,
+      userId: student.userId?._id,
+      department: departmentId,
+      batch: student.batchId
+    });
+    
+    // Department is optional - if not found, we'll still track the view but without department stats
+    if (!departmentId) {
+      console.warn('⚠️ Department not found for student - will track view without department stats:', student._id);
     }
 
     // Check if job exists and is accessible
@@ -109,25 +147,31 @@ const recordJobView = async (req, res) => {
       });
     }
 
-    // Create or update job view record
-    let jobView = await JobView.findOne({
+    // Check if this student has ALREADY viewed this job (unique view check)
+    const existingView = await JobView.findOne({
       job: jobId,
-      student: student._id,
-      sessionId: req.sessionID || req.headers['x-session-id']
+      student: student._id
     });
 
-    if (jobView) {
-      // Update existing view
+    let isFirstView = false;
+    let jobView;
+
+    if (existingView) {
+      // Student has already viewed this job - update existing view but DON'T increment count
+      console.log('👁️ Student has already viewed this job - updating existing view record, NOT incrementing count');
+      jobView = existingView;
       jobView.duration = Math.max(jobView.duration, duration);
       jobView.interactions = { ...jobView.interactions, ...interactions };
       jobView.lastInteractionAt = new Date();
+      isFirstView = false;
     } else {
-      // Create new view record
+      // First time this student is viewing this job - create new view record
+      console.log('✨ First time student is viewing this job - creating new view record and incrementing count');
       jobView = new JobView({
         job: jobId,
         student: student._id,
         user: req.user._id,
-        department: student.userId.department,
+        department: departmentId,
         batch: student.batchId,
         viewType,
         duration,
@@ -139,12 +183,18 @@ const recordJobView = async (req, res) => {
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.headers['user-agent']
       });
+      isFirstView = true;
     }
 
     await jobView.save();
 
-    // Update job statistics
-    await job.incrementViewCount(student.userId.department);
+    // ONLY increment view count if this is the student's FIRST view of this job
+    if (isFirstView) {
+      await job.incrementViewCount(departmentId);
+      console.log('✅ View count incremented for job:', jobId);
+    } else {
+      console.log('⏭️ View count NOT incremented - student has already viewed this job');
+    }
 
     // Create or update job application record
     let jobApplication = await JobApplication.findOne({
@@ -160,7 +210,7 @@ const recordJobView = async (req, res) => {
         job: jobId,
         student: student._id,
         user: req.user._id,
-        department: student.userId.department,
+        department: departmentId,
         batch: student.batchId,
         eligibilityCheck: {
           isEligible: eligibilityCheck.eligible,
@@ -186,7 +236,10 @@ const recordJobView = async (req, res) => {
       data: {
         viewId: jobView._id,
         applicationId: jobApplication._id,
-        eligibilityStatus: jobApplication.eligibilityCheck.isEligible ? 'Eligible' : 'Not Eligible'
+        eligibilityStatus: jobApplication.eligibilityCheck.isEligible ? 'Eligible' : 'Not Eligible',
+        counted: isFirstView,
+        isFirstView: isFirstView,
+        viewCountIncremented: isFirstView
       }
     });
   } catch (error) {
