@@ -278,7 +278,10 @@ function DepartmentApplications() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar 
+        customTitle={departmentData?.name || 'Department'}
+        customRoute={['job-monitoring', jobData?.title || jobId, 'department', departmentData?.name || departmentId]}
+      />
       
       <MDBox py={3}>
         {/* Header */}

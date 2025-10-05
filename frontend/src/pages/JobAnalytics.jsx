@@ -281,7 +281,10 @@ function JobAnalytics() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar 
+        customTitle={jobData?.title || 'Job Analytics'}
+        customRoute={['job-monitoring', jobData?.title || jobId, 'analytics']}
+      />
       
       <MDBox py={3}>
         {/* Header */}

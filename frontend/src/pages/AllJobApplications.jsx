@@ -310,7 +310,10 @@ function AllJobApplications() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar 
+        customTitle="All Applications"
+        customRoute={['job-monitoring', jobData?.title || jobId, 'applications']}
+      />
       
       <MDBox py={3}>
         {/* Header */}
