@@ -4,7 +4,9 @@ class DepartmentWiseStudentService {
   // Get department-wise student data for dashboard
   async getDepartmentWiseStudents() {
     try {
-      const response = await api.get('/dashboard/department-wise-students');
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      const response = await api.get(`/dashboard/department-wise-students?_t=${timestamp}`);
       
       if (response.success) {
         // Add IDs to departments if they don't have them
@@ -63,7 +65,9 @@ class DepartmentWiseStudentService {
   // Get batches for a specific department
   async getDepartmentBatches(departmentId) {
     try {
-      const response = await api.get(`/dashboard/departments/${departmentId}/batches`);
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      const response = await api.get(`/dashboard/departments/${departmentId}/batches?_t=${timestamp}`);
       
       if (response.success) {
         return response;

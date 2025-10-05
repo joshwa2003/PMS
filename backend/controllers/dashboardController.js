@@ -203,10 +203,9 @@ class DashboardController {
       // Get all batches for this department
       const Batch = require('../models/Batch');
       const batches = await Batch.find({ 
-        department: departmentId,
-        isActive: true 
+        department: departmentId
       })
-      .populate('department', 'name code')
+      .select('batchCode startYear endYear courseType courseDuration isActive isGraduated')
       .sort({ startYear: -1 }) // Most recent first
       .lean();
 
@@ -236,24 +235,25 @@ class DashboardController {
           const placementRate = totalStudents > 0 ? 
             Math.round(((placementSummary.placed + placementSummary.multipleOffers) / totalStudents) * 100) : 0;
 
+          console.log(`Batch ${batch.batchCode}: Found ${totalStudents} students (Placed: ${placementSummary.placed}, Unplaced: ${placementSummary.unplaced})`);
+
           batchesWithStats.push({
+            _id: batch._id,
             id: batch._id,
+            name: batch.batchCode,
             batchCode: batch.batchCode,
+            yearRange: `${batch.startYear}-${batch.endYear}`,
             startYear: batch.startYear,
             endYear: batch.endYear,
             courseType: batch.courseType,
             courseDuration: batch.courseDuration,
-            academicStatus: batch.academicStatus,
-            displayName: batch.displayName,
-            fullDisplayName: batch.fullDisplayName,
-            department: batch.department,
             isActive: batch.isActive,
             isGraduated: batch.isGraduated,
-            createdAt: batch.createdAt,
-            stats: {
-              totalStudents: totalStudents,
-              placement: placementSummary,
-              placementRate: placementRate
+            statistics: {
+              total: totalStudents,
+              placed: placementSummary.placed,
+              unplaced: placementSummary.unplaced,
+              multipleOffers: placementSummary.multipleOffers
             }
           });
 
@@ -261,23 +261,22 @@ class DashboardController {
           console.error(`Error calculating stats for batch ${batch.batchCode}:`, statsError);
           // Add batch with zero stats to avoid breaking the entire response
           batchesWithStats.push({
+            _id: batch._id,
             id: batch._id,
+            name: batch.batchCode,
             batchCode: batch.batchCode,
+            yearRange: `${batch.startYear}-${batch.endYear}`,
             startYear: batch.startYear,
             endYear: batch.endYear,
             courseType: batch.courseType,
             courseDuration: batch.courseDuration,
-            academicStatus: batch.academicStatus,
-            displayName: batch.displayName,
-            fullDisplayName: batch.fullDisplayName,
-            department: batch.department,
             isActive: batch.isActive,
             isGraduated: batch.isGraduated,
-            createdAt: batch.createdAt,
-            stats: {
-              totalStudents: 0,
-              placement: { unplaced: 0, placed: 0, multipleOffers: 0 },
-              placementRate: 0
+            statistics: {
+              total: 0,
+              placed: 0,
+              unplaced: 0,
+              multipleOffers: 0
             }
           });
         }

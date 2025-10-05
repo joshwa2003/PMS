@@ -72,48 +72,63 @@ const DepartmentBatchesView = ({ department, batches, loading, error, onBatchSel
   };
 
   const calculateBatchPlacementRate = (batch) => {
-    if (!batch || !batch.stats || batch.stats.totalStudents === 0) return 0;
+    if (!batch || !batch.statistics || batch.statistics.total === 0) return 0;
     
-    const placedCount = (batch.stats.placement?.placed || 0) + (batch.stats.placement?.multipleOffers || 0);
-    return Math.round((placedCount / batch.stats.totalStudents) * 100);
+    const placedCount = (batch.statistics.placed || 0) + (batch.statistics.multipleOffers || 0);
+    return Math.round((placedCount / batch.statistics.total) * 100);
   };
 
   // Table data formatter
   const getBatchTableData = () => {
-    const BatchInfo = ({ batch }) => (
-      <MDBox display="flex" alignItems="center" lineHeight={1}>
-        <MDBox
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          width="40px"
-          height="40px"
-          borderRadius="50%"
-          sx={{ 
-            backgroundColor: `${getBatchStatusColor(batch)}.main`,
-            color: 'white'
-          }}
-        >
-          <SchoolIcon fontSize="small" />
+    // Debug: Log batch data
+    if (batches && batches.length > 0) {
+      console.log('getBatchTableData - First batch:', batches[0]);
+      console.log('getBatchTableData - Batch properties:', {
+        name: batches[0].name,
+        batchCode: batches[0].batchCode,
+        yearRange: batches[0].yearRange,
+        startYear: batches[0].startYear,
+        endYear: batches[0].endYear
+      });
+    }
+    
+    const BatchInfo = ({ batch }) => {
+      console.log('BatchInfo - Rendering batch:', batch);
+      return (
+        <MDBox display="flex" alignItems="center" lineHeight={1}>
+          <MDBox
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            width="40px"
+            height="40px"
+            borderRadius="50%"
+            sx={{ 
+              backgroundColor: batch.isActive ? 'info.main' : 'secondary.main',
+              color: 'white'
+            }}
+          >
+            <SchoolIcon fontSize="small" />
+          </MDBox>
+          <MDBox ml={2} lineHeight={1}>
+            <MDTypography display="block" variant="button" fontWeight="medium">
+              {batch.name || batch.batchCode || 'N/A'}
+            </MDTypography>
+            <MDTypography variant="caption" color="text">
+              {batch.yearRange || (batch.startYear && batch.endYear ? `${batch.startYear}-${batch.endYear}` : 'N/A')}
+            </MDTypography>
+          </MDBox>
         </MDBox>
-        <MDBox ml={2} lineHeight={1}>
-          <MDTypography display="block" variant="button" fontWeight="medium">
-            {batch.batchCode}
-          </MDTypography>
-          <MDTypography variant="caption" color="text">
-            {batch.courseType} • {batch.courseDuration} Years
-          </MDTypography>
-        </MDBox>
-      </MDBox>
-    );
+      );
+    };
 
     const YearRange = ({ batch }) => (
       <MDBox lineHeight={1} textAlign="left">
         <MDTypography display="block" variant="button" fontWeight="medium">
-          {formatBatchYear(batch)}
+          {batch.yearRange || (batch.startYear && batch.endYear ? `${batch.startYear}-${batch.endYear}` : 'N/A')}
         </MDTypography>
         <MDTypography variant="caption" color="text">
-          {getBatchStatusText(batch)}
+          {batch.isActive ? 'Active' : 'Inactive'}
         </MDTypography>
       </MDBox>
     );
@@ -122,7 +137,7 @@ const DepartmentBatchesView = ({ department, batches, loading, error, onBatchSel
       <MDBox display="flex" alignItems="center" gap={1}>
         <MDBox textAlign="center">
           <MDTypography variant="h6" fontWeight="bold" color="info">
-            {batch.stats?.totalStudents || 0}
+            {batch.statistics?.total || 0}
           </MDTypography>
           <MDTypography variant="caption" color="text">
             Total
@@ -130,7 +145,7 @@ const DepartmentBatchesView = ({ department, batches, loading, error, onBatchSel
         </MDBox>
         <MDBox textAlign="center">
           <MDTypography variant="h6" fontWeight="bold" color="success">
-            {(batch.stats?.placement?.placed || 0) + (batch.stats?.placement?.multipleOffers || 0)}
+            {(batch.statistics?.placed || 0) + (batch.statistics?.multipleOffers || 0)}
           </MDTypography>
           <MDTypography variant="caption" color="text">
             Placed

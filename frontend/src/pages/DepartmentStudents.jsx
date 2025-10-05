@@ -74,8 +74,8 @@ const DepartmentStudents = () => {
         setStudents(response.data.students);
         setPagination(response.data.pagination);
         
-        // Calculate statistics from the current data
-        const stats = {
+        // Use statistics from backend response if available, otherwise calculate
+        const stats = response.data.statistics || {
           total: response.data.pagination.totalStudents,
           placed: response.data.students.filter(s => s.placementStatus === 'Placed').length,
           unplaced: response.data.students.filter(s => s.placementStatus === 'Unplaced').length,
