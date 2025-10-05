@@ -424,6 +424,25 @@ export const getApplicationDetails = async (applicationId) => {
   }
 };
 
+/**
+ * Get job applications by department
+ * @param {string} jobId - Job ID
+ * @param {string} departmentId - Department ID
+ * @param {number} page - Page number
+ * @returns {Promise} API response
+ */
+export const getJobApplicationsByDepartment = async (jobId, departmentId, page = 1) => {
+  try {
+    const response = await api.get(`${API_BASE_URL}/${jobId}/departments/${departmentId}/applications`, {
+      params: { page }
+    });
+    return response;
+  } catch (error) {
+    console.error('Error fetching department applications:', error);
+    throw error.response?.data || error;
+  }
+};
+
 // ============================================================================
 // UTILITY SERVICES
 // ============================================================================
@@ -628,6 +647,7 @@ export const jobApi = {
   // Student Applications
   getStudentApplications,
   getApplicationDetails,
+  getJobApplicationsByDepartment,
   
   // Utilities
   getDepartmentsForJobs,

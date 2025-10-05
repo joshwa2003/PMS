@@ -40,6 +40,7 @@ import DataTable from 'examples/Tables/DataTable';
 // Context
 import { useJob } from 'context/JobContext';
 import { useAuth } from 'context/AuthContext';
+import { useMaterialUIController } from 'context';
 
 // Components
 import EditJobModal from 'components/JobManagement/EditJobModal';
@@ -140,6 +141,8 @@ const QuickStats = ({ jobs }) => {
 function JobManagementNew() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const {
     jobs,
     jobsLoading,
@@ -514,18 +517,20 @@ function JobManagementNew() {
         <QuickStats jobs={jobs || []} />
 
         {/* Filters Section */}
-        <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
-          <MDBox mb={2}>
-            <MDTypography variant="h6" fontWeight="medium" color="dark">
-              Filter & Search Jobs
-            </MDTypography>
-          </MDBox>
-          <JobFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            loading={jobsLoading}
-          />
-        </Paper>
+        <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', mb: 3 }}>
+          <CardContent>
+            <MDBox mb={2}>
+              <MDTypography variant="h6" fontWeight="medium" color={darkMode ? "white" : "dark"}>
+                Filter & Search Jobs
+              </MDTypography>
+            </MDBox>
+            <JobFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              loading={jobsLoading}
+            />
+          </CardContent>
+        </Card>
 
         {/* Jobs Table */}
         <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>

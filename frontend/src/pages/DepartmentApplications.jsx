@@ -74,19 +74,25 @@ function DepartmentApplications() {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 Fetching department applications:', { jobId, departmentId, page });
       const response = await jobApi.getJobApplicationsByDepartment(jobId, departmentId, page);
+      console.log('📦 Response received:', response);
       
-      if (response.success) {
+      // API interceptor returns response.data, which contains { success, data }
+      if (response && response.success) {
+        console.log('✅ Setting data from response');
         setJobData(response.data.job);
         setDepartmentData(response.data.department);
         setApplications(response.data.applications);
         setDepartmentStats(response.data.departmentStats);
         setPagination(response.data.pagination);
       } else {
-        setError(response.message || 'Failed to fetch department applications');
+        console.error('❌ Response missing success flag:', response);
+        setError(response?.message || 'Failed to fetch department applications');
       }
     } catch (err) {
-      console.error('Error fetching department applications:', err);
+      console.error('❌ Error fetching department applications:', err);
+      console.error('❌ Error details:', err.message, err.response);
       setError(err.message || 'Failed to fetch department applications');
     } finally {
       setLoading(false);

@@ -30,8 +30,11 @@ import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
 import { useCourseCategory } from 'context/CourseCategoryContext';
 import { useAuth } from 'context/AuthContext';
+import { useMaterialUIController } from 'context';
 
 const CourseCategoryCard = ({ category, onEdit, onDelete }) => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const { 
     getCategoryStatusColor, 
     getCategoryStatusText,
@@ -107,8 +110,7 @@ const CourseCategoryCard = ({ category, onEdit, onDelete }) => {
           minHeight: '280px',
           transition: 'all 0.3s ease',
           position: 'relative',
-          backgroundColor: 'white',
-          border: '1px solid #e0e0e0',
+          border: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : '#e0e0e0'}`,
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           '&:hover': {
@@ -148,21 +150,20 @@ const CourseCategoryCard = ({ category, onEdit, onDelete }) => {
             <MDTypography 
               variant="h4" 
               fontWeight="bold" 
-              color="dark"
+              color={darkMode ? "white" : "dark"}
               textAlign="center"
               mb={1}
               sx={{
-                wordBreak: 'break-word',
-                color: '#344767'
+                wordBreak: 'break-word'
               }}
             >
               {category.name}
             </MDTypography>
 
             {category.description && (
-              <Typography 
+              <MDTypography 
                 variant="body2" 
-                color="text.secondary"
+                color={darkMode ? "white" : "text"}
                 textAlign="center"
                 sx={{
                   display: '-webkit-box',
@@ -170,11 +171,12 @@ const CourseCategoryCard = ({ category, onEdit, onDelete }) => {
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  lineHeight: 1.4
+                  lineHeight: 1.4,
+                  opacity: 0.8
                 }}
               >
                 {category.description}
-              </Typography>
+              </MDTypography>
             )}
           </Box>
 
@@ -192,24 +194,26 @@ const CourseCategoryCard = ({ category, onEdit, onDelete }) => {
               />
             </Box>
 
-            <Typography 
+            <MDTypography 
               variant="caption" 
-              color="text.secondary" 
+              color={darkMode ? "white" : "text"}
               display="block"
               textAlign="center"
+              sx={{ opacity: 0.7 }}
             >
               Created: {formatCreationDate(category.createdAt)}
-            </Typography>
+            </MDTypography>
 
             {category.createdBy && (
-              <Typography 
+              <MDTypography 
                 variant="caption" 
-                color="text.secondary" 
+                color={darkMode ? "white" : "text"}
                 display="block"
                 textAlign="center"
+                sx={{ opacity: 0.7 }}
               >
                 By: {category.createdBy.firstName} {category.createdBy.lastName}
-              </Typography>
+              </MDTypography>
             )}
           </Box>
         </CardContent>

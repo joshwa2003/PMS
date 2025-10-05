@@ -37,9 +37,12 @@ import CreateCourseCategoryModal from 'components/CourseCategoryManagement/Creat
 import EditCourseCategoryModal from 'components/CourseCategoryManagement/EditCourseCategoryModal';
 import { CourseCategoryProvider, useCourseCategory } from 'context/CourseCategoryContext';
 import { useAuth } from 'context/AuthContext';
+import { useMaterialUIController } from 'context';
 
 const CourseCategoryManagementContent = () => {
   const { user } = useAuth();
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const {
     categories,
     loading,
@@ -487,10 +490,10 @@ const CourseCategoryManagementContent = () => {
 
                   {/* Results Summary */}
                   <MDBox mt={2}>
-                    <Typography variant="body2" color="text.secondary">
+                    <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ opacity: 0.8 }}>
                       Showing {categories.length} course categories
                       {getActiveFiltersCount() > 0 && ' (filtered)'}
-                    </Typography>
+                    </MDTypography>
                   </MDBox>
                 </MDBox>
               </Card>

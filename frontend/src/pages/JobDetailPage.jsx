@@ -91,7 +91,7 @@ const JobDetailPage = () => {
               console.log('✅ Job view recorded successfully:', viewResponse);
             } catch (viewErr) {
               console.error('❌ Error recording job view:', viewErr);
-              console.error('❌ Error details:', viewErr.message, viewErr.response);
+              console.error('❌  Error details:', viewErr.message, viewErr.response);
               // Don't block the page if view recording fails
             }
           }
