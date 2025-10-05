@@ -1,5 +1,6 @@
 const Department = require('../models/Department');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Get all departments
 const getAllDepartments = async (req, res) => {
@@ -74,6 +75,23 @@ const getAllDepartments = async (req, res) => {
         .lean(); // Use lean() for better performance
 
       console.log('✅ Departments found:', departments.length);
+      
+      // For each department, find the placement staff assigned to it
+      for (let dept of departments) {
+        if (!dept.placementStaff) {
+          // Find placement staff assigned to this department
+          const staff = await User.findOne({
+            department: dept._id,
+            role: 'placement_staff',
+            isActive: true
+          }).select('firstName lastName email role').lean();
+          
+          if (staff) {
+            dept.placementStaff = staff;
+            console.log(`✅ Found placement staff for ${dept.code}:`, staff.firstName, staff.lastName);
+          }
+        }
+      }
     } catch (populateError) {
       console.error('❌ Error during populate operations:', populateError);
       
@@ -85,6 +103,42 @@ const getAllDepartments = async (req, res) => {
         .lean();
       
       console.log('⚠️ Fallback: Retrieved departments without populate:', departments.length);
+      
+      // Manually populate course category and placement staff for each department
+      const CourseCategory = require('../models/CourseCategory');
+      
+      for (let dept of departments) {
+        console.log(`🔍 Processing ${dept.code} - courseCategory value:`, dept.courseCategory, 'Type:', typeof dept.courseCategory);
+        
+        // Try to populate course category if it's an ObjectId
+        if (dept.courseCategory && mongoose.Types.ObjectId.isValid(dept.courseCategory)) {
+          try {
+            const category = await CourseCategory.findById(dept.courseCategory).select('name description').lean();
+            if (category) {
+              dept.courseCategory = category;
+              console.log(`✅ Found course category for ${dept.code}:`, category.name);
+            } else {
+              console.log(`⚠️ No course category found for ${dept.code} with ID:`, dept.courseCategory);
+            }
+          } catch (err) {
+            console.error(`❌ Error fetching course category for ${dept.code}:`, err.message);
+          }
+        } else {
+          console.log(`⚠️ Invalid or missing courseCategory for ${dept.code}:`, dept.courseCategory);
+        }
+        
+        // Find placement staff assigned to this department
+        const staff = await User.findOne({
+          department: dept._id,
+          role: 'placement_staff',
+          isActive: true
+        }).select('firstName lastName email role').lean();
+        
+        if (staff) {
+          dept.placementStaff = staff;
+          console.log(`✅ Found placement staff for ${dept.code}:`, staff.firstName, staff.lastName);
+        }
+      }
     }
 
     // Get total count for pagination

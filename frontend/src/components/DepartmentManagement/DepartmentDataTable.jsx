@@ -235,11 +235,6 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             <BusinessIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Manage Placement Staff">
-          <IconButton size="small" onClick={() => handleManageStaffAssignment(department)}>
-            <PeopleIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
         <Tooltip title="Edit Department">
           <IconButton size="small" onClick={() => handleEditDepartment(department)}>
             <EditIcon fontSize="small" />
