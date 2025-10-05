@@ -18,6 +18,7 @@ import LoadingSpinner from 'components/LoadingSpinner'; // Added import
 
 // Context
 import { useApplicationResponse } from 'context/ApplicationResponseContext';
+import { useJob } from 'context/JobContext';
 
 // Services
 import { getPublicJobs } from 'services/jobService';
@@ -51,6 +52,9 @@ const JobPosts = () => {
 
   // Application response context
   const { recordApplyClick } = useApplicationResponse();
+  
+  // Job context for save/unsave functionality
+  const { toggleSaveJob, fetchSavedJobs, savedJobs } = useJob();
 
   // Fetch jobs function
   const fetchJobs = useCallback(async (currentFilters = filters) => {
@@ -61,8 +65,25 @@ const JobPosts = () => {
       const response = await getPublicJobs(currentFilters);
       
       if (response.success) {
-        // Backend now handles sorting by publishedAt, so we don't need client-side sorting
-        setJobs(response.data.jobs);
+        // Get the jobs from the response
+        let jobsData = response.data.jobs;
+        
+        // If we have saved jobs, mark the ones that are saved
+        if (savedJobs && savedJobs.length > 0) {
+          // Create a map of saved job IDs for faster lookup
+          const savedJobsMap = savedJobs.reduce((map, job) => {
+            map[job._id] = true;
+            return map;
+          }, {});
+          
+          // Update the isSaved property for each job
+          jobsData = jobsData.map(job => ({
+            ...job,
+            isSaved: savedJobsMap[job._id] || false
+          }));
+        }
+        
+        setJobs(jobsData);
         setPagination(response.data.pagination || {});
         setAvailableFilters(response.data.filters || {});
       } else {
@@ -78,8 +99,34 @@ const JobPosts = () => {
 
   // Initial load
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    // Fetch saved jobs first, then fetch all jobs
+    fetchSavedJobs().then(() => {
+      fetchJobs();
+    }).catch(err => {
+      console.error('Error fetching saved jobs:', err);
+      // Still fetch jobs even if saved jobs fetch fails
+      fetchJobs();
+    });
+  }, [fetchJobs, fetchSavedJobs]);
+  
+  // Update jobs when savedJobs changes
+  useEffect(() => {
+    if (savedJobs && jobs.length > 0) {
+      // Create a map of saved job IDs for faster lookup
+      const savedJobsMap = savedJobs.reduce((map, job) => {
+        map[job._id] = true;
+        return map;
+      }, {});
+      
+      // Update the jobs with the current saved status
+      setJobs(prevJobs => 
+        prevJobs.map(job => ({
+          ...job,
+          isSaved: savedJobsMap[job._id] || false
+        }))
+      );
+    }
+  }, [savedJobs]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
@@ -132,6 +179,28 @@ const JobPosts = () => {
       
       // For demo purposes, you can refresh the page to see the popup
       console.log('💡 Tip: Refresh the page to see the application response popup!');
+    }
+  };
+  
+  // Handle job save/unsave
+  const handleSaveToggle = async (jobId) => {
+    try {
+      // Call the toggleSaveJob function from JobContext
+      const response = await toggleSaveJob(jobId);
+      
+      if (response.success) {
+        // Update the jobs list to reflect the new saved status
+        setJobs(prevJobs => 
+          prevJobs.map(job => 
+            job._id === jobId ? { ...job, isSaved: !job.isSaved } : job
+          )
+        );
+      } else {
+        setError(response.message || 'Failed to save/unsave job');
+      }
+    } catch (err) {
+      console.error('Error toggling job save status:', err);
+      setError(err.message || 'Failed to save/unsave job');
     }
   };
 
@@ -201,7 +270,8 @@ const JobPosts = () => {
                       <JobCard
                         key={job._id}
                         job={job}
-                        onApply={handleApply}
+                        onApply={() => handleApply(job)}
+                        onSave={() => handleSaveToggle(job._id)}
                       />
                     ))}
                   </MDBox>

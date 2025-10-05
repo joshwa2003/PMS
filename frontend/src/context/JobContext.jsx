@@ -14,6 +14,11 @@ const initialState = {
   studentJobsLoading: false,
   studentJobsError: null,
   
+  // Saved Jobs
+  savedJobs: [],
+  savedJobsLoading: false,
+  savedJobsError: null,
+  
   // Job Applications
   applications: [],
   applicationsLoading: false,
@@ -52,12 +57,14 @@ const ActionTypes = {
   // Loading states
   SET_JOBS_LOADING: 'SET_JOBS_LOADING',
   SET_STUDENT_JOBS_LOADING: 'SET_STUDENT_JOBS_LOADING',
+  SET_SAVED_JOBS_LOADING: 'SET_SAVED_JOBS_LOADING',
   SET_APPLICATIONS_LOADING: 'SET_APPLICATIONS_LOADING',
   SET_ANALYTICS_LOADING: 'SET_ANALYTICS_LOADING',
   
   // Success states
   SET_JOBS: 'SET_JOBS',
   SET_STUDENT_JOBS: 'SET_STUDENT_JOBS',
+  SET_SAVED_JOBS: 'SET_SAVED_JOBS',
   SET_CURRENT_JOB: 'SET_CURRENT_JOB',
   SET_APPLICATIONS: 'SET_APPLICATIONS',
   SET_ANALYTICS: 'SET_ANALYTICS',
@@ -65,6 +72,7 @@ const ActionTypes = {
   // Error states
   SET_JOBS_ERROR: 'SET_JOBS_ERROR',
   SET_STUDENT_JOBS_ERROR: 'SET_STUDENT_JOBS_ERROR',
+  SET_SAVED_JOBS_ERROR: 'SET_SAVED_JOBS_ERROR',
   SET_APPLICATIONS_ERROR: 'SET_APPLICATIONS_ERROR',
   SET_ANALYTICS_ERROR: 'SET_ANALYTICS_ERROR',
   
@@ -82,6 +90,7 @@ const ActionTypes = {
   ADD_JOB: 'ADD_JOB',
   UPDATE_JOB: 'UPDATE_JOB',
   REMOVE_JOB: 'REMOVE_JOB',
+  TOGGLE_SAVE_JOB: 'TOGGLE_SAVE_JOB',
   
   // Clear states
   CLEAR_CURRENT_JOB: 'CLEAR_CURRENT_JOB',
@@ -97,6 +106,8 @@ const jobReducer = (state, action) => {
       return { ...state, jobsLoading: action.payload, jobsError: null };
     case ActionTypes.SET_STUDENT_JOBS_LOADING:
       return { ...state, studentJobsLoading: action.payload, studentJobsError: null };
+    case ActionTypes.SET_SAVED_JOBS_LOADING:
+      return { ...state, savedJobsLoading: action.payload, savedJobsError: null };
     case ActionTypes.SET_APPLICATIONS_LOADING:
       return { ...state, applicationsLoading: action.payload, applicationsError: null };
     case ActionTypes.SET_ANALYTICS_LOADING:
@@ -117,6 +128,13 @@ const jobReducer = (state, action) => {
         studentJobs: action.payload.jobs,
         studentJobsLoading: false,
         studentJobsError: null
+      };
+    case ActionTypes.SET_SAVED_JOBS:
+      return {
+        ...state,
+        savedJobs: action.payload.jobs,
+        savedJobsLoading: false,
+        savedJobsError: null
       };
     case ActionTypes.SET_CURRENT_JOB:
       return { ...state, currentJob: action.payload };
@@ -140,6 +158,8 @@ const jobReducer = (state, action) => {
       return { ...state, jobsError: action.payload, jobsLoading: false };
     case ActionTypes.SET_STUDENT_JOBS_ERROR:
       return { ...state, studentJobsError: action.payload, studentJobsLoading: false };
+    case ActionTypes.SET_SAVED_JOBS_ERROR:
+      return { ...state, savedJobsError: action.payload, savedJobsLoading: false };
     case ActionTypes.SET_APPLICATIONS_ERROR:
       return { ...state, applicationsError: action.payload, applicationsLoading: false };
     case ActionTypes.SET_ANALYTICS_ERROR:
@@ -384,6 +404,76 @@ export const JobProvider = ({ children }) => {
       });
     }
   }, []);
+  
+  const fetchSavedJobs = useCallback(async () => {
+    dispatch({ type: ActionTypes.SET_SAVED_JOBS_LOADING, payload: true });
+    
+    try {
+      const response = await jobService.getSavedJobs();
+      // Handle different response structures
+      let jobs = [];
+      
+      if (response.data && response.data.jobs) {
+        jobs = response.data.jobs;
+      } else if (response.data) {
+        jobs = response.data;
+      } else if (response.jobs) {
+        jobs = response.jobs;
+      }
+      
+      dispatch({ 
+        type: ActionTypes.SET_SAVED_JOBS, 
+        payload: { jobs: jobs || [] } 
+      });
+    } catch (error) {
+      dispatch({
+        type: ActionTypes.SET_SAVED_JOBS_ERROR,
+        payload: error.message || 'Failed to fetch saved jobs'
+      });
+    }
+  }, []);
+  
+  const toggleSaveJob = useCallback(async (jobId) => {
+    try {
+      const response = await jobService.toggleSaveJob(jobId);
+      
+      if (!response || !response.success) {
+        throw new Error(response?.message || 'Failed to save/unsave job');
+      }
+      
+      // Update the job in all relevant lists
+      const updateJobInList = (list) => {
+        return list.map(job => {
+          if (job._id === jobId) {
+            return {
+              ...job,
+              isSaved: response.data.saved
+            };
+          }
+          return job;
+        });
+      };
+      
+      // Update jobs in all lists
+      const updatedJobs = updateJobInList(state.jobs);
+      const updatedStudentJobs = updateJobInList(state.studentJobs);
+      const updatedSavedJobs = state.savedJobs.filter(job => job._id !== jobId);
+      
+      // Update state
+      dispatch({ type: ActionTypes.SET_JOBS, payload: { jobs: updatedJobs, pagination: state.pagination } });
+      dispatch({ type: ActionTypes.SET_STUDENT_JOBS, payload: { jobs: updatedStudentJobs } });
+      
+      // If the job was unsaved, remove it from saved jobs list
+      if (response.data?.isSaved === false) {
+        dispatch({ type: ActionTypes.SET_SAVED_JOBS, payload: { jobs: updatedSavedJobs } });
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error toggling job save status:', error);
+      throw error;
+    }
+  }, [state.jobs, state.studentJobs, state.savedJobs]);
 
   const recordJobView = useCallback(async (jobId, viewData) => {
     try {
@@ -547,6 +637,8 @@ export const JobProvider = ({ children }) => {
     
     // Student Job Actions
     fetchStudentJobs,
+    fetchSavedJobs,
+    toggleSaveJob,
     recordJobView,
     recordApplicationClick,
     submitStudentResponse,

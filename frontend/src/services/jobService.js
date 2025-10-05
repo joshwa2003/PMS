@@ -360,21 +360,33 @@ export const getJobAnalyticsByDepartment = async (jobId) => {
 };
 
 /**
- * Get job applications for specific department
- * @param {string} jobId - Job ID
- * @param {string} departmentId - Department ID
- * @param {number} page - Page number
+ * Get saved jobs for the current student
  * @returns {Promise} API response
  */
-export const getJobApplicationsByDepartment = async (jobId, departmentId, page = 1) => {
+export const getSavedJobs = async () => {
   try {
-    const response = await api.get(`${API_BASE_URL}/${jobId}/departments/${departmentId}/applications`, {
-      params: { page }
-    });
+    const response = await api.get(`${API_BASE_URL}/saved`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching saved jobs:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Toggle save/unsave job
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const toggleSaveJob = async (jobId) => {
+  try {
+    // Using the correct endpoint format
+    const response = await api.put(`${API_BASE_URL}/${jobId}/save`);
+    // No need to access .data as the interceptor already returns response.data
     return response;
   } catch (error) {
-    console.error('Error fetching department applications:', error);
-    throw error.response?.data || error;
+    console.error('Error toggling job save status:', error);
+    throw error;
   }
 };
 
@@ -597,6 +609,10 @@ export const jobApi = {
   unpublishJob,
   deleteJob,
   
+  // Saved Jobs
+  getSavedJobs,
+  toggleSaveJob,
+  
   // Public Job Access
   getPublicJobs,
   getPublicJobById,
@@ -608,7 +624,6 @@ export const jobApi = {
   getJobApplications,
   getJobAnalytics,
   getJobAnalyticsByDepartment,
-  getJobApplicationsByDepartment,
   
   // Student Applications
   getStudentApplications,

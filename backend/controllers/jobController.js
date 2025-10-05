@@ -1076,6 +1076,101 @@ const unpublishJob = async (req, res) => {
   }
 };
 
+// Save/unsave job
+const toggleSaveJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🔖 Toggling save status for job:', id, 'by user:', req.user._id);
+
+    const job = await Job.findById(id);
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Check if job is already saved by user
+    const isSaved = job.savedBy.includes(req.user._id);
+    
+    if (isSaved) {
+      // Unsave job
+      job.savedBy = job.savedBy.filter(userId => userId.toString() !== req.user._id.toString());
+      await job.save();
+      
+      console.log('✅ Job unsaved successfully');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Job unsaved successfully',
+        data: { saved: false }
+      });
+    } else {
+      // Save job
+      job.savedBy.push(req.user._id);
+      await job.save();
+      
+      console.log('✅ Job saved successfully');
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Job saved successfully',
+        data: { saved: true }
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error toggling job save status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving/unsaving job',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+// Get saved jobs for a student
+const getSavedJobs = async (req, res) => {
+  try {
+    console.log('📋 Fetching saved jobs for user:', req.user._id);
+
+    // Get student information
+    const student = await Student.findOne({ userId: req.user._id });
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Get jobs saved by the user
+    const jobs = await Job.find({
+      savedBy: req.user._id
+    })
+    .populate('targetDepartments', 'name code')
+    .populate('eligibility.departments', 'name code')
+    .sort({ createdAt: -1 })
+    .lean();
+
+    console.log('✅ Found', jobs.length, 'saved jobs for user');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        jobs
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching saved jobs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching saved jobs',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   getAllJobs,
   getJob,
@@ -1086,5 +1181,7 @@ module.exports = {
   getPublicJobs,
   getPublicJob,
   publishJob,
-  unpublishJob
+  unpublishJob,
+  toggleSaveJob,
+  getSavedJobs
 };

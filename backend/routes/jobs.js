@@ -8,7 +8,7 @@ const jobController = require('../controllers/jobController');
 const jobApplicationController = require('../controllers/jobApplicationController');
 
 // Import middleware
-const { protect: auth } = require('../middleware/auth');
+const { protect: auth, authorize } = require('../middleware/auth');
 
 // Configure multer for file uploads (company logos and documents)
 const storage = multer.diskStorage({
@@ -98,6 +98,20 @@ router.get('/', auth, jobController.getAllJobs);
  * @access  Private (Students only)
  */
 router.get('/student', auth, jobController.getStudentJobs);
+
+/**
+ * @route   GET /api/v1/jobs/saved
+ * @desc    Get saved jobs for current student
+ * @access  Private (Students only)
+ */
+router.get('/saved', auth, jobController.getSavedJobs);
+
+/**
+ * @route   PUT /api/v1/jobs/:id/save
+ * @desc    Toggle save/unsave job for current student
+ * @access  Private (Students only)
+ */
+router.put('/:id/save', auth, authorize('student'), jobController.toggleSaveJob);
 
 /**
  * @route   GET /api/v1/jobs/utils/departments

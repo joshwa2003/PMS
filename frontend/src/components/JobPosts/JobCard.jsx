@@ -7,7 +7,8 @@ import {
   Schedule as ScheduleIcon,
   Business as BusinessIcon,
   Visibility as ViewIcon,
-  BookmarkBorder as SaveIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  Bookmark as BookmarkIcon,
   Star as StarIcon,
   AccessTime as TimeIcon,
   CheckCircle as CheckCircleIcon,
@@ -26,7 +27,7 @@ import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
 
 
 
-const JobCard = ({ job, onApply, showAppliedBadge }) => {
+const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
   const navigate = useNavigate();
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
@@ -152,15 +153,20 @@ const JobCard = ({ job, onApply, showAppliedBadge }) => {
           <IconButton 
             size="medium" 
             sx={{ 
-              color: 'text.secondary',
+              color: job.isSaved ? 'primary.main' : 'text.secondary',
               '&:hover': { 
                 color: 'primary.main',
                 backgroundColor: 'rgba(25, 118, 210, 0.04)'
               }
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSave) {
+                onSave(job._id);
+              }
+            }}
           >
-            <SaveIcon fontSize="medium" />
+            {job.isSaved ? <BookmarkIcon fontSize="medium" /> : <BookmarkBorderIcon fontSize="medium" />}
           </IconButton>
         </MDBox>
 

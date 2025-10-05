@@ -9,6 +9,12 @@ const jobSchema = new mongoose.Schema({
     maxlength: [200, 'Job title cannot exceed 200 characters']
   },
   
+  // Saved by users
+  savedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  
   // Company Information
   company: {
     name: {
