@@ -187,28 +187,37 @@ const JobPosts = () => {
   };
 
   // Handle job application
-  const handleApply = async (job) => {
+  const handleApply = (job) => {
     if (job?.applicationLink) {
       console.log('🔗 Apply button clicked for job:', job._id);
+      console.log('🔗 Application link:', job.applicationLink);
       
-      // Record the apply click before opening external link
-      await recordApplyClick(job._id, {
-        _id: job._id,
-        title: job.title,
-        company: job.company,
-        location: job.location
-      });
+      // Open external application link FIRST (synchronously, before any async operations)
+      const newWindow = window.open(job.applicationLink, '_blank', 'noopener,noreferrer');
       
-      console.log('✅ Apply click recorded, opening external link:', job.applicationLink);
+      if (newWindow) {
+        console.log('✅ External link opened successfully in new tab');
+      } else {
+        console.warn('⚠️ Popup may have been blocked by browser');
+      }
       
-      // Open external application link
-      window.open(job.applicationLink, '_blank');
+      // Small delay to ensure window opens before showing modal
+      setTimeout(() => {
+        console.log('📱 Now recording apply click and showing modal');
+        // Record the apply click (this will show the modal)
+        recordApplyClick(job._id, {
+          _id: job._id,
+          title: job.title,
+          company: job.company,
+          location: job.location
+        });
+      }, 100);
     } else {
       // If no external link, simulate the apply process for demo purposes
       console.log('🔗 No external link, simulating apply process for job:', job._id);
       
       // Record the apply click for demo
-      await recordApplyClick(job._id || `demo-${Date.now()}`, {
+      recordApplyClick(job._id || `demo-${Date.now()}`, {
         _id: job._id || `demo-${Date.now()}`,
         title: job.title,
         company: job.company,

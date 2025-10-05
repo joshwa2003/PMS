@@ -22,6 +22,7 @@ import MDButton from 'components/MDButton';
 // Material Dashboard 2 React contexts
 import { useMaterialUIController } from 'context';
 import { useAuth } from 'context/AuthContext';
+import { useApplicationResponse } from 'context/ApplicationResponseContext';
 
 // Services
 import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
@@ -33,6 +34,7 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
   const { isStudent } = useAuth();
+  const { recordApplyClick } = useApplicationResponse();
   const daysLeft = getDaysUntilDeadline(job.deadline);
   const isUrgent = daysLeft <= 7;
   
@@ -351,9 +353,34 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onApply) {
-                    onApply(job._id);
+                  
+                  // Apply Now functionality - same as JobDetailPage
+                  if (job?.applicationLink) {
+                    console.log('🔗 Apply button clicked for job:', job._id);
+                    console.log('🔗 Application link:', job.applicationLink);
+                    
+                    // Open external application link FIRST (synchronously)
+                    const newWindow = window.open(job.applicationLink, '_blank', 'noopener,noreferrer');
+                    
+                    if (newWindow) {
+                      console.log('✅ External link opened successfully in new tab');
+                    } else {
+                      console.warn('⚠️ Popup may have been blocked by browser');
+                    }
+                    
+                    // Small delay to ensure window opens before showing modal
+                    setTimeout(() => {
+                      console.log('📱 Now recording apply click and showing modal');
+                      // Record the apply click (this will show the modal)
+                      recordApplyClick(job._id, {
+                        _id: job._id,
+                        title: job.title,
+                        company: job.company,
+                        location: job.location
+                      });
+                    }, 100);
                   } else {
+                    // Fallback to job detail page if no application link
                     navigate(`/job-detail/${job._id}`);
                   }
                 }}
