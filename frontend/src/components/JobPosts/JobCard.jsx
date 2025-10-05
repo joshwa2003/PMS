@@ -21,6 +21,7 @@ import MDButton from 'components/MDButton';
 
 // Material Dashboard 2 React contexts
 import { useMaterialUIController } from 'context';
+import { useAuth } from 'context/AuthContext';
 
 // Services
 import { formatSalary, getDaysUntilDeadline } from 'services/jobService';
@@ -31,6 +32,7 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
   const navigate = useNavigate();
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
+  const { isStudent } = useAuth();
   const daysLeft = getDaysUntilDeadline(job.deadline);
   const isUrgent = daysLeft <= 7;
   
@@ -328,8 +330,8 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
               View Details
             </MDButton>
             
-            {/* Show Apply Now button only if not applied */}
-            {!job.hasApplied && !showAppliedBadge ? (
+            {/* Show Apply Now button only if user is a student and not applied */}
+            {isStudent() && !job.hasApplied && !showAppliedBadge ? (
               <MDButton
                 variant="contained"
                 color="primary"

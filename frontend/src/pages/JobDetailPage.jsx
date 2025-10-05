@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApplicationResponse } from 'context/ApplicationResponseContext';
+import { useAuth } from 'context/AuthContext';
 import {
   Container,
   Grid,
@@ -59,6 +60,7 @@ const JobDetailPage = () => {
   const [error, setError] = useState(null);
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
+  const { isStudent } = useAuth();
 
   const { checkIfApplied, pendingResponse } = useApplicationResponse();
   const [isApplied, setIsApplied] = useState(false);
@@ -321,8 +323,8 @@ const JobDetailPage = () => {
                   </MDBox>
                 </MDBox>
                 
-                {/* Apply Button - Hide if already applied */}
-                {!isApplied && (
+                {/* Apply Button - Show only for students who haven't applied */}
+                {isStudent() && !isApplied && (
                   <MDButton
                     variant="gradient"
                     color="info"
