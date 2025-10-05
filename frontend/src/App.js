@@ -195,7 +195,7 @@ function AppContent({
   configsButton, 
   getRoutes 
 }) {
-  const { pendingResponse, showModal, submitResponse, loading, error, checkForPendingResponses } = useApplicationResponse();
+  const { pendingResponse, showModal, submitResponse, loading, error } = useApplicationResponse();
 
   // Debug logging for App.js - only in development
   if (process.env.NODE_ENV === 'development') {
@@ -209,17 +209,7 @@ function AppContent({
     }
   };
 
-  // Force check on component mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 App.js forcing check for pending responses...');
-      }
-      checkForPendingResponses();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [checkForPendingResponses]);
+  // No automatic checking - modal only appears after clicking "Apply Now"
 
   // Block navigation when modal is shown
   useEffect(() => {

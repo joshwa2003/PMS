@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Grid, Container, CircularProgress, Alert, Pagination, Box } from '@mui/material';
 import { Work as WorkIcon } from '@mui/icons-material';
 
@@ -22,6 +22,7 @@ import { useJob } from 'context/JobContext';
 
 // Services
 import { getPublicJobs } from 'services/jobService';
+import api from 'services/api';
 
 const JobPosts = () => {
   const [jobs, setJobs] = useState([]);
@@ -40,18 +41,16 @@ const JobPosts = () => {
     companies: []
   });
   const [filters, setFilters] = useState({
-    search: '',
     jobType: '',
     location: '',
     company: '',
-    sortBy: 'publishedAt',
+    sortBy: 'createdAt',
     sortOrder: 'desc',
     page: 1,
     limit: 12
   });
-
   // Application response context
-  const { recordApplyClick } = useApplicationResponse();
+  const { recordApplyClick, pendingResponse } = useApplicationResponse();
   
   // Job context for save/unsave functionality
   const { toggleSaveJob, fetchSavedJobs, savedJobs } = useJob();
@@ -68,19 +67,28 @@ const JobPosts = () => {
         // Get the jobs from the response
         let jobsData = response.data.jobs;
         
-        // If we have saved jobs, mark the ones that are saved
-        if (savedJobs && savedJobs.length > 0) {
-          // Create a map of saved job IDs for faster lookup
-          const savedJobsMap = savedJobs.reduce((map, job) => {
-            map[job._id] = true;
-            return map;
-          }, {});
+        // Fetch applied jobs status from backend
+        try {
+          const appliedResponse = await api.get('/jobs/applications/my', {
+            params: { status: 'Applied', limit: 1000 }
+          });
           
-          // Update the isSaved property for each job
-          jobsData = jobsData.map(job => ({
-            ...job,
-            isSaved: savedJobsMap[job._id] || false
-          }));
+          if (appliedResponse.success && appliedResponse.data.applications) {
+            const appliedJobIds = appliedResponse.data.applications.map(app => app.job._id || app.job);
+            const appliedJobsMap = appliedJobIds.reduce((map, jobId) => {
+              map[jobId] = true;
+              return map;
+            }, {});
+            
+            // Mark jobs as applied
+            jobsData = jobsData.map(job => ({
+              ...job,
+              hasApplied: appliedJobsMap[job._id] || false
+            }));
+          }
+        } catch (appliedErr) {
+          console.error('Error fetching applied jobs:', appliedErr);
+          // Continue without applied status if this fails
         }
         
         setJobs(jobsData);
@@ -95,38 +103,71 @@ const JobPosts = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]); // Removed savedJobs from dependencies to prevent infinite loop
 
   // Initial load
   useEffect(() => {
-    // Fetch saved jobs first, then fetch all jobs
-    fetchSavedJobs().then(() => {
-      fetchJobs();
-    }).catch(err => {
-      console.error('Error fetching saved jobs:', err);
-      // Still fetch jobs even if saved jobs fetch fails
-      fetchJobs();
-    });
-  }, [fetchJobs, fetchSavedJobs]);
+    console.log('📌 Initial load: Fetching saved jobs and all jobs...');
+    
+    const loadData = async () => {
+      try {
+        // Fetch saved jobs first and wait for it to complete
+        await fetchSavedJobs();
+        console.log('📌 Saved jobs fetched successfully');
+        
+        // Small delay to ensure savedJobs state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Now fetch all jobs
+        console.log('📌 Now fetching all jobs...');
+        await fetchJobs();
+      } catch (err) {
+        console.error('📌 Error during initial load:', err);
+        // Still fetch jobs even if saved jobs fetch fails
+        await fetchJobs();
+      }
+    };
+    
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
   
-  // Update jobs when savedJobs changes
+  // Update jobs with saved state when savedJobs changes
   useEffect(() => {
-    if (savedJobs && jobs.length > 0) {
-      // Create a map of saved job IDs for faster lookup
-      const savedJobsMap = savedJobs.reduce((map, job) => {
-        map[job._id] = true;
-        return map;
-      }, {});
-      
-      // Update the jobs with the current saved status
-      setJobs(prevJobs => 
-        prevJobs.map(job => ({
-          ...job,
-          isSaved: savedJobsMap[job._id] || false
-        }))
-      );
+    if (!savedJobs) return;
+    
+    console.log('📌 Updating jobs with saved state. Saved jobs:', savedJobs.length);
+
+    const savedJobsMap = savedJobs.reduce((map, job) => {
+      map[job._id] = true;
+      return map;
+    }, {});
+    
+    console.log('📌 Saved jobs map:', savedJobsMap);
+
+    // Ensure current jobs reflect saved state
+    setJobs(prevJobs => {
+      const updatedJobs = prevJobs.map(job => ({
+        ...job,
+        isSaved: !!savedJobsMap[job._id],
+      }));
+      console.log('📌 Updated jobs with isSaved property:', updatedJobs.filter(j => j.isSaved).length, 'jobs are saved');
+      return updatedJobs;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedJobs]); // Only depend on savedJobs, not jobs (to prevent infinite loop)
+
+  // Refresh jobs when application response modal closes (after student responds)
+  // Only refresh if modal was previously open and is now closed
+  const prevPendingResponse = useRef(null);
+  useEffect(() => {
+    if (prevPendingResponse.current !== null && !pendingResponse) {
+      // Modal was open and is now closed, refresh jobs to update applied status
+      fetchJobs();
     }
-  }, [savedJobs]);
+    prevPendingResponse.current = pendingResponse;
+  }, [pendingResponse, fetchJobs]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {

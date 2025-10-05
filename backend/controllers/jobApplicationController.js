@@ -976,12 +976,16 @@ const getPendingResponses = async (req, res) => {
       });
     }
 
-    // Find applications where student clicked apply but hasn't responded
+    // Find applications where student clicked apply but hasn't confirmed they applied
+    // Keep asking until they say "Yes, I Applied" (applied === true)
     const pendingApplications = await JobApplication.find({
       student: student._id,
       'externalApplication.linkClicked': true,
-      'studentResponse.applied': null,
-      status: 'Pending Response'
+      $or: [
+        { 'studentResponse.applied': null },
+        { 'studentResponse.applied': false }
+      ],
+      status: { $in: ['Pending Response', 'Not Applied'] }
     })
     .populate('job', 'title company.name company.logo location deadline status')
     .sort({ 'externalApplication.linkClickedAt': -1 })
@@ -1054,9 +1058,10 @@ const getResponseStatus = async (req, res) => {
     }
 
     // Check if response is required
+    // Keep asking until they confirm "Yes, I Applied" (applied === true)
     const responseRequired = (
       jobApplication.externalApplication.linkClicked &&
-      jobApplication.studentResponse.applied === null &&
+      jobApplication.studentResponse.applied !== true &&
       jobApplication.job.status === 'Active' &&
       new Date(jobApplication.job.deadline) > new Date()
     );
@@ -1069,7 +1074,7 @@ const getResponseStatus = async (req, res) => {
         responseRequired,
         job: jobApplication.job,
         clickedAt: jobApplication.externalApplication.linkClickedAt,
-        hasResponded: jobApplication.studentResponse.applied !== null,
+        hasResponded: jobApplication.studentResponse.applied === true,
         currentStatus: jobApplication.status
       }
     });

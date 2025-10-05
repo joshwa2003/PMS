@@ -457,16 +457,26 @@ export const JobProvider = ({ children }) => {
       // Update jobs in all lists
       const updatedJobs = updateJobInList(state.jobs);
       const updatedStudentJobs = updateJobInList(state.studentJobs);
-      const updatedSavedJobs = state.savedJobs.filter(job => job._id !== jobId);
+      const wasSaved = response.data.saved === true;
+      let updatedSavedJobs;
+      if (wasSaved) {
+        const savedExists = state.savedJobs.some(j => j._id === jobId);
+        if (savedExists) {
+          updatedSavedJobs = state.savedJobs;
+        } else {
+          const jobToAdd = state.jobs.find(j => j._id === jobId) || state.studentJobs.find(j => j._id === jobId);
+          updatedSavedJobs = jobToAdd ? [{ ...jobToAdd, isSaved: true }, ...state.savedJobs] : state.savedJobs;
+        }
+      } else {
+        updatedSavedJobs = state.savedJobs.filter(job => job._id !== jobId);
+      }
       
       // Update state
       dispatch({ type: ActionTypes.SET_JOBS, payload: { jobs: updatedJobs, pagination: state.pagination } });
       dispatch({ type: ActionTypes.SET_STUDENT_JOBS, payload: { jobs: updatedStudentJobs } });
       
-      // If the job was unsaved, remove it from saved jobs list
-      if (response.data?.isSaved === false) {
-        dispatch({ type: ActionTypes.SET_SAVED_JOBS, payload: { jobs: updatedSavedJobs } });
-      }
+      // Reflect saved/unsaved in saved jobs list
+      dispatch({ type: ActionTypes.SET_SAVED_JOBS, payload: { jobs: updatedSavedJobs } });
       
       return response;
     } catch (error) {

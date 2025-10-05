@@ -328,8 +328,8 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
               View Details
             </MDButton>
             
-            {/* Only show Apply Now button if the job has not been applied to */}
-            {!job.hasApplied && !showAppliedBadge && (
+            {/* Show Apply Now button only if not applied */}
+            {!job.hasApplied && !showAppliedBadge ? (
               <MDButton
                 variant="contained"
                 color="primary"
@@ -346,19 +346,19 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
                     boxShadow: '0 4px 12px rgba(25,118,210,0.4)',
                     transform: 'translateY(-1px)'
                   }
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onApply) {
-                  onApply(job._id);
-                } else {
-                  navigate(`/job-detail/${job._id}`);
-                }
-              }}
-            >
-              Apply Now
-            </MDButton>
-            )}
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onApply) {
+                    onApply(job._id);
+                  } else {
+                    navigate(`/job-detail/${job._id}`);
+                  }
+                }}
+              >
+                Apply Now
+              </MDButton>
+            ) : null}
           </MDBox>
         </MDBox>
       </CardContent>

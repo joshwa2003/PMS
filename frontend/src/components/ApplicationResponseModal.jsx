@@ -44,6 +44,19 @@ const ApplicationResponseModal = ({
   const handleSubmit = async () => {
     if (response === null) return;
     
+    // If student clicked "No, I Didn't Apply", just close the modal without saving
+    if (response === false) {
+      console.log('🚫 Student clicked "No, I Didn\'t Apply" - closing modal without saving');
+      onSubmit({
+        applied: false,
+        notes: notes.trim(),
+        jobId: jobData?._id || 'unknown',
+        skipSave: true // Flag to indicate we should just close without saving
+      });
+      return;
+    }
+    
+    // Only save to database if they clicked "Yes, I Applied"
     setSubmitting(true);
     try {
       await onSubmit({
@@ -62,9 +75,18 @@ const ApplicationResponseModal = ({
     setResponse(applied);
   };
 
-  // Don't return null if modal should be open - show a fallback
-  if (!jobData && open) {
-    console.log('⚠️ Modal should be open but no jobData provided');
+  // Don't show modal if job data is invalid
+  if (!jobData || !jobData._id || !jobData.title) {
+    if (open) {
+      console.log('⚠️ Modal should be open but jobData is invalid:', jobData);
+      // Auto-close if invalid data
+      if (onSubmit) {
+        setTimeout(() => {
+          onSubmit({ applied: false, notes: 'Invalid job data', jobId: 'invalid' });
+        }, 100);
+      }
+    }
+    return null;
   }
 
   return (

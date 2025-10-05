@@ -60,7 +60,7 @@ const JobDetailPage = () => {
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
 
-  const { hasApplied, checkIfApplied } = useApplicationResponse();
+  const { checkIfApplied, pendingResponse } = useApplicationResponse();
   const [isApplied, setIsApplied] = useState(false);
 
   useEffect(() => {
@@ -93,7 +93,19 @@ const JobDetailPage = () => {
     if (jobId) {
       fetchJobDetails();
     }
-  }, [jobId, checkIfApplied, hasApplied]);
+  }, [jobId, checkIfApplied]);
+
+  // Refresh job details when application response modal closes
+  useEffect(() => {
+    if (!pendingResponse && jobId) {
+      // Modal was closed, refresh to update applied status
+      const refreshAppliedStatus = async () => {
+        const applied = await checkIfApplied(jobId);
+        setIsApplied(applied);
+      };
+      refreshAppliedStatus();
+    }
+  }, [pendingResponse, jobId, checkIfApplied]);
 
   const { recordApplyClick } = useApplicationResponse();
 
@@ -309,17 +321,19 @@ const JobDetailPage = () => {
                   </MDBox>
                 </MDBox>
                 
-                {/* Apply Button */}
-                <MDButton
-                  variant="gradient"
-                  color={isApplied ? "success" : "info"}
-                  onClick={isApplied ? null : handleApply}
-                  startIcon={isApplied ? <CheckIcon /> : <OpenIcon />}
-                  size="large"
-                  sx={{ minWidth: 160, height: 48 }}
-                >
-                  {isApplied ? "Applied" : "Apply Now"}
-                </MDButton>
+                {/* Apply Button - Hide if already applied */}
+                {!isApplied && (
+                  <MDButton
+                    variant="gradient"
+                    color="info"
+                    onClick={handleApply}
+                    startIcon={<OpenIcon />}
+                    size="large"
+                    sx={{ minWidth: 160, height: 48 }}
+                  >
+                    Apply Now
+                  </MDButton>
+                )}
               </MDBox>
 
               {/* Quick Info Grid */}
