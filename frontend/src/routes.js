@@ -293,10 +293,9 @@ const routes = [
     ),
   },
   {
-    type: "collapse",
+    type: "route",
     name: "Student Profile",
     key: "student-profile",
-    icon: <Icon fontSize="small">school</Icon>,
     route: "/student-profile",
     component: (
       <ProtectedRoute requiredRoles={['student']}>

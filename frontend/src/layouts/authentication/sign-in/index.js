@@ -32,6 +32,10 @@ import InputLabel from "@mui/material/InputLabel";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import GoogleIcon from "@mui/icons-material/Google";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -58,6 +62,7 @@ function Basic() {
   const [error, setError] = useState("");
   const [showDemoCredentials, setShowDemoCredentials] = useState(false);
   const [selectedDemoRole, setSelectedDemoRole] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +98,8 @@ function Basic() {
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
+  const handleTogglePasswordVisibility = () => setShowPassword(!showPassword);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -100,13 +107,21 @@ function Basic() {
 
     try {
       // Enhanced validation
-      if (!formData.email || !formData.password) {
-        throw new Error("Please fill in all fields");
+      if (!formData.email && !formData.password) {
+        throw new Error("Please enter both email and password");
+      }
+
+      if (!formData.email) {
+        throw new Error("Please enter your email address");
+      }
+
+      if (!formData.password) {
+        throw new Error("Please enter your password");
       }
 
       // Email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
+      if (!emailRegex.test(formData.email.trim())) {
         throw new Error("Please enter a valid email address");
       }
 
@@ -115,7 +130,7 @@ function Basic() {
         throw new Error("Password must be at least 6 characters long");
       }
 
-      const response = await login(formData.email, formData.password);
+      const response = await login(formData.email.trim(), formData.password);
       
       // Check if user needs first login setup
       if (response.needsFirstLogin) {
@@ -126,7 +141,17 @@ function Basic() {
       // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
       console.error("Login error:", error);
-      setError(error.message || "Login failed. Please try again.");
+      
+      // Enhanced error messages based on error type
+      let errorMessage = "Login failed. Please try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +240,7 @@ function Basic() {
             </MDBox>
             <MDBox mb={2}>
               <MDInput
-                type="password"
+                type={showPassword ? "text" : "password"}
                 label="Password"
                 name="password"
                 value={formData.password}
@@ -223,6 +248,20 @@ function Basic() {
                 fullWidth
                 required
                 disabled={isLoading}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={handleTogglePasswordVisibility}
+                        edge="end"
+                        disabled={isLoading}
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </MDBox>
             <MDBox display="flex" alignItems="center" ml={-1}>

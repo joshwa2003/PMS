@@ -142,16 +142,18 @@ exports.login = async (req, res) => {
       console.log(`Login attempt failed: User not found for email ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'No account found with this email address. Please check your email or sign up.',
+        errorType: 'EMAIL_NOT_FOUND'
       });
     }
 
     // Check if user is active
     if (!user.isActive) {
       console.log(`Login attempt failed: Account is deactivated for user ${normalizedEmail}`);
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
-        message: 'Account is deactivated. Please contact administrator.'
+        message: 'Your account has been deactivated. Please contact the administrator for assistance.',
+        errorType: 'ACCOUNT_DEACTIVATED'
       });
     }
 
@@ -161,7 +163,8 @@ exports.login = async (req, res) => {
       console.log(`Login attempt failed: Invalid password for user ${normalizedEmail}`);
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Incorrect password. Please try again or reset your password.',
+        errorType: 'INVALID_PASSWORD'
       });
     }
 
