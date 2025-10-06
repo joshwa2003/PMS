@@ -108,17 +108,48 @@ function PlacementDirectorStudentProfileContent() {
   }, [studentId]);
 
   // Handle profile image download
-  const handleDownloadProfileImage = async () => {
-    if (student?.profileImage) {
+  const handleDownloadProfileImage = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const s = student || {};
+    const personal = s.personalInfo || {};
+    const profileImageUrl = s.profileImageUrl || 
+                           s.profileImage || 
+                           s.userId?.profilePicture ||
+                           personal.profileImage || 
+                           s.profile?.profileImage || 
+                           s.profilePicture || 
+                           s.avatar || 
+                           s.image;
+    
+    console.log('Attempting to download image:', profileImageUrl);
+    
+    if (profileImageUrl) {
       try {
+        // For Google Drive URLs, convert to direct download format
+        let downloadUrl = profileImageUrl;
+        if (profileImageUrl.includes('drive.google.com')) {
+          // Extract file ID from Google Drive URL
+          const fileIdMatch = profileImageUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+          if (fileIdMatch) {
+            const fileId = fileIdMatch[1];
+            downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+          }
+        }
+        
+        // Create a temporary link and trigger download
         const link = document.createElement('a');
-        link.href = student.profileImage;
-        link.download = `${student.personalInfo?.fullName || student.fullName || 'student'}_profile_image.jpg`;
+        link.href = downloadUrl;
+        link.download = `${personal.fullName || s.fullName || 'student'}_profile_image.jpg`;
+        link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       } catch (error) {
         console.error('Error downloading image:', error);
+        // Fallback: open in new tab
+        window.open(profileImageUrl, '_blank');
       }
     }
   };
@@ -150,6 +181,41 @@ function PlacementDirectorStudentProfileContent() {
       default:
         return <InsertDriveFileIcon />;
     }
+  };
+
+  // Convert Google Drive URL to viewable format
+  const getViewableImageUrl = (url) => {
+    if (!url) return null;
+    
+    console.log('Original URL:', url);
+    
+    // If it's a Google Drive URL, convert it to viewable format
+    if (url.includes('drive.google.com')) {
+      // Extract file ID from various Google Drive URL formats
+      let fileId = null;
+      
+      // Format: https://drive.google.com/file/d/FILE_ID/view
+      const viewMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (viewMatch) {
+        fileId = viewMatch[1];
+      }
+      
+      // Format: https://drive.google.com/open?id=FILE_ID
+      const openMatch = url.match(/[?&]id=([a-zA-Z0-9-_]+)/);
+      if (openMatch) {
+        fileId = openMatch[1];
+      }
+      
+      if (fileId) {
+        // Convert to thumbnail/viewable format
+        const viewableUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h400`;
+        console.log('Converted to viewable URL:', viewableUrl);
+        return viewableUrl;
+      }
+    }
+    
+    console.log('Using original URL:', url);
+    return url;
   };
 
   // Handle back navigation
@@ -223,6 +289,34 @@ function PlacementDirectorStudentProfileContent() {
   const online = s.onlineProfiles || [];
   const languages = s.languagesKnown || [];
 
+  // Get the profile image URL
+  const rawProfileImageUrl = s.profileImageUrl || 
+                            s.profileImage || 
+                            s.userId?.profilePicture ||
+                            personal.profileImage || 
+                            s.profile?.profileImage || 
+                            s.profilePicture || 
+                            s.avatar || 
+                            s.image;
+
+  // Convert to viewable format
+  const profileImageUrl = getViewableImageUrl(rawProfileImageUrl);
+
+  // Debug: Log student data to see the structure
+  console.log('Student data:', s);
+  console.log('User data:', s.userId);
+  console.log('Profile image paths to check:', {
+    'student.profileImageUrl': s.profileImageUrl,
+    'student.profileImage': s.profileImage,
+    'student.userId.profilePicture': s.userId?.profilePicture,
+    'student.personalInfo.profileImage': personal.profileImage,
+    'student.profile.profileImage': s.profile?.profileImage,
+    'student.profilePicture': s.profilePicture,
+    'student.avatar': s.avatar,
+    'student.image': s.image,
+    'finalProfileImageUrl': profileImageUrl
+  });
+
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -256,7 +350,7 @@ function PlacementDirectorStudentProfileContent() {
             <Card sx={{ textAlign: 'center', boxShadow: 3 }}>
               <MDBox pt={4} pb={3}>
                 <Avatar
-                  src={s.profileImage}
+                  src={profileImageUrl}
                   sx={{
                     width: 150,
                     height: 150,
@@ -264,6 +358,17 @@ function PlacementDirectorStudentProfileContent() {
                     mb: 2,
                     fontSize: '3rem',
                     fontWeight: 'bold'
+                  }}
+                  onError={(e) => {
+                    console.log('Avatar image failed to load:', profileImageUrl);
+                    // Try alternative Google Drive format
+                    if (rawProfileImageUrl && rawProfileImageUrl.includes('drive.google.com')) {
+                      const fileIdMatch = rawProfileImageUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                      if (fileIdMatch) {
+                        const fileId = fileIdMatch[1];
+                        e.target.src = `https://drive.google.com/uc?id=${fileId}`;
+                      }
+                    }
                   }}
                 >
                   {personal.fullName ? personal.fullName.charAt(0).toUpperCase() : 'S'}
@@ -277,7 +382,7 @@ function PlacementDirectorStudentProfileContent() {
                   {academic.department} • {academic.program}
                 </MDTypography>
 
-                {s.profileImage && (
+                {rawProfileImageUrl && (
                   <MDButton
                     variant="outlined"
                     color="info"
