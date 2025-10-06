@@ -1,11 +1,9 @@
 import React from 'react';
 import {
   Avatar,
-  Box,
   Chip,
   IconButton,
   Tooltip,
-  Typography,
   Checkbox
 } from '@mui/material';
 import {
@@ -20,7 +18,6 @@ import {
 // Material Dashboard 2 React components
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
-import MDButton from 'components/MDButton';
 
 const studentTableData = (
   students,
@@ -28,7 +25,8 @@ const studentTableData = (
   handleEditStudent,
   handleDeleteStudent,
   handleToggleStatus,
-  selectionProps = null
+  selectionProps = null,
+  handleRowClick = null
 ) => {
   // Helper function to get initials
   const getInitials = (student) => {
@@ -152,9 +150,21 @@ const studentTableData = (
         )
       } : {}),
 
-      // Student info with avatar
+      // Student info with avatar - Make clickable
       student: (
-        <MDBox display="flex" alignItems="center" lineHeight={1}>
+        <MDBox 
+          display="flex" 
+          alignItems="center" 
+          lineHeight={1}
+          sx={{ 
+            cursor: handleRowClick ? 'pointer' : 'default',
+            '&:hover': handleRowClick ? {
+              backgroundColor: 'rgba(0, 123, 255, 0.04)',
+              borderRadius: 1
+            } : {}
+          }}
+          onClick={handleRowClick ? () => handleRowClick(student) : undefined}
+        >
           <Avatar
             sx={{
               bgcolor: 'primary.main',
@@ -271,11 +281,14 @@ const studentTableData = (
       // Actions
       actions: (
         <MDBox display="flex" alignItems="center" justifyContent="center" gap={0.5}>
-          <Tooltip title="View Details">
+          <Tooltip title="View Full Profile">
             <IconButton
               size="small"
               color="info"
-              onClick={() => handleViewDetails(student)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click when clicking button
+                handleViewDetails(student);
+              }}
               sx={{
                 '&:hover': {
                   backgroundColor: 'info.light',
@@ -292,7 +305,10 @@ const studentTableData = (
               <IconButton
                 size="small"
                 color="warning"
-                onClick={() => handleEditStudent(student)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click when clicking button
+                  handleEditStudent(student);
+                }}
                 sx={{
                   '&:hover': {
                     backgroundColor: 'warning.light',
@@ -310,7 +326,10 @@ const studentTableData = (
               <IconButton
                 size="small"
                 color="error"
-                onClick={() => handleDeleteStudent(student)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click when clicking button
+                  handleDeleteStudent(student);
+                }}
                 sx={{
                   '&:hover': {
                     backgroundColor: 'error.light',

@@ -46,6 +46,7 @@ import StudentProfileViewPage from "pages/StudentProfileViewPage";
 import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
+import PlacementDirectorStudentProfile from "pages/PlacementDirectorStudentProfile";
 import StaffManagement from "pages/StaffManagement";
 import StudentManagement from "pages/StudentManagement";
 import CourseCategoryManagement from "pages/CourseCategoryManagement";
@@ -324,6 +325,18 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['placement_staff']}>
         <StudentProfileViewPage />
+      </ProtectedRoute>
+    ),
+  },
+  // Placement Director view of specific student profile (hidden from sidebar)
+  {
+    type: "route",
+    name: "Placement Director Student Profile",
+    key: "placement-director-student-profile",
+    route: "/placement-director/student-profile/:studentId",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <PlacementDirectorStudentProfile />
       </ProtectedRoute>
     ),
   },

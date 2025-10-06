@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Grid,
   Box,
-  Paper,
   IconButton,
   TextField,
   InputAdornment,
@@ -27,11 +27,9 @@ import {
   Clear as ClearIcon,
   Refresh as RefreshIcon,
   Sort as SortIcon,
-  FilterList as FilterListIcon,
   ViewList as ViewListIcon,
   Pages as PagesIcon,
   DeleteSweep as DeleteSweepIcon,
-  SelectAll as SelectAllIcon,
   Download as DownloadIcon
 } from '@mui/icons-material';
 
@@ -45,8 +43,6 @@ import CustomDataTable from "components/StaffManagement/CustomDataTable";
 import StudentDetailsModal from "./StudentDetailsModal";
 import studentTableData from "./data/studentTableData";
 
-// Services
-import departmentWiseStudentService from 'services/departmentWiseStudentService';
 
 const StudentDataTable = ({ 
   students = [], 
@@ -59,9 +55,10 @@ const StudentDataTable = ({
   onExportCSV,
   department
 }) => {
+  const navigate = useNavigate();
+  
   // State for student detail modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -179,10 +176,14 @@ const StudentDataTable = ({
     return count;
   };
 
-  // Handle view details
+  // Handle view details - Navigate to detailed profile page
   const handleViewDetails = (student) => {
-    setSelectedStudent(student);
-    setDetailModalOpen(true);
+    navigate(`/placement-director/student-profile/${student.id || student._id}`);
+  };
+
+  // Handle row click - Navigate to detailed profile page
+  const handleRowClick = (student) => {
+    navigate(`/placement-director/student-profile/${student.id || student._id}`);
   };
 
   // Handle edit student (placeholder)
@@ -242,7 +243,8 @@ const StudentDataTable = ({
     {
       selectedStudents,
       toggleStudentSelection
-    }
+    },
+    handleRowClick // Pass the row click handler
   );
 
   if (loading) {
@@ -639,7 +641,7 @@ const StudentDataTable = ({
       <StudentDetailsModal
         open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
-        student={selectedStudent}
+        student={null}
         onEditStudent={handleEditStudent}
         onDeleteStudent={handleDeleteStudent}
         canEdit={false} // TODO: Implement based on user permissions
