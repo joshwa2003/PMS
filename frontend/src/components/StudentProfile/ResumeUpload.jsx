@@ -4,15 +4,17 @@ import { useStudentProfile } from '../../context/StudentProfileContext';
 // @mui material components
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
+import TextField from "@mui/material/TextField";
 import LinearProgress from "@mui/material/LinearProgress";
 import Alert from "@mui/material/Alert";
 
 // @mui icons
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import LinkIcon from "@mui/icons-material/Link";
 import DescriptionIcon from "@mui/icons-material/Description";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoIcon from "@mui/icons-material/Info";
 
 // S.A. Engineering College React components
 import MDBox from "../MDBox";
@@ -27,91 +29,94 @@ function ResumeUpload() {
     saveProfile,
     isSaving,
     getFieldValue,
-    uploadResume,
+    updateResume,
     goToPreviousTab
   } = useStudentProfile();
 
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileSelect = (file) => {
-    if (!file) return;
-
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-      setUploadError('Please select a PDF file only.');
-      return;
+  const validateGoogleDriveUrl = (url) => {
+    if (!url || typeof url !== 'string') {
+      return { isValid: false, error: 'URL is required' };
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-    if (file.size > maxSize) {
-      setUploadError('File size must be less than 5MB.');
-      return;
+    // Remove whitespace
+    url = url.trim();
+
+    // Check if it's a Google Drive URL
+    const googleDrivePatterns = [
+      /^https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/,
+      /^https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9-_]+)/,
+      /^https:\/\/docs\.google\.com\/document\/d\/([a-zA-Z0-9-_]+)/,
+      /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+      /^https:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9-_]+)/
+    ];
+
+    const isValidGoogleDriveUrl = googleDrivePatterns.some(pattern => pattern.test(url));
+
+    if (!isValidGoogleDriveUrl) {
+      return { 
+        isValid: false, 
+        error: 'Please provide a valid Google Drive share link' 
+      };
     }
 
-    handleUpload(file);
+    return { isValid: true, url };
   };
 
-  const handleUpload = async (file) => {
+  const handleGoogleDriveSubmit = async () => {
+    if (!googleDriveUrl.trim()) {
+      setUploadError('Please enter a Google Drive URL');
+      return;
+    }
+
+    const validation = validateGoogleDriveUrl(googleDriveUrl);
+    if (!validation.isValid) {
+      setUploadError(validation.error);
+      return;
+    }
+
     setUploadError('');
     setUploadSuccess('');
+    setIsProcessing(true);
     setUploadProgress(0);
 
     try {
-      // Simulate upload progress
+      // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
             clearInterval(progressInterval);
             return 90;
           }
-          return prev + 10;
+          return prev + 15;
         });
-      }, 200);
+      }, 300);
 
-      const result = await uploadResume(file);
+      const result = await updateResume(googleDriveUrl);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
       if (result.success) {
-        setUploadSuccess('Resume uploaded successfully!');
+        setUploadSuccess('Resume link saved successfully!');
+        setGoogleDriveUrl('');
         // Save the profile with updated resume info
         await saveProfile();
       } else {
-        setUploadError(result.error || 'Failed to upload resume');
+        setUploadError(result.error || 'Failed to save resume link');
         setUploadProgress(0);
       }
     } catch (error) {
-      setUploadError(error.message || 'Failed to upload resume');
+      setUploadError(error.message || 'Failed to save resume link');
       setUploadProgress(0);
+    } finally {
+      setIsProcessing(false);
     }
-  };
-
-  const handleFileInputChange = (event) => {
-    const file = event.target.files[0];
-    handleFileSelect(file);
-  };
-
-  const handleDragOver = (event) => {
-    event.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (event) => {
-    event.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setIsDragging(false);
-    const file = event.dataTransfer.files[0];
-    handleFileSelect(file);
   };
 
   const handleRemoveResume = () => {
@@ -125,25 +130,17 @@ function ResumeUpload() {
   const currentResumeLink = getFieldValue('placement.resumeLink');
   const resumeLastUpdated = getFieldValue('placement.resumeLastUpdated');
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
     <MDBox>
       <MDBox mb={3}>
         <MDBox display="flex" alignItems="center" mb={2}>
-          <CloudUploadIcon sx={{ mr: 1, color: '#1976d2' }} />
+          <LinkIcon sx={{ mr: 1, color: '#1976d2' }} />
           <MDTypography variant="h6" fontWeight="medium">
             Resume Upload
           </MDTypography>
         </MDBox>
         <MDTypography variant="body2" color="text" mb={2}>
-          Upload your latest resume in PDF format (Maximum size: 5MB)
+          Share your resume using a Google Drive link. Make sure your file is publicly accessible.
         </MDTypography>
       </MDBox>
 
@@ -201,61 +198,55 @@ function ResumeUpload() {
           </Grid>
         )}
 
-        {/* Upload Area */}
+        {/* Google Drive URL Input */}
         <Grid item xs={12}>
-          <Card
-            sx={{
-              p: 4,
-              border: isDragging ? '2px dashed #1976d2' : '2px dashed #ccc',
-              bgcolor: isDragging ? 'info.main' : 'grey.50',
-              opacity: isDragging ? 0.1 : 1,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                borderColor: '#1976d2',
-                bgcolor: 'info.main',
-                opacity: 0.05
-              }
-            }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <MDBox textAlign="center">
-              <CloudUploadIcon sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
+          <Card sx={{ p: 3 }}>
+            <MDBox mb={2}>
               <MDTypography variant="h6" fontWeight="medium" mb={1}>
-                {currentResumeLink ? 'Upload New Resume' : 'Upload Your Resume'}
+                {currentResumeLink ? 'Update Resume Link' : 'Add Resume Link'}
               </MDTypography>
               <MDTypography variant="body2" color="text" mb={2}>
-                Drag and drop your PDF file here, or click to browse
+                Paste your Google Drive share link below
               </MDTypography>
-              <MDButton
+            </MDBox>
+            
+            <MDBox mb={2}>
+              <TextField
+                fullWidth
+                label="Google Drive URL"
+                placeholder="https://drive.google.com/file/d/your-file-id/view?usp=sharing"
+                value={googleDriveUrl}
+                onChange={(e) => setGoogleDriveUrl(e.target.value)}
                 variant="outlined"
+                disabled={isProcessing}
+                InputProps={{
+                  startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+                helperText="Make sure your Google Drive file is shared publicly or with appropriate permissions"
+              />
+            </MDBox>
+
+            <MDBox display="flex" justifyContent="flex-end">
+              <MDButton
+                variant="gradient"
                 color="info"
+                onClick={handleGoogleDriveSubmit}
+                disabled={isProcessing || !googleDriveUrl.trim()}
                 startIcon={<DescriptionIcon />}
               >
-                Choose PDF File
+                {isProcessing ? 'Processing...' : 'Save Resume Link'}
               </MDButton>
             </MDBox>
           </Card>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleFileInputChange}
-            style={{ display: 'none' }}
-          />
         </Grid>
 
-        {/* Upload Progress */}
+        {/* Processing Progress */}
         {uploadProgress > 0 && uploadProgress < 100 && (
           <Grid item xs={12}>
             <Card sx={{ p: 2 }}>
               <MDBox mb={1}>
                 <MDTypography variant="body2" fontWeight="medium">
-                  Uploading Resume... {uploadProgress}%
+                  Processing Resume Link... {uploadProgress}%
                 </MDTypography>
               </MDBox>
               <LinearProgress
@@ -292,56 +283,56 @@ function ResumeUpload() {
           </Grid>
         )}
 
-        {/* Upload Guidelines */}
+        {/* Google Drive Sharing Instructions */}
         <Grid item xs={12}>
           <Card variant="outlined" sx={{ p: 2 }}>
             <MDTypography variant="h6" fontWeight="medium" mb={2}>
-              Resume Upload Guidelines
+              How to Share Your Resume from Google Drive
             </MDTypography>
             
             <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <MDTypography variant="body2" fontWeight="medium" mb={1} color="info">
+                  📋 Step-by-Step Instructions:
+                </MDTypography>
+                <MDTypography variant="body2" color="text">
+                  1. Upload your resume to Google Drive
+                  <br />
+                  2. Right-click on your resume file
+                  <br />
+                  3. Select "Share" from the menu
+                  <br />
+                  4. Click "Change to anyone with the link"
+                  <br />
+                  5. Set permission to "Viewer"
+                  <br />
+                  6. Click "Copy link" and paste it above
+                </MDTypography>
+              </Grid>
+              
               <Grid item xs={12} md={6}>
                 <MDTypography variant="body2" fontWeight="medium" mb={1} color="success">
                   ✅ Best Practices:
                 </MDTypography>
                 <MDTypography variant="body2" color="text">
-                  • Use PDF format only
+                  • Use PDF format for your resume
                   <br />
-                  • Keep file size under 5MB
+                  • Ensure the file is publicly accessible
                   <br />
-                  • Use a clear, professional filename
+                  • Use a professional filename
                   <br />
-                  • Ensure text is readable and well-formatted
+                  • Keep your resume updated
                   <br />
-                  • Include updated contact information
+                  • Test the link before submitting
                   <br />
-                  • Highlight relevant skills and experiences
-                </MDTypography>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <MDTypography variant="body2" fontWeight="medium" mb={1} color="error">
-                  ❌ Avoid:
-                </MDTypography>
-                <MDTypography variant="body2" color="text">
-                  • Image files (JPG, PNG) instead of PDF
-                  <br />
-                  • Files larger than 5MB
-                  <br />
-                  • Password-protected PDFs
-                  <br />
-                  • Scanned documents with poor quality
-                  <br />
-                  • Outdated or irrelevant information
-                  <br />
-                  • Unprofessional email addresses
+                  • Don't delete the file from Google Drive
                 </MDTypography>
               </Grid>
             </Grid>
           </Card>
         </Grid>
 
-        {/* Resume Tips */}
+        {/* Important Notes */}
         <Grid item xs={12}>
           <Card sx={{ 
             p: 2, 
@@ -350,21 +341,24 @@ function ResumeUpload() {
             borderColor: 'warning.main',
             backgroundColor: 'rgba(251, 140, 0, 0.08)'
           }}>
-            <MDTypography variant="body2" color="warning" fontWeight="medium" mb={1}>
-              💡 Pro Tips for Your Resume:
-            </MDTypography>
+            <MDBox display="flex" alignItems="center" mb={1}>
+              <InfoIcon sx={{ mr: 1, color: 'warning.main' }} />
+              <MDTypography variant="body2" color="warning" fontWeight="medium">
+                Important Notes:
+              </MDTypography>
+            </MDBox>
             <MDTypography variant="body2" color="text">
-              • Tailor your resume for each job application
+              • Your Google Drive link will be stored and used by placement coordinators
               <br />
-              • Use action verbs to describe your experiences
+              • Make sure the file remains accessible - don't delete it from Google Drive
               <br />
-              • Quantify your achievements with numbers when possible
+              • You can update the link anytime by entering a new URL
               <br />
-              • Keep it concise - ideally 1-2 pages for fresh graduates
+              • The system will validate your link to ensure it's a valid Google Drive URL
               <br />
-              • Proofread carefully for spelling and grammar errors
+              • For best results, use PDF format for your resume
               <br />
-              • Update regularly with new skills and experiences
+              • Test your link in an incognito window to ensure it's publicly accessible
             </MDTypography>
           </Card>
         </Grid>
