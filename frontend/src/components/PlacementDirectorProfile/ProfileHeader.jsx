@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Card, Avatar, IconButton, CircularProgress, Box, Typography } from '@mui/material';
-import { PhotoCamera, Person } from '@mui/icons-material';
+import React from 'react';
+import { Card, Avatar, Box, Typography } from '@mui/material';
+import { Person } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
@@ -9,49 +9,9 @@ import { useAuth } from '../../context/AuthContext';
 import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
-  const { user, updateProfilePicture } = useAuth();
-  const { formData, uploadProfileImage, isSaving, getProfileCompletion } = usePlacementDirectorProfile();
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const { user } = useAuth();
+  const { formData, getProfileCompletion } = usePlacementDirectorProfile();
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, or WebP)');
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const result = await uploadProfileImage(file);
-      if (result.success) {
-        // Update the profile picture in AuthContext as well
-        updateProfilePicture(result.profilePhotoUrl);
-        console.log('Profile image uploaded successfully');
-      } else {
-        alert(result.error || 'Failed to upload image');
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      alert('Failed to upload image. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const profileCompletion = getProfileCompletion();
   
@@ -85,7 +45,6 @@ function ProfileHeader() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden',
                   border: '3px solid',
@@ -120,51 +79,18 @@ function ProfileHeader() {
                 sx={{
                   width: 80,
                   height: 80,
-                  cursor: 'pointer',
                   border: '3px solid',
                   borderColor: 'info.main',
                   '&:hover': {
                     opacity: 0.8
                   }
                 }}
-                onClick={handleImageClick}
               >
                 {!profileImage && <Person sx={{ fontSize: 40 }} />}
               </Avatar>
             )}
             
-            {/* Upload Button Overlay */}
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: -5,
-                right: -5,
-                backgroundColor: 'info.main',
-                color: 'white',
-                width: 30,
-                height: 30,
-                '&:hover': {
-                  backgroundColor: 'info.dark'
-                }
-              }}
-              onClick={handleImageClick}
-              disabled={isUploading || isSaving}
-            >
-              {isUploading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PhotoCamera sx={{ fontSize: 16 }} />
-              )}
-            </IconButton>
 
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-            />
           </MDBox>
 
           {/* Profile Info */}

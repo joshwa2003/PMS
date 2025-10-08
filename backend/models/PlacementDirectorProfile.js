@@ -14,7 +14,8 @@ const placementDirectorProfileSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Employee ID is required'],
     unique: true,
-    trim: true
+    trim: true,
+    sparse: true  // Allow multiple null/undefined values
   },
   name: {
     firstName: {
@@ -41,7 +42,13 @@ const placementDirectorProfileSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Mobile number is required'],
     trim: true,
-    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
+    validate: {
+      validator: function(v) {
+        // Allow empty string or valid 10-digit number
+        return !v || /^[0-9]{10}$/.test(v);
+      },
+      message: 'Please enter a valid 10-digit mobile number'
+    }
   },
   gender: {
     type: String,
@@ -105,12 +112,24 @@ const placementDirectorProfileSchema = new mongoose.Schema({
     type: String,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid official email']
+    validate: {
+      validator: function(v) {
+        // Allow empty string or valid email
+        return !v || /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
+      },
+      message: 'Please enter a valid official email'
+    }
   },
   alternateMobile: {
     type: String,
     trim: true,
-    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit alternate mobile number']
+    validate: {
+      validator: function(v) {
+        // Allow empty string or valid 10-digit number
+        return !v || /^[0-9]{10}$/.test(v);
+      },
+      message: 'Please enter a valid 10-digit alternate mobile number'
+    }
   },
   reportingTo: {
     type: mongoose.Schema.Types.ObjectId,
@@ -154,7 +173,13 @@ const placementDirectorProfileSchema = new mongoose.Schema({
       pincode: {
         type: String,
         trim: true,
-        match: [/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode']
+        validate: {
+          validator: function(v) {
+            // Allow empty string or valid 6-digit pincode
+            return !v || /^[0-9]{6}$/.test(v);
+          },
+          message: 'Please enter a valid 6-digit pincode'
+        }
       },
       country: {
         type: String,

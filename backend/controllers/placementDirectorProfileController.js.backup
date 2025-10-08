@@ -186,14 +186,8 @@ exports.getProfile = async (req, res) => {
 // @access  Private (Own profile only)
 exports.updateProfile = async (req, res) => {
   try {
-    console.log('🔍 Update placement director profile request:', {
-      userId: req.user._id,
-      body: JSON.stringify(req.body, null, 2)
-    });
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -205,37 +199,21 @@ exports.updateProfile = async (req, res) => {
     
     // Find existing profile or create new one
     let profile = await PlacementDirectorProfile.findByUserId(userId);
-    console.log('🔍 Found existing profile:', !!profile);
     
     if (!profile) {
-      console.log('🔍 Creating new profile with data:', req.body);
-      // Create new profile - ensure all required fields are present
-      const profileData = {
+      // Create new profile
+      profile = new PlacementDirectorProfile({
         userId,
-        employeeId: req.body.employeeId,
-        name: req.body.name || {},
-        email: req.body.email,
-        mobileNumber: req.body.mobileNumber,
-        gender: req.body.gender,
-        role: req.body.role || 'placement_director',
-        department: req.body.department || 'Placement Cell',
-        designation: req.body.designation || 'Director',
-        dateOfJoining: req.body.dateOfJoining || new Date(),
         ...req.body
-      };
-      
-      console.log('🔍 Profile data to create:', JSON.stringify(profileData, null, 2));
-      profile = new PlacementDirectorProfile(profileData);
+      });
     } else {
-      console.log('🔍 Updating existing profile');
       // Update existing profile
+      Object.keys(req.body).forEach(key => {
       // Set defaults for required fields if missing
       if (!profile.dateOfJoining) profile.dateOfJoining = new Date();
       if (!profile.designation) profile.designation = "Director";
       if (!profile.department) profile.department = "Placement Cell";
-      if (!profile.role) profile.role = "placement_director";
 
-      Object.keys(req.body).forEach(key => {
         if (key === 'name' && typeof req.body[key] === 'object') {
           profile.name = { ...profile.name, ...req.body[key] };
         } else if (key === 'contact' && typeof req.body[key] === 'object') {
@@ -249,19 +227,28 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    console.log('🔍 Profile before save:', JSON.stringify(profile.toObject(), null, 2));
     const updatedProfile = await profile.save();
-    console.log('✅ Profile saved successfully');
 
-    // Also update the User model with basic information (excluding department as it expects ObjectId)
+    // Also update the User model with basic information
     await User.findByIdAndUpdate(userId, {
       firstName: updatedProfile.name.firstName,
       lastName: updatedProfile.name.lastName,
       mobileNumber: updatedProfile.mobileNumber,
       gender: updatedProfile.gender,
       profilePhotoUrl: updatedProfile.profilePhotoUrl,
+      department: updatedProfile.department,
       employeeId: updatedProfile.employeeId,
-      designation: updatedProfile.designation
+      designation: updatedProfile.designation,
+      dateOfJoining: updatedProfile.dateOfJoining,
+      officeRoomNo: updatedProfile.officeRoomNo,
+      officialEmail: updatedProfile.officialEmail,
+      alternateMobile: updatedProfile.alternateMobile,
+      reportingTo: updatedProfile.reportingTo,
+      yearsOfExperience: updatedProfile.yearsOfExperience,
+      resumeUrl: updatedProfile.resumeUrl,
+      responsibilitiesText: updatedProfile.responsibilitiesText,
+      communicationPreferences: updatedProfile.communicationPreferences,
+      contact: updatedProfile.contact
     });
 
     res.status(200).json({
@@ -302,44 +289,11 @@ exports.updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Update placement director profile error:', error);
-    console.error('❌ Error stack:', error.stack);
-    console.error('❌ Error name:', error.name);
-    
-    // Handle validation errors specifically
-    if (error.name === 'ValidationError') {
-      console.error('❌ Validation errors:', error.errors);
-      const validationErrors = Object.keys(error.errors).map(key => ({
-        field: key,
-        message: error.errors[key].message,
-        value: error.errors[key].value
-      }));
-      
-      return res.status(400).json({
-        success: false,
-        message: 'Profile validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors
-    if (error.code === 11000) {
-      console.error('❌ Duplicate key error:', error.keyValue);
-      return res.status(400).json({
-        success: false,
-        message: 'Duplicate value error',
-        error: `${Object.keys(error.keyValue)[0]} already exists`
-      });
-    }
-    
+    console.error('Update placement director profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while updating placement director profile',
-      error: process.env.NODE_ENV === 'development' ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

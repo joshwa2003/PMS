@@ -105,25 +105,6 @@ function PlacementDirectorProfileSidenav({ color, brand, brandName, ...rest }) {
     }
   ];
 
-  // Main navigation items
-  const mainNavItems = [
-    {
-      type: "collapse",
-      name: "Dashboard",
-      key: "dashboard",
-      icon: <Icon fontSize="small">dashboard</Icon>,
-      route: "/dashboard",
-      component: <Link to="/dashboard" />
-    },
-    {
-      type: "collapse", 
-      name: "Back to Main",
-      key: "back-main",
-      icon: <Icon fontSize="small">arrow_back</Icon>,
-      route: "/dashboard",
-      component: <Link to="/dashboard" />
-    }
-  ];
 
   const profileCompletion = getProfileCompletion();
 
@@ -261,29 +242,6 @@ function PlacementDirectorProfileSidenav({ color, brand, brandName, ...rest }) {
           Profile Sections
         </MDTypography>
         {renderRoutes(profileNavItems)}
-        
-        <Divider
-          light={
-            (!darkMode && !whiteSidenav && !transparentSidenav) ||
-            (darkMode && !transparentSidenav && whiteSidenav)
-          }
-        />
-        
-        {/* Main Navigation */}
-        <MDTypography
-          color={textColor}
-          display="block"
-          variant="caption"
-          fontWeight="bold"
-          textTransform="uppercase"
-          pl={3}
-          mt={2}
-          mb={1}
-          ml={1}
-        >
-          Navigation
-        </MDTypography>
-        {renderRoutes(mainNavItems)}
       </List>
 
       {/* Quick Actions */}

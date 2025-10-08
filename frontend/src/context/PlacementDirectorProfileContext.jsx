@@ -219,6 +219,11 @@ export const PlacementDirectorProfileProvider = ({ children }) => {
       // Clean the data before sending - remove empty strings and null values
       const cleanedData = cleanFormData(dataToSave);
       
+      // Ensure required fields have default values
+      if (!cleanedData.dateOfJoining) cleanedData.dateOfJoining = new Date().toISOString();
+      if (!cleanedData.designation) cleanedData.designation = "Director";
+      if (!cleanedData.department) cleanedData.department = "Placement Cell";
+      
       console.log('Saving placement director profile data:', cleanedData);
       
       // Validate data using the service

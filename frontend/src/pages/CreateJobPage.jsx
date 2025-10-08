@@ -35,6 +35,9 @@ import MDButton from 'components/MDButton';
 import MDTypography from 'components/MDTypography';
 import MDAlert from 'components/MDAlert';
 
+// Custom components
+import BatchSelector from 'components/BatchSelector';
+
 // Material Dashboard 2 React example components
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
@@ -148,6 +151,7 @@ function CreateJobPage() {
     },
     postingType: 'Specific Departments',
     targetDepartments: [],
+    targetBatches: [],
     status: 'Draft'
   });
 
@@ -294,6 +298,14 @@ function CreateJobPage() {
       case 3: // Target Departments
         if (formData.postingType === 'Specific Departments' && formData.targetDepartments.length === 0) {
           newErrors.targetDepartments = 'Please select at least one department';
+        }
+        if (formData.postingType === 'Specific Batches') {
+          if (formData.targetDepartments.length === 0) {
+            newErrors.targetDepartments = 'Please select at least one department first';
+          }
+          if (formData.targetBatches.length === 0) {
+            newErrors.targetBatches = 'Please select at least one batch';
+          }
         }
         break;
       
@@ -643,6 +655,7 @@ function CreateJobPage() {
                 >
                   <MenuItem value="All Departments">All Departments</MenuItem>
                   <MenuItem value="Specific Departments">Specific Departments</MenuItem>
+                  <MenuItem value="Specific Batches">Specific Batches</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -680,6 +693,64 @@ function CreateJobPage() {
                   )}
                 </FormControl>
               </Grid>
+            )}
+
+            {formData.postingType === 'Specific Batches' && (
+              <>
+                <Grid item xs={12}>
+                  <FormControl fullWidth error={!!errors.targetDepartments} variant="outlined">
+                    <InputLabel>Select Departments First</InputLabel>
+                    <Select
+                      multiple
+                      value={formData.targetDepartments}
+                      onChange={(e) => {
+                        handleInputChange('targetDepartments', e.target.value);
+                        // Clear selected batches when departments change
+                        handleInputChange('targetBatches', []);
+                      }}
+                      input={<OutlinedInput label="Select Departments First" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => {
+                            const dept = departments.find(d => d._id === value);
+                            return (
+                              <Chip key={value} label={dept?.name || value} size="small" />
+                            );
+                          })}
+                        </Box>
+                      )}
+                    >
+                      {departments.map((dept) => (
+                        <MenuItem key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.targetDepartments && (
+                      <MDTypography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
+                        {errors.targetDepartments}
+                      </MDTypography>
+                    )}
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <MDTypography variant="subtitle2" fontWeight="medium" color="dark" mb={1}>
+                    Select Specific Batches:
+                  </MDTypography>
+                  <BatchSelector
+                    selectedDepartments={formData.targetDepartments}
+                    selectedBatches={formData.targetBatches}
+                    onBatchChange={(batches) => handleInputChange('targetBatches', batches)}
+                    error={errors.targetBatches}
+                  />
+                  {errors.targetBatches && (
+                    <MDTypography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
+                      {errors.targetBatches}
+                    </MDTypography>
+                  )}
+                </Grid>
+              </>
             )}
 
             <Grid item xs={12}>
@@ -757,6 +828,11 @@ function CreateJobPage() {
                     <MDTypography variant="body2" color="text">
                       {formData.postingType === 'All Departments' 
                         ? 'All Departments' 
+                        : formData.postingType === 'Specific Batches'
+                        ? `Selected Departments: ${formData.targetDepartments.map(id => {
+                            const dept = departments.find(d => d._id === id);
+                            return dept?.name;
+                          }).join(', ') || 'None selected'}`
                         : formData.targetDepartments.map(id => {
                             const dept = departments.find(d => d._id === id);
                             return dept?.name;
@@ -764,6 +840,17 @@ function CreateJobPage() {
                       }
                     </MDTypography>
                   </Grid>
+
+                  {formData.postingType === 'Specific Batches' && formData.targetBatches.length > 0 && (
+                    <Grid item xs={12}>
+                      <MDTypography variant="button" fontWeight="medium" color="dark">
+                        Target Batches:
+                      </MDTypography>
+                      <MDTypography variant="body2" color="text">
+                        {formData.targetBatches.length} batch{formData.targetBatches.length !== 1 ? 'es' : ''} selected
+                      </MDTypography>
+                    </Grid>
+                  )}
                 </Grid>
               </Paper>
             </Grid>

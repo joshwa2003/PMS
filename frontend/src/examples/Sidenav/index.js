@@ -126,8 +126,13 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   }, [dispatch, location]);
 
   // Filter routes based on user role
-  const filteredRoutes = routes.filter(({ key }) => {
+  const filteredRoutes = routes.filter(({ key, hideForRoles }) => {
     if (!user) return true; // Show all routes if no user (shouldn't happen in protected routes)
+    
+    // Check if route should be hidden for current user role
+    if (hideForRoles && hideForRoles.includes(user.role)) {
+      return false;
+    }
     
     // Define role groups
     const systemAdminRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff'];

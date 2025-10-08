@@ -41,6 +41,9 @@ import MDBox from 'components/MDBox';
 import MDButton from 'components/MDButton';
 import MDTypography from 'components/MDTypography';
 import GoogleDrivePreview from 'components/GoogleDrivePreview';
+
+// Custom components
+import BatchSelector from 'components/BatchSelector';
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 
@@ -119,6 +122,7 @@ const CreateJobPageEnhanced = () => {
     },
     postingType: 'Specific Departments',
     targetDepartments: [],
+    targetBatches: [],
     status: 'Draft'
   });
 
@@ -287,6 +291,14 @@ const CreateJobPageEnhanced = () => {
       case 4: // Target Departments
         if (formData.postingType === 'Specific Departments' && formData.targetDepartments.length === 0) {
           newErrors.targetDepartments = 'Please select at least one department';
+        }
+        if (formData.postingType === 'Specific Batches') {
+          if (formData.targetDepartments.length === 0) {
+            newErrors.targetDepartments = 'Please select at least one department first';
+          }
+          if (formData.targetBatches.length === 0) {
+            newErrors.targetBatches = 'Please select at least one batch';
+          }
         }
         break;
       
@@ -938,6 +950,9 @@ const CreateJobPageEnhanced = () => {
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <MDTypography variant="h5" mb={2}>Target Departments</MDTypography>
+              <MDTypography variant="caption" color="text" mb={1}>
+                Current Posting Type: {formData.postingType}
+              </MDTypography>
             </Grid>
 
             <Grid item xs={12}>
@@ -945,11 +960,15 @@ const CreateJobPageEnhanced = () => {
                 <InputLabel>Posting Type</InputLabel>
                 <Select
                   value={formData.postingType}
-                  onChange={(e) => handleInputChange('postingType', e.target.value)}
+                  onChange={(e) => {
+                    console.log('Posting type changed to:', e.target.value);
+                    handleInputChange('postingType', e.target.value);
+                  }}
                   label="Posting Type"
                 >
                   <MenuItem value="All Departments">All Departments</MenuItem>
                   <MenuItem value="Specific Departments">Specific Departments</MenuItem>
+                  <MenuItem value="Specific Batches">Specific Batches</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -987,6 +1006,64 @@ const CreateJobPageEnhanced = () => {
                   )}
                 </FormControl>
               </Grid>
+            )}
+
+            {formData.postingType === 'Specific Batches' && (
+              <>
+                <Grid item xs={12}>
+                  <FormControl fullWidth error={!!errors.targetDepartments}>
+                    <InputLabel>Select Departments First</InputLabel>
+                    <Select
+                      multiple
+                      value={formData.targetDepartments}
+                      onChange={(e) => {
+                        handleInputChange('targetDepartments', e.target.value);
+                        // Clear selected batches when departments change
+                        handleInputChange('targetBatches', []);
+                      }}
+                      input={<OutlinedInput label="Select Departments First" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => {
+                            const dept = departments.find(d => d._id === value);
+                            return (
+                              <Chip key={value} label={dept?.name || value} size="small" />
+                            );
+                          })}
+                        </Box>
+                      )}
+                    >
+                      {departments.map((dept) => (
+                        <MenuItem key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.targetDepartments && (
+                      <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
+                        {errors.targetDepartments}
+                      </Typography>
+                    )}
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <MDTypography variant="subtitle2" fontWeight="medium" color="dark" mb={1}>
+                    Select Specific Batches:
+                  </MDTypography>
+                  <BatchSelector
+                    selectedDepartments={formData.targetDepartments}
+                    selectedBatches={formData.targetBatches}
+                    onBatchChange={(batches) => handleInputChange('targetBatches', batches)}
+                    error={errors.targetBatches}
+                  />
+                  {errors.targetBatches && (
+                    <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
+                      {errors.targetBatches}
+                    </Typography>
+                  )}
+                </Grid>
+              </>
             )}
 
             <Grid item xs={12}>

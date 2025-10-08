@@ -21,7 +21,7 @@ router.get('/profile', protect, authorize('placement_director'), getProfile);
 // @route   PUT /api/v1/placement-director-profiles/profile
 // @desc    Update own placement director profile
 // @access  Private (Placement Director role only)
-router.put('/profile', protect, authorize('placement_director'), validatePlacementDirectorProfileUpdate, updateProfile);
+router.put('/profile', protect, authorize('placement_director'), updateProfile);
 
 // @route   POST /api/v1/placement-director-profiles/upload-profile-image
 // @desc    Update placement director profile image with Google Drive link

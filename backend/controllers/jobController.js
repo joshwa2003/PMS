@@ -35,14 +35,21 @@ const getAllJobs = async (req, res) => {
       filter.status = 'Active';
       filter.deadline = { $gt: new Date() };
       
-      // Filter by student's department
+      // Filter by student's department and batch
       const student = await Student.findOne({ userId: req.user._id }).populate('userId', 'department');
       if (student && student.userId.department) {
-        filter.$or = [
+        const filterConditions = [
           { postingType: 'All Departments' },
           { targetDepartments: student.userId.department },
           { 'eligibility.departments': student.userId.department }
         ];
+        
+        // Add batch-specific filtering if student has a batch
+        if (student.batchId) {
+          filterConditions.push({ targetBatches: student.batchId });
+        }
+        
+        filter.$or = filterConditions;
       }
     } else if (!['admin', 'placement_director'].includes(req.user.role)) {
       // Other roles have limited access
@@ -100,6 +107,15 @@ const getAllJobs = async (req, res) => {
       .populate({
         path: 'targetDepartments',
         select: 'name code',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'targetBatches',
+        select: 'batchCode displayName courseType startYear endYear',
+        populate: {
+          path: 'department',
+          select: 'name code'
+        },
         options: { strictPopulate: false }
       })
       .populate({
@@ -161,6 +177,14 @@ const getJob = async (req, res) => {
 
     const job = await Job.findById(id)
       .populate('targetDepartments', 'name code')
+      .populate({
+        path: 'targetBatches',
+        select: 'batchCode displayName courseType startYear endYear',
+        populate: {
+          path: 'department',
+          select: 'name code'
+        }
+      })
       .populate('eligibility.departments', 'name code')
       .populate('createdBy', 'firstName lastName email role')
       .populate('updatedBy', 'firstName lastName email')
@@ -289,6 +313,7 @@ const createJob = async (req, res) => {
       eligibility,
       postingType,
       targetDepartments,
+      targetBatches,
       documents,
       googleDriveLink,
       status = 'Draft',
@@ -355,6 +380,18 @@ const createJob = async (req, res) => {
       }
     }
 
+    // Validate target batches if specified
+    if (targetBatches && targetBatches.length > 0) {
+      const Batch = require('../models/Batch');
+      const validBatches = await Batch.find({ _id: { $in: targetBatches } });
+      if (validBatches.length !== targetBatches.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'One or more selected batches are invalid'
+        });
+      }
+    }
+
     // Create job data
     const jobData = {
       title: title.trim(),
@@ -377,6 +414,7 @@ const createJob = async (req, res) => {
       eligibility: eligibility || {},
       postingType,
       targetDepartments: targetDepartments || [],
+      targetBatches: targetBatches || [],
       documents: documents || [],
       googleDriveLink: googleDriveLink || null,
       status,

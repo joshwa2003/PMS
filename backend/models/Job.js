@@ -292,7 +292,7 @@ const jobSchema = new mongoose.Schema({
   postingType: {
     type: String,
     enum: {
-      values: ['All Departments', 'Selected Departments', 'Single Department'],
+      values: ['All Departments', 'Specific Departments', 'Specific Batches'],
       message: 'Invalid posting type'
     },
     required: [true, 'Posting type is required']
@@ -301,6 +301,12 @@ const jobSchema = new mongoose.Schema({
   targetDepartments: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department'
+  }],
+  
+  // Target specific batches within departments
+  targetBatches: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Batch'
   }],
   
   // Additional Documents
@@ -408,6 +414,7 @@ jobSchema.index({ publishedAt: -1 });
 jobSchema.index({ 'company.name': 1 });
 jobSchema.index({ title: 1 });
 jobSchema.index({ targetDepartments: 1 });
+jobSchema.index({ targetBatches: 1 });
 jobSchema.index({ createdBy: 1 });
 jobSchema.index({ 'eligibility.departments': 1 });
 

@@ -21,6 +21,7 @@ const courseCategoryRoutes = require('./routes/courseCategories');
 const departmentRoutes = require('./routes/departments');
 const dashboardRoutes = require('./routes/dashboard');
 const jobRoutes = require('./routes/jobs');
+const batchRoutes = require('./routes/batches');
 const googleDriveProxyRouter = require('./routes/googleDriveProxy');
 const departmentWiseStudentsRoutes = require('./routes/departmentWiseStudents');
 
@@ -89,6 +90,7 @@ app.use(`/api/${API_VERSION}/course-categories`, courseCategoryRoutes);
 app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
 app.use(`/api/${API_VERSION}/jobs`, jobRoutes);
+app.use(`/api/${API_VERSION}/batches`, batchRoutes);
 app.use(`/api/${API_VERSION}`, departmentWiseStudentsRoutes);
 
 // Health check endpoint

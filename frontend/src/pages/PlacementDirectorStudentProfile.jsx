@@ -382,17 +382,6 @@ function PlacementDirectorStudentProfileContent() {
                   {academic.department} • {academic.program}
                 </MDTypography>
 
-                {rawProfileImageUrl && (
-                  <MDButton
-                    variant="outlined"
-                    color="info"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleDownloadProfileImage}
-                  >
-                    Download Image
-                  </MDButton>
-                )}
               </MDBox>
             </Card>
 

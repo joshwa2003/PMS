@@ -395,8 +395,8 @@ exports.validatePlacementDirectorProfileUpdate = [
   
   body('communicationPreferences.*')
     .optional()
-    .isIn(['email', 'sms', 'portal'])
-    .withMessage('Communication preference must be email, sms, or portal'),
+    .isIn(['email', 'SMS', 'portal'])
+    .withMessage('Communication preference must be email, SMS, or portal'),
   
   // Contact Information
   body('contact.alternatePhone')
