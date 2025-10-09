@@ -106,6 +106,21 @@ function Cover() {
                 </MDTypography>
               </MDTypography>
             </MDBox>
+            <MDBox mt={1} mb={1} textAlign="center">
+              <MDTypography variant="button" color="text">
+                Forgot your password?{" "}
+                <MDTypography
+                  component={Link}
+                  to="/authentication/forgot-password"
+                  variant="button"
+                  color="info"
+                  fontWeight="medium"
+                  textGradient
+                >
+                  Reset Password
+                </MDTypography>
+              </MDTypography>
+            </MDBox>
           </MDBox>
         </MDBox>
       </Card>

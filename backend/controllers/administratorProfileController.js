@@ -9,57 +9,115 @@ const path = require('path');
 // @access  Private (Own profile only)
 exports.getProfile = async (req, res) => {
   try {
+    console.log('🔍 Getting administrator profile for user:', req.user._id);
+    console.log('🔍 User role:', req.user.role);
     const userId = req.user._id;
     
+    // Check if user has admin role
+    if (req.user.role !== 'admin') {
+      console.log('❌ User does not have admin role:', req.user.role);
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. User role '${req.user.role}' is not authorized to access administrator profile`
+      });
+    }
+    
     let profile = await AdministratorProfile.findByUserId(userId);
+    console.log('🔍 Found existing profile via findByUserId:', !!profile);
+    
+    // Also try direct query in case findByUserId has issues
+    if (!profile) {
+      profile = await AdministratorProfile.findOne({ userId });
+      console.log('🔍 Found existing profile via direct query:', !!profile);
+    }
     
     // If profile doesn't exist, create one from user data
     if (!profile) {
+      console.log('🔍 No profile found, creating new one...');
       const user = await User.findById(userId);
       if (!user) {
+        console.log('❌ User not found for ID:', userId);
         return res.status(404).json({
           success: false,
           message: 'User not found'
         });
       }
       
-      // Create initial profile from user data
-      profile = new AdministratorProfile({
+      console.log('🔍 User found:', { id: user._id, email: user.email, role: user.role });
+      
+      // Generate a unique employee ID
+      let employeeId;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      do {
+        const existingProfiles = await AdministratorProfile.find({}).sort({ createdAt: -1 });
+        const nextId = existingProfiles.length > 0 ? 
+          (Math.max(...existingProfiles.map(p => parseInt(p.employeeId.replace('AD', '')) || 0)) + 1) : 1;
+        employeeId = `AD${(nextId + attempts).toString().padStart(4, '0')}`;
+        
+        const duplicateCheck = await AdministratorProfile.findOne({ employeeId });
+        if (!duplicateCheck) break;
+        
+        attempts++;
+      } while (attempts < maxAttempts);
+      
+      if (attempts >= maxAttempts) {
+        employeeId = `AD${Date.now().toString().slice(-4)}`;
+      }
+      
+      // Create initial profile from user data with safe defaults
+      const profileData = {
         userId: user._id,
-        employeeId: user.employeeId || '',
+        employeeId: employeeId,
         name: {
-          firstName: user.firstName || '',
-          lastName: user.lastName || ''
+          firstName: user.firstName || 'Admin',
+          lastName: user.lastName || 'User'
         },
         email: user.email,
-        mobileNumber: user.mobileNumber || user.phone || '',
-        gender: user.gender || '',
+        mobileNumber: user.mobileNumber || user.phone || '1234567890',
+        gender: user.gender || 'Other',
         profilePhotoUrl: user.profilePhotoUrl || user.profilePicture || '',
-        role: user.role === 'admin' ? 'admin' : 'staff',
-        department: user.department || 'OTHER',
-        designation: user.designation || '',
+        role: 'admin',
+        department: user.department || 'ADMIN',
+        designation: user.designation || 'Administrator',
         dateOfJoining: user.dateOfJoining || new Date(),
-        accessLevel: user.role === 'admin' ? 'admin' : 'limited',
-        officeLocation: user.officeLocation || '',
-        contact: user.contact || {
-          alternatePhone: '',
-          emergencyContact: '',
+        accessLevel: 'admin',
+        officeLocation: user.officeLocation || 'Main Office',
+        contact: {
+          alternatePhone: user.contact?.alternatePhone || '',
+          emergencyContact: user.contact?.emergencyContact || '',
           address: {
-            street: '',
-            city: '',
-            state: '',
-            pincode: '',
-            country: 'India'
+            street: user.contact?.address?.street || '',
+            city: user.contact?.address?.city || '',
+            state: user.contact?.address?.state || '',
+            pincode: user.contact?.address?.pincode || '',
+            country: user.contact?.address?.country || 'India'
           }
         },
         adminNotes: user.adminNotes || '',
         createdBy: user._id,
         lastLoginAt: user.lastLogin
-      });
+      };
       
-      await profile.save();
+      console.log('🔍 Creating profile with data:', profileData);
+      
+      try {
+        profile = new AdministratorProfile(profileData);
+        await profile.save();
+        console.log('✅ Profile created successfully:', profile._id);
+      } catch (createError) {
+        console.error('❌ Error creating profile:', createError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error creating administrator profile',
+          error: process.env.NODE_ENV === 'development' ? createError.message : undefined
+        });
+      }
     }
 
+    console.log('✅ Returning profile data:', { id: profile._id, email: profile.email });
+    
     res.status(200).json({
       success: true,
       profile: {
@@ -104,8 +162,12 @@ exports.getProfile = async (req, res) => {
 // @access  Private (Own profile only)
 exports.updateProfile = async (req, res) => {
   try {
+    console.log('🔍 Update administrator profile - user:', req.user._id);
+    console.log('🔍 Update data:', req.body);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -140,23 +202,33 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
+    console.log('🔍 Saving profile...');
     const updatedProfile = await profile.save();
+    console.log('✅ Profile saved successfully');
 
-    // Also update the User model with basic information
-    await User.findByIdAndUpdate(userId, {
-      firstName: updatedProfile.name.firstName,
-      lastName: updatedProfile.name.lastName,
-      mobileNumber: updatedProfile.mobileNumber,
-      gender: updatedProfile.gender,
-      profilePhotoUrl: updatedProfile.profilePhotoUrl,
-      department: updatedProfile.department,
-      employeeId: updatedProfile.employeeId,
-      designation: updatedProfile.designation,
-      dateOfJoining: updatedProfile.dateOfJoining,
-      officeLocation: updatedProfile.officeLocation,
-      contact: updatedProfile.contact,
-      adminNotes: updatedProfile.adminNotes
-    });
+    // Also update the User model with basic information (excluding department as it has different schema)
+    console.log('🔍 Updating user model...');
+    try {
+      await User.findByIdAndUpdate(userId, {
+        firstName: updatedProfile.name.firstName,
+        lastName: updatedProfile.name.lastName,
+        mobileNumber: updatedProfile.mobileNumber,
+        gender: updatedProfile.gender,
+        profilePhotoUrl: updatedProfile.profilePhotoUrl,
+        employeeId: updatedProfile.employeeId,
+        designation: updatedProfile.designation,
+        dateOfJoining: updatedProfile.dateOfJoining,
+        officeLocation: updatedProfile.officeLocation,
+        // Skip department as User model expects ObjectId but AdministratorProfile uses string
+        // contact: updatedProfile.contact, // Skip contact as it might have different structure
+        adminNotes: updatedProfile.adminNotes
+      });
+      console.log('✅ User model updated successfully');
+    } catch (userUpdateError) {
+      console.error('❌ Error updating user model:', userUpdateError);
+      // Don't fail the whole operation if user update fails
+      console.log('⚠️ Continuing despite user model update error...');
+    }
 
     res.status(200).json({
       success: true,

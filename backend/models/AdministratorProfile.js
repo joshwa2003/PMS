@@ -41,7 +41,13 @@ const administratorProfileSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Mobile number is required'],
     trim: true,
-    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
+    validate: {
+      validator: function(v) {
+        // Allow empty string or valid 10-digit number
+        return !v || /^[0-9]{10}$/.test(v);
+      },
+      message: 'Please enter a valid 10-digit mobile number'
+    }
   },
   gender: {
     type: String,
@@ -58,18 +64,21 @@ const administratorProfileSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['admin', 'director', 'staff', 'hod', 'other']
+    enum: ['admin', 'director', 'staff', 'hod', 'other'],
+    default: 'admin'
   },
   department: {
     type: String,
     required: [true, 'Department is required'],
-    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER']
+    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'],
+    default: 'ADMIN'
   },
   designation: {
     type: String,
     required: [true, 'Designation is required'],
     trim: true,
-    maxlength: [100, 'Designation cannot exceed 100 characters']
+    maxlength: [100, 'Designation cannot exceed 100 characters'],
+    default: 'Administrator'
   },
   dateOfJoining: {
     type: Date,
@@ -79,13 +88,14 @@ const administratorProfileSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Access level is required'],
     enum: ['super_admin', 'admin', 'limited', 'read_only'],
-    default: 'limited'
+    default: 'admin'
   },
   officeLocation: {
     type: String,
     required: [true, 'Office location is required'],
     trim: true,
-    maxlength: [100, 'Office location cannot exceed 100 characters']
+    maxlength: [100, 'Office location cannot exceed 100 characters'],
+    default: 'Main Office'
   },
   status: {
     type: String,
@@ -103,12 +113,22 @@ const administratorProfileSchema = new mongoose.Schema({
     alternatePhone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit alternate phone number']
+      validate: {
+        validator: function(v) {
+          return !v || /^[0-9]{10}$/.test(v);
+        },
+        message: 'Please enter a valid 10-digit alternate phone number'
+      }
     },
     emergencyContact: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit emergency contact number']
+      validate: {
+        validator: function(v) {
+          return !v || /^[0-9]{10}$/.test(v);
+        },
+        message: 'Please enter a valid 10-digit emergency contact number'
+      }
     },
     address: {
       street: {
@@ -126,7 +146,12 @@ const administratorProfileSchema = new mongoose.Schema({
       pincode: {
         type: String,
         trim: true,
-        match: [/^[0-9]{6}$/, 'Please enter a valid 6-digit pincode']
+        validate: {
+          validator: function(v) {
+            return !v || /^[0-9]{6}$/.test(v);
+          },
+          message: 'Please enter a valid 6-digit pincode'
+        }
       },
       country: {
         type: String,

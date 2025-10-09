@@ -54,7 +54,7 @@ function ProfileTabs() {
     }
   ];
 
-  console.log('ProfileTabs render - activeTab:', activeTab, 'tabs length:', tabs.length);
+  // console.log('ProfileTabs render - activeTab:', activeTab, 'tabs length:', tabs.length);
 
   if (isLoading) {
     return (
@@ -125,7 +125,6 @@ function ProfileTabs() {
         >
           {activeTab === index && (
             <MDBox>
-              {console.log(`Rendering tab ${index}: ${tab.label}`, tab.component)}
               {tab.component}
             </MDBox>
           )}

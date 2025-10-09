@@ -67,6 +67,7 @@ import JobDetailPage from "pages/JobDetailPage";
 import AppliedJobs from "pages/AppliedJobs";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import ForgotPassword from "layouts/authentication/forgot-password";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
 
 // Protected Route Component
@@ -471,6 +472,14 @@ const routes = [
     route: "/authentication/sign-up",
     component: <SignUp />,
     hideForRoles: ['student', 'placement_director'],
+  },
+  // Forgot password route (hidden from sidebar)
+  {
+    type: "route",
+    name: "Forgot Password",
+    key: "forgot-password",
+    route: "/authentication/forgot-password",
+    component: <ForgotPassword />,
   },
   // First login routes (hidden from sidebar)
   {

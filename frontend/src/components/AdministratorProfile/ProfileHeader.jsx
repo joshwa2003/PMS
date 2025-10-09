@@ -16,11 +16,11 @@ function ProfileHeader() {
 
   // Update image key when profile image changes to force refresh
   useEffect(() => {
-    console.log('ProfileHeader - Profile data changed:', {
-      formDataProfilePhotoUrl: formData.profilePhotoUrl,
-      userProfilePicture: user?.profilePicture,
-      profilePhotoUrl: profile?.profilePhotoUrl
-    });
+    // console.log('ProfileHeader - Profile data changed:', {
+    //   formDataProfilePhotoUrl: formData.profilePhotoUrl,
+    //   userProfilePicture: user?.profilePicture,
+    //   profilePhotoUrl: profile?.profilePhotoUrl
+    // });
     setImageKey(Date.now());
   }, [formData.profilePhotoUrl, user?.profilePicture, profile?.profilePhotoUrl]);
 
@@ -30,11 +30,11 @@ function ProfileHeader() {
   const profileImageUrl = formData.profilePhotoUrl || profile?.profilePhotoUrl || user?.profilePicture;
   const profileImage = getGoogleDriveThumbnail(profileImageUrl);
   
-  console.log('ProfileHeader - Rendering with image:', {
-    profileImageUrl,
-    profileImage,
-    imageKey
-  });
+  // console.log('ProfileHeader - Rendering with image:', {
+  //   profileImageUrl,
+  //   profileImage,
+  //   imageKey
+  // });
 
   const getCompletionColor = (percentage) => {
     if (percentage >= 80) return 'success';

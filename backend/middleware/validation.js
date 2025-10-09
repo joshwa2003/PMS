@@ -739,6 +739,43 @@ exports.validatePlacementStaffProfileUpdate = [
     .withMessage('Admin notes cannot exceed 1000 characters'),
 ];
 
+// Forgot password validation
+exports.validateForgotPassword = [
+  emailValidation
+];
+
+// Verify OTP validation
+exports.validateVerifyOTP = [
+  emailValidation,
+  body('otp')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be exactly 6 digits')
+    .matches(/^[0-9]{6}$/)
+    .withMessage('OTP must contain only numbers')
+];
+
+// Reset password validation
+exports.validateResetPassword = [
+  emailValidation,
+  body('otp')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be exactly 6 digits')
+    .matches(/^[0-9]{6}$/)
+    .withMessage('OTP must contain only numbers'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Password confirmation does not match password');
+      }
+      return true;
+    })
+];
+
 // ID parameter validation
 exports.validateObjectId = (paramName = 'id') => [
   param(paramName)

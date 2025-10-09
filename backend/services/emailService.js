@@ -1251,6 +1251,156 @@ ${responseMethod === 'forced' ? 'This response was collected through a mandatory
     }
   }
 
+  // Generate OTP
+  generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  // Generate forgot password email template
+  generateForgotPasswordEmailTemplate(userData, otp) {
+    const { firstName, lastName, email } = userData;
+    
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password - PMS</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+            }
+            .email-container {
+                background-color: #ffffff;
+                border-radius: 10px;
+                padding: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 3px solid #2196F3;
+            }
+            .header h1 {
+                color: #2196F3;
+                margin: 0;
+                font-size: 28px;
+            }
+            .otp-box {
+                background-color: #f8f9fa;
+                border: 2px solid #2196F3;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                margin: 20px 0;
+            }
+            .otp-code {
+                font-size: 32px;
+                font-weight: bold;
+                color: #2196F3;
+                letter-spacing: 5px;
+                margin: 10px 0;
+            }
+            .warning {
+                background-color: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 5px;
+                padding: 15px;
+                margin: 20px 0;
+                color: #856404;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+                text-align: center;
+                color: #666;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <h1>Password Reset Request</h1>
+                <p>S.A. Engineering College - Placement Management System</p>
+            </div>
+            
+            <p>Dear ${firstName} ${lastName},</p>
+            
+            <p>We received a request to reset your password for your PMS account associated with <strong>${email}</strong>.</p>
+            
+            <div class="otp-box">
+                <p style="margin: 0; font-size: 16px; color: #666;">Your OTP Code:</p>
+                <div class="otp-code">${otp}</div>
+                <p style="margin: 0; font-size: 14px; color: #666;">This code will expire in 10 minutes</p>
+            </div>
+            
+            <p>To reset your password:</p>
+            <ol>
+                <li>Enter your email address on the forgot password page</li>
+                <li>Enter the OTP code: <strong>${otp}</strong></li>
+                <li>Create a new password</li>
+            </ol>
+            
+            <div class="warning">
+                <strong>Security Notice:</strong> If you didn't request this password reset, please ignore this email. Your account remains secure.
+            </div>
+            
+            <p>For security reasons, this OTP will expire in 10 minutes. If you need a new code, please request another password reset.</p>
+            
+            <div class="footer">
+                <p>This is an automated email from the Placement Management System.</p>
+                <p>S.A. Engineering College</p>
+                <p>If you need assistance, please contact the system administrator.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+  }
+
+  // Send forgot password email
+  async sendForgotPasswordEmail(userData, otp) {
+    try {
+      if (!this.transporter) {
+        throw new Error('Email transporter not initialized');
+      }
+
+      const { firstName, lastName, email } = userData;
+      const htmlContent = this.generateForgotPasswordEmailTemplate(userData, otp);
+
+      const mailOptions = {
+        from: `"PMS - S.A. Engineering College" <${process.env.SMTP_EMAIL}>`,
+        to: email,
+        subject: 'Password Reset Request - PMS',
+        html: htmlContent
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      console.log(`Forgot password email sent successfully to ${email}`);
+      console.log('Message ID:', result.messageId);
+      
+      return {
+        success: true,
+        messageId: result.messageId,
+        recipient: email
+      };
+    } catch (error) {
+      console.error('Error sending forgot password email:', error);
+      throw error;
+    }
+  }
+
   // Get email service status
   getEmailServiceStatus() {
     return {

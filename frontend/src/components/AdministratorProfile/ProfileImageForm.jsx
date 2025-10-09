@@ -38,19 +38,49 @@ function ProfileImageForm() {
   const [showPreview, setShowPreview] = useState(false);
   const [imageKey, setImageKey] = useState(Date.now()); // Force image refresh
 
-  // Get current profile image with priority order
-  const currentProfileImage = formData.profilePhotoUrl || profile?.profilePhotoUrl || user?.profilePicture;
+  // Get current profile image with priority order - check all possible sources
+  const currentProfileImage = formData?.profilePhotoUrl || 
+                              profile?.profilePhotoUrl || 
+                              user?.profilePicture || 
+                              user?.profilePhotoUrl ||
+                              formData?.profilePicture;
+  
+  console.log('🔍 ProfileImageForm - Current image sources:', {
+    formDataProfilePhotoUrl: formData?.profilePhotoUrl,
+    profilePhotoUrl: profile?.profilePhotoUrl,
+    userProfilePicture: user?.profilePicture,
+    userProfilePhotoUrl: user?.profilePhotoUrl,
+    formDataProfilePicture: formData?.profilePicture,
+    finalCurrentProfileImage: currentProfileImage,
+    formDataKeys: formData ? Object.keys(formData) : 'no formData',
+    profileKeys: profile ? Object.keys(profile) : 'no profile'
+  });
 
   // Update image key when profile image changes
   useEffect(() => {
     console.log('ProfileImageForm - Profile image changed:', {
-      formDataProfilePhotoUrl: formData.profilePhotoUrl,
+      formDataProfilePhotoUrl: formData?.profilePhotoUrl,
       profilePhotoUrl: profile?.profilePhotoUrl,
       userProfilePicture: user?.profilePicture,
-      currentProfileImage
+      userProfilePhotoUrl: user?.profilePhotoUrl,
+      currentProfileImage,
+      userFullObject: user
     });
     setImageKey(Date.now());
-  }, [formData.profilePhotoUrl, profile?.profilePhotoUrl, user?.profilePicture, currentProfileImage]);
+  }, [formData?.profilePhotoUrl, profile?.profilePhotoUrl, user?.profilePicture, user?.profilePhotoUrl, currentProfileImage]);
+
+  // Additional effect to force refresh when user data changes
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 User data updated:', {
+        userId: user.id,
+        profilePicture: user.profilePicture,
+        profilePhotoUrl: user.profilePhotoUrl,
+        allUserKeys: Object.keys(user)
+      });
+      setImageKey(Date.now());
+    }
+  }, [user]);
 
   // Validate Google Drive URL using utility function
   const validateGoogleDriveUrlLocal = (url) => {
@@ -96,6 +126,9 @@ function ProfileImageForm() {
         setGoogleDriveUrl('');
         setShowPreview(false);
         
+        // Force image refresh
+        setImageKey(Date.now());
+        
         // Clear success message after 3 seconds
         setTimeout(() => {
           setSuccessMessage('');
@@ -137,47 +170,10 @@ function ProfileImageForm() {
           Profile Image Management
         </MDTypography>
         
-        {/* Debug Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <MDBox mb={2} p={2} bgcolor="grey.100" borderRadius={1}>
-            <MDTypography variant="caption" color="text">
-              Debug: ProfileImageForm loaded successfully
-            </MDTypography>
-          </MDBox>
-        )}
 
         <Grid container spacing={3}>
-          {/* Current Profile Image */}
-          <Grid item xs={12} md={6}>
-            <MDBox>
-              <MDTypography variant="h6" fontWeight="medium" mb={2}>
-                Current Profile Image
-              </MDTypography>
-              
-              <MDBox display="flex" flexDirection="column" alignItems="center" mb={3}>
-                <Avatar
-                  src={currentProfileImage ? `${getGoogleDriveThumbnail(currentProfileImage)}?t=${imageKey}` : null}
-                  key={imageKey}
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    mb: 2,
-                    border: '3px solid',
-                    borderColor: 'info.main'
-                  }}
-                >
-                  {!currentProfileImage && <PhotoCamera sx={{ fontSize: 40 }} />}
-                </Avatar>
-                
-                <MDTypography variant="body2" color="text" textAlign="center">
-                  {currentProfileImage ? 'Current profile image' : 'No profile image set'}
-                </MDTypography>
-              </MDBox>
-            </MDBox>
-          </Grid>
-
           {/* Google Drive URL Input */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <MDBox>
               <MDTypography variant="h6" fontWeight="medium" mb={2}>
                 Update with Google Drive Link

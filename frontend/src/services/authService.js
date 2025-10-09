@@ -148,6 +148,56 @@ class AuthService {
     }
   }
 
+  // Forgot password - send OTP to email
+  async forgotPassword(email) {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Failed to send password reset OTP');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Verify OTP for password reset
+  async verifyResetOTP(email, otp) {
+    try {
+      const response = await api.post('/auth/verify-reset-otp', { email, otp });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'OTP verification failed');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Reset password with verified OTP
+  async resetPassword(email, otp, newPassword, confirmPassword) {
+    try {
+      const response = await api.post('/auth/reset-password', {
+        email,
+        otp,
+        newPassword,
+        confirmPassword
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Password reset failed');
+    } catch (error) {
+      throw error;
+    }
+  }
+
 
   // Check if user is authenticated
   isAuthenticated() {

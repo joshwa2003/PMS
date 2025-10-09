@@ -467,6 +467,10 @@ const deleteAdministrator = async (req, res) => {
 // @access  Private (Administrator only)
 const updateProfileImage = async (req, res) => {
   try {
+    console.log('🔍 Administrator updateProfileImage called');
+    console.log('🔍 Request body:', req.body);
+    console.log('🔍 User:', req.user.id);
+    
     const { googleDriveUrl } = req.body;
 
     if (!googleDriveUrl) {
@@ -476,23 +480,21 @@ const updateProfileImage = async (req, res) => {
       });
     }
 
-    // Process and validate Google Drive URL first
-    const processResult = await googleDriveService.processProfileImageUrl(
-      googleDriveUrl,
-      req.user.id
-    );
-
-    if (!processResult.success) {
+    // Simple URL validation - just check if it's a Google Drive URL
+    if (!googleDriveUrl.includes('drive.google.com')) {
       return res.status(400).json({
         success: false,
-        message: processResult.error || 'Invalid Google Drive URL'
+        message: 'Invalid Google Drive URL'
       });
     }
 
-    let administrator = await Administrator.findOne({ userId: req.user.id });
+    // Use AdministratorProfile model instead of Administrator
+    const AdministratorProfile = require('../models/AdministratorProfile');
+    let administrator = await AdministratorProfile.findOne({ userId: req.user.id });
     
     if (!administrator) {
       // Create a basic administrator profile if it doesn't exist
+      const User = require('../models/User');
       const user = await User.findById(req.user.id);
       if (!user) {
         return res.status(404).json({
@@ -501,17 +503,17 @@ const updateProfileImage = async (req, res) => {
         });
       }
 
-      administrator = new Administrator({
+      administrator = new AdministratorProfile({
         userId: req.user.id,
-        employeeId: `ADMIN${Date.now()}`, // Generate a temporary employee ID
+        employeeId: `AD${Date.now().toString().slice(-4)}`,
         name: {
           firstName: user.firstName || 'System',
           lastName: user.lastName || 'Administrator'
         },
         email: user.email,
-        mobileNumber: user.phone || '',
+        mobileNumber: user.phone || '1234567890',
         gender: 'Other',
-        profilePhotoUrl: processResult.url,
+        profilePhotoUrl: googleDriveUrl,
         role: user.role || 'admin',
         department: 'ADMIN',
         designation: 'System Administrator',
@@ -525,24 +527,26 @@ const updateProfileImage = async (req, res) => {
       });
       
       await administrator.save();
-      console.log('New administrator profile created with profile image');
+      console.log('✅ New administrator profile created with profile image');
     } else {
       // Update existing administrator profile with new image URL
-      administrator.profilePhotoUrl = processResult.url;
+      administrator.profilePhotoUrl = googleDriveUrl;
       await administrator.save();
-      console.log('Administrator profile image updated successfully');
+      console.log('✅ Administrator profile image updated successfully');
     }
 
     // Also update the User model's profilePicture field for consistency
+    const User = require('../models/User');
     await User.findByIdAndUpdate(req.user.id, {
-      profilePicture: processResult.url
+      profilePicture: googleDriveUrl
     });
+
+    console.log('✅ Profile image update completed successfully');
 
     res.status(200).json({
       success: true,
       message: 'Profile image updated successfully',
-      profilePhotoUrl: processResult.url,
-      thumbnailUrl: processResult.thumbnailUrl
+      profilePhotoUrl: googleDriveUrl
     });
   } catch (error) {
     console.error('Update profile image error:', error);

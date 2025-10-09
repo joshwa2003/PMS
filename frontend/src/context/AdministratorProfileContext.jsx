@@ -208,7 +208,9 @@ export const AdministratorProfileProvider = ({ children }) => {
   // Load profile function
   const loadProfile = useCallback(async (forceReload = false) => {
     // Prevent multiple simultaneous calls unless it's a forced reload
-    if (!forceReload && (state.isLoading || hasLoadedRef.current)) return;
+    if (!forceReload && (state.isLoading || hasLoadedRef.current)) {
+      return;
+    }
     
     if (forceReload) {
       hasLoadedRef.current = false;
@@ -228,15 +230,14 @@ export const AdministratorProfileProvider = ({ children }) => {
         updateProfilePicture(profile.profilePhotoUrl);
       }
     } catch (error) {
-      console.error('Load administrator profile error:', error);
+      console.error('❌ Load administrator profile error:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
     }
   }, [updateProfilePicture, state.isLoading]);
 
   // Load administrator profile on mount
   useEffect(() => {
-    const allowedRoles = ['admin', 'director', 'staff', 'hod'];
-    if (user?.role && allowedRoles.includes(user.role) && user?.id && !hasLoadedRef.current) {
+    if (user?.role === 'admin' && user?.id && !hasLoadedRef.current) {
       loadProfile();
     }
   }, [user?.id, user?.role, loadProfile]);
@@ -252,7 +253,7 @@ export const AdministratorProfileProvider = ({ children }) => {
       // Clean the data before sending - remove empty strings and null values
       const cleanedData = cleanFormData(dataToSave);
       
-      console.log('Saving administrator profile data:', cleanedData);
+      // console.log('Saving administrator profile data:', cleanedData);
       
       // Validate data using the service
       const validationErrors = administratorProfileService.validateProfileData(cleanedData, true);
@@ -377,11 +378,13 @@ export const AdministratorProfileProvider = ({ children }) => {
         updateProfilePicture(profilePhotoUrl);
       }
       
-      // Reload the complete profile to ensure all data is fresh
+      // Wait a moment for backend to process, then reload the complete profile
       console.log('AdministratorProfileContext - Reloading profile after image update');
-      await loadProfile(true); // Force reload
+      setTimeout(async () => {
+        await loadProfile(true); // Force reload after a short delay
+      }, 500);
       
-      console.log('AdministratorProfileContext - Profile image updated and profile reloaded successfully');
+      console.log('AdministratorProfileContext - Profile image updated successfully');
       return { success: true, profilePhotoUrl };
     } catch (error) {
       console.error('Update profile image error:', error);
@@ -463,14 +466,14 @@ export const AdministratorProfileProvider = ({ children }) => {
     goToPreviousTab
   };
 
-  console.log('AdministratorProfileContext - Providing context value:', {
-    hasUpdateProfileImage: typeof value.updateProfileImage === 'function',
-    activeTab: value.activeTab,
-    isLoading: value.isLoading,
-    isSaving: value.isSaving,
-    error: value.error,
-    formDataExists: !!value.formData
-  });
+  // console.log('AdministratorProfileContext - Providing context value:', {
+  //   hasUpdateProfileImage: typeof value.updateProfileImage === 'function',
+  //   activeTab: value.activeTab,
+  //   isLoading: value.isLoading,
+  //   isSaving: value.isSaving,
+  //   error: value.error,
+  //   formDataExists: !!value.formData
+  // });
 
   return (
     <AdministratorProfileContext.Provider value={value}>

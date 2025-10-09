@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const PasswordReset = require('../models/PasswordReset');
+const emailService = require('../services/emailService');
 
 // Constants
 const STAFF_ROLES = ['placement_staff', 'department_hod', 'other_staff'];
@@ -597,6 +599,251 @@ exports.selectDepartment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during department selection',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Request password reset
+// @route   POST /api/v1/auth/forgot-password
+// @access  Public
+exports.forgotPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find user by email
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this email address',
+        errorType: 'EMAIL_NOT_FOUND'
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact the administrator.',
+        errorType: 'ACCOUNT_DEACTIVATED'
+      });
+    }
+
+    // Clean up any existing password reset requests for this user
+    await PasswordReset.deleteMany({ email: normalizedEmail });
+
+    // Generate OTP
+    const otp = emailService.generateOTP();
+
+    // Create password reset record
+    const passwordReset = await PasswordReset.create({
+      email: normalizedEmail,
+      otp: otp,
+      userId: user._id
+    });
+
+    // Send email with OTP
+    try {
+      await emailService.sendForgotPasswordEmail(user, otp);
+      
+      console.log(`Password reset OTP sent to ${normalizedEmail}`);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Password reset OTP has been sent to your email address',
+        email: normalizedEmail
+      });
+    } catch (emailError) {
+      // If email fails, clean up the password reset record
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      
+      console.error('Failed to send password reset email:', emailError);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send password reset email. Please try again later.',
+        errorType: 'EMAIL_SEND_FAILED'
+      });
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset request',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Verify OTP for password reset
+// @route   POST /api/v1/auth/verify-reset-otp
+// @access  Public
+exports.verifyResetOTP = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email, otp } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find the password reset record
+    const passwordReset = await PasswordReset.findOne({
+      email: normalizedEmail,
+      otp: otp,
+      isUsed: false
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP',
+        errorType: 'INVALID_OTP'
+      });
+    }
+
+    // Check if OTP is expired
+    if (passwordReset.isExpired()) {
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new password reset.',
+        errorType: 'OTP_EXPIRED'
+      });
+    }
+
+    // Check attempts limit
+    if (passwordReset.attempts >= 3) {
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      return res.status(400).json({
+        success: false,
+        message: 'Too many invalid attempts. Please request a new password reset.',
+        errorType: 'TOO_MANY_ATTEMPTS'
+      });
+    }
+
+    // Verify user still exists and is active
+    const user = await User.findById(passwordReset.userId);
+    if (!user || !user.isActive) {
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      return res.status(400).json({
+        success: false,
+        message: 'User account not found or deactivated',
+        errorType: 'USER_NOT_FOUND'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+      resetToken: passwordReset._id.toString()
+    });
+  } catch (error) {
+    console.error('Verify reset OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during OTP verification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    Reset password with verified OTP
+// @route   POST /api/v1/auth/reset-password
+// @access  Public
+exports.resetPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { email, otp, newPassword, confirmPassword } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match',
+        errorType: 'PASSWORD_MISMATCH'
+      });
+    }
+
+    // Find the password reset record
+    const passwordReset = await PasswordReset.findOne({
+      email: normalizedEmail,
+      otp: otp,
+      isUsed: false
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset session',
+        errorType: 'INVALID_RESET_SESSION'
+      });
+    }
+
+    // Check if OTP is expired
+    if (passwordReset.isExpired()) {
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      return res.status(400).json({
+        success: false,
+        message: 'Reset session has expired. Please request a new password reset.',
+        errorType: 'RESET_SESSION_EXPIRED'
+      });
+    }
+
+    // Find and update user password
+    const user = await User.findById(passwordReset.userId);
+    if (!user || !user.isActive) {
+      await PasswordReset.findByIdAndDelete(passwordReset._id);
+      return res.status(400).json({
+        success: false,
+        message: 'User account not found or deactivated',
+        errorType: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Update user password
+    user.password = newPassword;
+    user.passwordChangedAt = new Date();
+    await user.save();
+
+    // Mark password reset as used and delete it
+    await PasswordReset.findByIdAndDelete(passwordReset._id);
+
+    console.log(`Password reset successful for user: ${normalizedEmail}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully. You can now sign in with your new password.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

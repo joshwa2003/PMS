@@ -29,9 +29,6 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 
 // @mui icons
-import FacebookIcon from "@mui/icons-material/Facebook";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import GoogleIcon from "@mui/icons-material/Google";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
@@ -199,23 +196,6 @@ function Basic() {
           <MDTypography variant="body2" color="white" mt={1}>
             Sign in to access your account
           </MDTypography>
-          <Grid container spacing={3} justifyContent="center" sx={{ mt: 1, mb: 2 }}>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <FacebookIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GitHubIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GoogleIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-          </Grid>
         </MDBox>
         
         <MDBox pt={4} pb={3} px={3}>
@@ -296,6 +276,23 @@ function Basic() {
               </MDButton>
             </MDBox>
 
+            {/* Forgot Password Link */}
+            <MDBox mt={2} mb={1} textAlign="center">
+              <MDTypography variant="button" color="text">
+                Forgot your password?{" "}
+                <MDTypography
+                  component={Link}
+                  to="/authentication/forgot-password"
+                  variant="button"
+                  color="info"
+                  fontWeight="medium"
+                  textGradient
+                >
+                  Reset Password
+                </MDTypography>
+              </MDTypography>
+            </MDBox>
+
             {/* Demo Credentials Section */}
             <MDBox mt={3} mb={2}>
               <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -337,21 +334,6 @@ function Basic() {
               )}
             </MDBox>
 
-            <MDBox mt={3} mb={1} textAlign="center">
-              <MDTypography variant="button" color="text">
-                Don&apos;t have an account?{" "}
-                <MDTypography
-                  component={Link}
-                  to="/authentication/sign-up"
-                  variant="button"
-                  color="info"
-                  fontWeight="medium"
-                  textGradient
-                >
-                  Sign up
-                </MDTypography>
-              </MDTypography>
-            </MDBox>
           </MDBox>
         </MDBox>
       </Card>

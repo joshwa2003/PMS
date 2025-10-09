@@ -19,11 +19,10 @@ import { AdministratorProfileProvider } from '../context/AdministratorProfileCon
 import { useAuth } from '../context/AuthContext';
 
 function AdministratorProfile() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   // Check if user has administrator access
-  const allowedRoles = ['admin', 'director', 'staff', 'hod'];
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || user.role !== 'admin') {
     return (
       <DashboardLayout>
         <DashboardNavbar />
@@ -47,7 +46,7 @@ function AdministratorProfile() {
               <MDBox pt={3} px={2}>
                 <MDTypography variant="body2">
                   You don't have permission to access the Administrator Profile. 
-                  This section is only available for administrators, directors, staff, and HODs.
+                  This section is only available for administrators.
                 </MDTypography>
               </MDBox>
             </Grid>

@@ -8,6 +8,10 @@ const {
   logout,
   checkFirstLogin,
   setInitialPassword,
+  selectDepartment,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword
 } = require('../controllers/authController');
 
 const { protect, rateLimitLogin } = require('../middleware/auth');
@@ -15,7 +19,10 @@ const {
   validateRegister,
   validateLogin,
   validateProfileUpdate,
-  validateChangePassword
+  validateChangePassword,
+  validateForgotPassword,
+  validateVerifyOTP,
+  validateResetPassword
 } = require('../middleware/validation');
 
 const router = express.Router();
@@ -23,6 +30,11 @@ const router = express.Router();
 // Public routes
 router.post('/register', validateRegister, register);
 router.post('/login', rateLimitLogin, validateLogin, login);
+
+// Forgot password routes (public)
+router.post('/forgot-password', validateForgotPassword, forgotPassword);
+router.post('/verify-reset-otp', validateVerifyOTP, verifyResetOTP);
+router.post('/reset-password', validateResetPassword, resetPassword);
 
 // Protected routes
 router.get('/me', protect, getMe);
@@ -33,5 +45,6 @@ router.post('/logout', protect, logout);
 // First login routes
 router.get('/first-login-check', protect, checkFirstLogin);
 router.put('/set-initial-password', protect, setInitialPassword);
+router.put('/select-department', protect, selectDepartment);
 
 module.exports = router;
