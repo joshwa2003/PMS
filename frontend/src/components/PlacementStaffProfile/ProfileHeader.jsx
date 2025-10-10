@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card, Avatar, IconButton, CircularProgress, Box, Snackbar, Alert, Typography } from '@mui/material';
 import { PhotoCamera } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
@@ -6,7 +6,7 @@ import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
 import MDBadge from 'components/MDBadge';
 import { usePlacementStaffProfile } from '../../context/PlacementStaffProfileContext';
-import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
+import { getGoogleDriveDirectImageUrl, isGoogleDriveUrl, extractGoogleDriveFileId } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
   const {
@@ -21,6 +21,8 @@ function ProfileHeader() {
 
   const fileInputRef = useRef(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -71,8 +73,35 @@ function ProfileHeader() {
   const displayDepartment = formData?.department || 'Department';
   const displayEmployeeId = formData?.employeeId || 'Employee ID';
   
+  // Get profile image with priority: formData > profile
   const profileImageUrl = formData?.profilePhotoUrl || profile?.profilePhotoUrl;
-  const processedImageUrl = getGoogleDriveThumbnail(profileImageUrl);
+  
+  // Create multiple fallback URLs for Google Drive images
+  const getImageUrls = (url) => {
+    if (!url || !isGoogleDriveUrl(url)) return [url];
+    
+    const fileId = extractGoogleDriveFileId(url);
+    if (!fileId) return [url];
+    
+    return [
+      `https://drive.google.com/thumbnail?id=${fileId}&sz=w200-h200`,
+      `https://drive.google.com/uc?export=view&id=${fileId}`,
+      `https://lh3.googleusercontent.com/d/${fileId}`,
+      getGoogleDriveDirectImageUrl(url) // Backend proxy as last resort
+    ];
+  };
+  
+  const imageUrls = getImageUrls(profileImageUrl);
+  const currentImageUrl = imageUrls[currentImageIndex];
+  
+  // Reset image index when profile image changes
+  useEffect(() => {
+    setCurrentImageIndex(0);
+    setImageError(false);
+  }, [profileImageUrl]);
+  
+  // Create a unique key to force re-render when image changes
+  const imageKey = `${profileImageUrl}-${currentImageIndex}-${Date.now()}`;
 
   return (
     <>
@@ -84,45 +113,74 @@ function ProfileHeader() {
               <MDBox position="relative" mr={3}>
                 {profileImageUrl && isGoogleDriveUrl(profileImageUrl) ? (
                   <Box
+                    key={imageKey}
                     sx={{
                       width: 80,
                       height: 80,
                       borderRadius: '50%',
-                      bgcolor: 'primary.main',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
                       position: 'relative',
                       overflow: 'hidden',
                       border: '2px solid',
-                      borderColor: 'primary.main'
+                      borderColor: 'primary.main',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
                     }}
                     onClick={() => window.open(profileImageUrl, '_blank')}
                   >
-                    <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
-                      {displayName.charAt(0).toUpperCase()}
-                    </Typography>
+                    {currentImageUrl ? (
+                      <img
+                        key={imageKey}
+                        src={currentImageUrl}
+                        alt="Profile"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '50%'
+                        }}
+                        onError={(e) => {
+                          console.error('Image failed to load:', currentImageUrl);
+                          // Try next URL in fallback list
+                          if (currentImageIndex < imageUrls.length - 1) {
+                            setCurrentImageIndex(prev => prev + 1);
+                          } else {
+                            // All URLs failed, show fallback
+                            setImageError(true);
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', currentImageUrl);
+                          setImageError(false);
+                        }}
+                      />
+                    ) : null}
                     <Box
                       sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        bgcolor: 'rgba(0,0,0,0.7)',
-                        color: 'white',
-                        textAlign: 'center',
-                        py: 0.5
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        bgcolor: 'primary.main',
+                        display: (currentImageUrl && !imageError) ? 'none' : 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: (currentImageUrl && !imageError) ? 'absolute' : 'static',
+                        top: 0,
+                        left: 0
                       }}
                     >
-                      <Typography variant="caption" fontSize="10px">
-                        Google Drive
+                      <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
+                        {displayName.charAt(0).toUpperCase()}
                       </Typography>
                     </Box>
                   </Box>
                 ) : (
                   <Avatar
-                    src={processedImageUrl}
+                    key={imageKey}
+                    src={currentImageUrl}
                     sx={{ 
                       width: 80, 
                       height: 80,

@@ -351,6 +351,49 @@ export const PlacementDirectorProfileProvider = ({ children }) => {
     }
   };
 
+  // Update profile image with Google Drive link
+  const updateProfileImage = async (googleDriveUrl) => {
+    console.log('PlacementDirectorProfileContext - updateProfileImage called with:', googleDriveUrl);
+    dispatch({ type: ACTIONS.SET_SAVING, payload: true });
+
+    try {
+      console.log('PlacementDirectorProfileContext - Calling placementDirectorProfileService.updateProfileImage');
+      // Use the placementDirectorProfileService to update the image with Google Drive URL
+      const result = await placementDirectorProfileService.updateProfileImage(googleDriveUrl);
+      
+      console.log('PlacementDirectorProfileContext - Service result:', result);
+      const profilePhotoUrl = result.profilePhotoUrl;
+      
+      // Update form data with new profile image URL
+      updateFormData('profilePhotoUrl', profilePhotoUrl);
+      
+      // Also update the profile state to trigger re-render
+      if (state.profile) {
+        dispatch({ 
+          type: ACTIONS.SET_PROFILE, 
+          payload: { 
+            ...state.profile, 
+            profilePhotoUrl: profilePhotoUrl 
+          } 
+        });
+      }
+      
+      // Sync profile image with AuthContext if it exists
+      if (profilePhotoUrl && updateProfilePicture) {
+        updateProfilePicture(profilePhotoUrl);
+      }
+      
+      console.log('PlacementDirectorProfileContext - Profile image updated successfully');
+      return { success: true, profilePhotoUrl };
+    } catch (error) {
+      console.error('PlacementDirectorProfileContext - Update profile image error:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: ACTIONS.SET_SAVING, payload: false });
+    }
+  };
+
   // Upload resume function
   const uploadResume = async (file) => {
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
@@ -438,6 +481,7 @@ export const PlacementDirectorProfileProvider = ({ children }) => {
     clearError,
     resetForm,
     uploadProfileImage,
+    updateProfileImage,
     uploadResume,
 
     // Helpers

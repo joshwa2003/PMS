@@ -112,6 +112,8 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
       navigate('/student-profile');
     } else if (user?.role === 'placement_director') {
       navigate('/placement-director-profile');
+    } else if (user?.role === 'placement_staff') {
+      navigate('/placement-staff-profile');
     } else if (user?.role === 'admin') {
       navigate('/administrator-profile');
     } else if (user?.role === 'department_hod') {

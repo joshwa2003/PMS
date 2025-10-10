@@ -14,18 +14,23 @@ const { validatePlacementStaffProfileUpdate } = require('../middleware/validatio
 
 // @route   GET /api/v1/placement-staff-profiles/profile
 // @desc    Get own placement staff profile
-// @access  Private
-router.get('/profile', protect, getProfile);
+// @access  Private (Placement Staff role only)
+router.get('/profile', protect, authorize('placement_staff'), getProfile);
 
 // @route   PUT /api/v1/placement-staff-profiles/profile
 // @desc    Update own placement staff profile
-// @access  Private
-router.put('/profile', protect, validatePlacementStaffProfileUpdate, updateProfile);
+// @access  Private (Placement Staff role only)
+router.put('/profile', protect, authorize('placement_staff'), updateProfile);
 
 // @route   POST /api/v1/placement-staff-profiles/upload-profile-image
 // @desc    Update placement staff profile image with Google Drive link
-// @access  Private
-router.post('/upload-profile-image', protect, updateProfileImage);
+// @access  Private (Placement Staff role only)
+router.post('/upload-profile-image', protect, authorize('placement_staff'), updateProfileImage);
+
+// @route   POST /api/v1/placement-staff-profiles/update-profile-image
+// @desc    Update placement staff profile image with Google Drive link
+// @access  Private (Placement Staff role only)
+router.post('/update-profile-image', protect, authorize('placement_staff'), updateProfileImage);
 
 // @route   GET /api/v1/placement-staff-profiles/stats
 // @desc    Get placement staff profile statistics

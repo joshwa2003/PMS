@@ -28,6 +28,11 @@ router.put('/profile', protect, authorize('placement_director'), updateProfile);
 // @access  Private (Placement Director role only)
 router.post('/upload-profile-image', protect, authorize('placement_director'), updateProfileImage);
 
+// @route   POST /api/v1/placement-director-profiles/update-profile-image
+// @desc    Update placement director profile image with Google Drive link
+// @access  Private (Placement Director role only)
+router.post('/update-profile-image', protect, authorize('placement_director'), updateProfileImage);
+
 // @route   POST /api/v1/placement-director-profiles/upload-resume
 // @desc    Update placement director resume with Google Drive link
 // @access  Private (Placement Director role only)

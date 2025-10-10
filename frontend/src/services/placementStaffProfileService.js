@@ -186,6 +186,31 @@ class PlacementStaffProfileService {
     }
   }
 
+  // Update profile image with Google Drive link
+  async updateProfileImage(googleDriveUrl) {
+    try {
+      console.log('PlacementStaffProfileService - updateProfileImage called with:', googleDriveUrl);
+      
+      const response = await api.post('/placement-staff-profiles/update-profile-image', {
+        googleDriveUrl: googleDriveUrl
+      });
+      
+      if (response.success) {
+        console.log('PlacementStaffProfileService - Profile image updated successfully:', response.profilePhotoUrl);
+        return {
+          success: true,
+          profilePhotoUrl: response.profilePhotoUrl,
+          thumbnailUrl: response.thumbnailUrl
+        };
+      }
+      
+      throw new Error(response.message || 'Failed to update profile image');
+    } catch (error) {
+      console.error('PlacementStaffProfileService - Update profile image error:', error);
+      throw error;
+    }
+  }
+
   // Get profiles by role
   async getProfilesByRole(role, params = {}) {
     try {

@@ -262,15 +262,6 @@ const dummyUsers = [
     isActive: true,
     isVerified: true,
     bio: 'Third year CSE student passionate about cybersecurity and blockchain.'
-  },
-{
-  // Next entry
-    graduationYear: 2021,
-    currentCompany: 'Tesla',
-    currentPosition: 'Electrical Engineer',
-    isActive: true,
-    isVerified: true,
-    bio: 'EEE graduate working at Tesla on electric vehicle technologies.'
   }
 ];
 

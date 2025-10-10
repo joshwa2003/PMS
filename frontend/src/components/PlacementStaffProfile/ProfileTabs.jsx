@@ -4,7 +4,8 @@ import {
   Person, 
   Work, 
   ContactPhone, 
-  AdminPanelSettings 
+  AdminPanelSettings,
+  PhotoCamera
 } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import { usePlacementStaffProfile } from '../../context/PlacementStaffProfileContext';
@@ -14,6 +15,7 @@ import BasicInfoForm from './BasicInfoForm';
 import ProfessionalDetailsForm from './ProfessionalDetailsForm';
 import ContactDetailsForm from './ContactDetailsForm';
 import AdministrativeNotesForm from './AdministrativeNotesForm';
+import ProfileImageForm from './ProfileImageForm';
 
 function ProfileTabs() {
   const { activeTab, setActiveTab } = usePlacementStaffProfile();
@@ -37,6 +39,11 @@ function ProfileTabs() {
       label: 'Contact',
       icon: <ContactPhone />,
       component: <ContactDetailsForm />
+    },
+    {
+      label: 'Profile Image',
+      icon: <PhotoCamera />,
+      component: <ProfileImageForm />
     },
     {
       label: 'Admin Notes',

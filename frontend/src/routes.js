@@ -209,7 +209,7 @@ const routes = [
         <JobManagementNew />
       </ProtectedRoute>
     ),
-    hideForRoles: ['student'],
+    hideForRoles: ['student', 'other_staff', 'placement_staff'],
   },
   {
     type: "collapse",
@@ -222,7 +222,7 @@ const routes = [
         <JobMonitoring />
       </ProtectedRoute>
     ),
-    hideForRoles: ['student'],
+    hideForRoles: ['student', 'other_staff'],
   },
   // Job Analytics (hidden from sidebar - accessed via job monitoring)
   {
@@ -271,7 +271,7 @@ const routes = [
         <RTL />
       </ProtectedRoute>
     ),
-    hideForRoles: ['student', 'placement_director'],
+    hideForRoles: ['student', 'placement_director', 'other_staff', 'placement_staff'],
   },
   {
     type: "collapse",
@@ -284,7 +284,7 @@ const routes = [
         <Notifications />
       </ProtectedRoute>
     ),
-    hideForRoles: ['student', 'placement_director'],
+    hideForRoles: ['student', 'placement_director', 'other_staff', 'placement_staff'],
   },
   {
     type: "collapse",
@@ -320,7 +320,7 @@ const routes = [
         <AppliedJobs />
       </ProtectedRoute>
     ),
-    hideForRoles: ['placement_director'],
+    hideForRoles: ['placement_director', 'other_staff', 'placement_staff'],
   },
   // Staff view of specific student profile (hidden from sidebar)
   {
@@ -381,7 +381,7 @@ const routes = [
         <StudentManagement />
       </ProtectedRoute>
     ),
-    hideForRoles: ['student', 'placement_director'],
+    hideForRoles: ['student', 'placement_director', 'other_staff'],
   },
   {
     type: "collapse",
@@ -462,7 +462,7 @@ const routes = [
     icon: <Icon fontSize="small">login</Icon>,
     route: "/authentication/sign-in",
     component: <SignIn />,
-    hideForRoles: ['student', 'placement_director'],
+    hideForRoles: ['student', 'placement_director', 'other_staff', 'placement_staff'],
   },
   {
     type: "collapse",
@@ -471,7 +471,7 @@ const routes = [
     icon: <Icon fontSize="small">assignment</Icon>,
     route: "/authentication/sign-up",
     component: <SignUp />,
-    hideForRoles: ['student', 'placement_director'],
+    hideForRoles: ['student', 'placement_director', 'other_staff', 'placement_staff'],
   },
   // Forgot password route (hidden from sidebar)
   {
