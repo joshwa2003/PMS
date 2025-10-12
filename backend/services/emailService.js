@@ -36,6 +36,344 @@ class EmailService {
     }
   }
 
+  // Generate HTML email template for placement director welcome email
+  generatePlacementDirectorWelcomeEmailTemplate(directorData, password) {
+    const { firstName, lastName, email, employeeId } = directorData;
+
+
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to PMS - Placement Director Account Created</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+            }
+            .email-container {
+                background-color: #ffffff;
+                border-radius: 10px;
+                padding: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 3px solid #FF6B35;
+            }
+            .header h1 {
+                color: #FF6B35;
+                margin: 0;
+                font-size: 28px;
+            }
+            .header p {
+                color: #666;
+                margin: 5px 0 0 0;
+                font-size: 16px;
+            }
+            .welcome-message {
+                background-color: #fff5f0;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 25px;
+                border-left: 4px solid #FF6B35;
+            }
+            .credentials-box {
+                background-color: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 20px 0;
+            }
+            .credentials-box h3 {
+                color: #856404;
+                margin-top: 0;
+                display: flex;
+                align-items: center;
+            }
+            .credential-item {
+                background-color: #ffffff;
+                padding: 12px;
+                margin: 10px 0;
+                border-radius: 5px;
+                border: 1px solid #dee2e6;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .credential-label {
+                font-weight: bold;
+                color: #495057;
+            }
+            .credential-value {
+                font-family: 'Courier New', monospace;
+                background-color: #e9ecef;
+                padding: 5px 10px;
+                border-radius: 4px;
+                color: #212529;
+                font-weight: bold;
+            }
+            .director-info {
+                background-color: #fff5f0;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+            }
+            .director-info h3 {
+                color: #d63031;
+                margin-top: 0;
+            }
+            .info-row {
+                display: flex;
+                justify-content: space-between;
+                margin: 8px 0;
+                padding: 8px 0;
+                border-bottom: 1px solid #ffeaa7;
+            }
+            .info-row:last-child {
+                border-bottom: none;
+            }
+            .info-label {
+                font-weight: bold;
+                color: #b33939;
+            }
+            .info-value {
+                color: #424242;
+            }
+            .security-notice {
+                background-color: #fff5f5;
+                border: 1px solid #fed7d7;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            .security-notice h4 {
+                color: #c53030;
+                margin-top: 0;
+            }
+            .next-steps {
+                background-color: #fff5f0;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border-left: 4px solid #FF6B35;
+            }
+            .next-steps h3 {
+                color: #d63031;
+                margin-top: 0;
+            }
+            .next-steps ol {
+                padding-left: 20px;
+            }
+            .next-steps li {
+                margin: 8px 0;
+                color: #424242;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #dee2e6;
+                color: #6c757d;
+                font-size: 14px;
+            }
+            .contact-info {
+                background-color: #f8f9fa;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            .warning-icon {
+                color: #f39c12;
+                margin-right: 8px;
+            }
+            .success-icon {
+                color: #FF6B35;
+                margin-right: 8px;
+            }
+            .info-icon {
+                color: #17a2b8;
+                margin-right: 8px;
+            }
+            .director-badge {
+                background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 25px;
+                display: inline-block;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <h1>🎯 Welcome to PMS</h1>
+                <p>Placement Management System</p>
+                <div class="director-badge">🏆 PLACEMENT DIRECTOR</div>
+            </div>
+
+            <div class="welcome-message">
+                <h2><span class="success-icon">✅</span>Your Placement Director Account Has Been Created!</h2>
+                <p>Dear <strong>${firstName} ${lastName}</strong>,</p>
+                <p>Congratulations! You have been appointed as a <strong>Placement Director</strong> in the Placement Management System. Your account has been successfully created by the system administrator.</p>
+            </div>
+
+            <div class="director-info">
+                <h3><span class="info-icon">👨‍💼</span>Your Director Profile Information</h3>
+                <div class="info-row">
+                    <span class="info-label">Full Name:</span>
+                    <span class="info-value">${firstName} ${lastName}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Role:</span>
+                    <span class="info-value">Placement Director</span>
+                </div>
+                ${employeeId ? `
+                <div class="info-row">
+                    <span class="info-label">Employee ID:</span>
+                    <span class="info-value">${employeeId}</span>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="credentials-box">
+                <h3><span class="warning-icon">🔐</span>Your Login Credentials</h3>
+                <p>Please use the following credentials to access the PMS system:</p>
+                
+                <div class="credential-item">
+                    <span class="credential-label">Username (Email):</span>
+                    <span class="credential-value">${email}</span>
+                </div>
+                
+                <div class="credential-item">
+                    <span class="credential-label">Temporary Password:</span>
+                    <span class="credential-value">${password}</span>
+                </div>
+            </div>
+
+            <div class="security-notice">
+                <h4><span class="warning-icon">⚠️</span>Important Security Notice</h4>
+                <ul>
+                    <li><strong>Change your password immediately</strong> after your first login</li>
+                    <li>Do not share your login credentials with anyone</li>
+                    <li>Keep this email secure and delete it after changing your password</li>
+                    <li>If you suspect unauthorized access, contact the administrator immediately</li>
+                </ul>
+            </div>
+
+            <div class="next-steps">
+                <h3><span class="info-icon">📋</span>Your Responsibilities as Placement Director</h3>
+                <ol>
+                    <li><strong>Login to the system</strong> using your email and temporary password</li>
+                    <li><strong>Change your password</strong> to something secure and memorable</li>
+                    <li><strong>Complete your profile</strong> with additional information</li>
+                    <li><strong>Manage placement activities</strong> and oversee staff operations</li>
+                    <li><strong>Monitor job postings</strong> and student applications</li>
+                    <li><strong>Generate reports</strong> and analyze placement data</li>
+                    <li><strong>Coordinate with companies</strong> and manage recruitment drives</li>
+                </ol>
+            </div>
+
+            <div class="contact-info">
+                <h4>Need Help?</h4>
+                <p>If you have any questions or need assistance, please contact:</p>
+                <p><strong>PMS Administrator</strong></p>
+                <p>Email: admin@saec.edu.in | Phone: +91-XXXXXXXXXX</p>
+            </div>
+
+            <div class="footer">
+                <p>This is an automated email from the Placement Management System.</p>
+                <p>Please do not reply to this email address.</p>
+                <p>&copy; ${new Date().getFullYear()} Placement Management System. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+  }
+
+  // Send welcome email to a placement director
+  async sendPlacementDirectorWelcomeEmail(directorData, password) {
+    try {
+      if (!this.transporter) {
+        throw new Error('Email transporter not initialized');
+      }
+
+      const { firstName, lastName, email } = directorData;
+      const htmlContent = this.generatePlacementDirectorWelcomeEmailTemplate(directorData, password);
+
+      const mailOptions = {
+        from: {
+          name: 'PMS - Placement Management System',
+          address: process.env.SMTP_EMAIL || 'noreply@saec.edu.in'
+        },
+        to: email,
+        subject: `🎯 Welcome to PMS - Your Placement Director Account is Ready!`,
+        html: htmlContent,
+        // Plain text fallback
+        text: `
+Welcome to PMS - Placement Management System!
+
+Dear ${firstName} ${lastName},
+
+Congratulations! You have been appointed as a Placement Director in the Placement Management System. Your account has been successfully created by the system administrator.
+
+Your login credentials:
+Username (Email): ${email}
+Temporary Password: ${password}
+
+Please login to the system and change your password immediately for security.
+
+Your Responsibilities as Placement Director:
+- Manage placement activities and oversee staff operations
+- Monitor job postings and student applications
+- Generate reports and analyze placement data
+- Coordinate with companies and manage recruitment drives
+
+Important Security Notes:
+- Change your password after first login
+- Do not share your credentials with anyone
+- Keep this information secure
+
+If you need any assistance, please contact the PMS administrator.
+
+Best regards,
+PMS Administration Team
+        `
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`Placement Director welcome email sent successfully to ${email}:`, result.messageId);
+      
+      return {
+        success: true,
+        messageId: result.messageId,
+        email: email
+      };
+
+    } catch (error) {
+      console.error(`Error sending Placement Director welcome email to ${directorData.email}:`, error);
+      
+      return {
+        success: false,
+        error: error.message,
+        email: directorData.email
+      };
+    }
+  }
+
   // Generate HTML email template for staff welcome email
   generateStaffWelcomeEmailTemplate(staffData, password) {
     const { firstName, lastName, email, role, department, designation, employeeId } = staffData;

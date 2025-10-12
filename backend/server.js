@@ -25,6 +25,7 @@ const jobRoutes = require('./routes/jobs');
 const batchRoutes = require('./routes/batches');
 const googleDriveProxyRouter = require('./routes/googleDriveProxy');
 const departmentWiseStudentsRoutes = require('./routes/departmentWiseStudents');
+const placementDirectorRoutes = require('./routes/placementDirectors');
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
 app.use(`/api/${API_VERSION}/jobs`, jobRoutes);
 app.use(`/api/${API_VERSION}/batches`, batchRoutes);
 app.use(`/api/${API_VERSION}`, departmentWiseStudentsRoutes);
+app.use(`/api/${API_VERSION}/placement-directors`, placementDirectorRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

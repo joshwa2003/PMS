@@ -70,6 +70,7 @@ import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import ForgotPassword from "layouts/authentication/forgot-password";
 import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
+import PlacementDirectorManagement from "pages/PlacementDirectorManagement";
 
 // Protected Route Component
 import ProtectedRoute from "components/ProtectedRoute";
@@ -106,13 +107,23 @@ const routes = [
     ),
   },
   
-  // 2. User Management (with Staff Management nested inside)
+  // 2. User Management (with Staff Management and Placement Director Management nested inside)
   {
     type: "collapse",
     name: "User Management",
     key: "user-management",
     icon: <Icon fontSize="small">people</Icon>,
     collapse: [
+      {
+        name: "Placement Director Management",
+        key: "placement-director-management",
+        route: "/placement-director-management",
+        component: (
+          <ProtectedRoute requiredRoles={['admin']}>
+            <PlacementDirectorManagement />
+          </ProtectedRoute>
+        ),
+      },
       {
         name: "Staff Management",
         key: "staff-management",
