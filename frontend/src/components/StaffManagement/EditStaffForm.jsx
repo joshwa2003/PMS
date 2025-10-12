@@ -278,7 +278,7 @@ const EditStaffForm = ({ staff, onSuccess, onCancel }) => {
             <FormControl fullWidth>
               <InputLabel>Department</InputLabel>
               <Select
-                value={formData.department}
+                value={departmentsLoading ? '' : formData.department}
                 onChange={handleInputChange('department')}
                 label="Department"
                 disabled={departmentsLoading}

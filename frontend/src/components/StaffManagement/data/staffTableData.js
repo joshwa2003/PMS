@@ -27,7 +27,7 @@ import { useState } from "react";
 // Default avatar for staff members without profile pictures
 const defaultAvatar = "https://ui-avatars.com/api/?name=";
 
-export default function staffTableData(staff, onViewDetails, onEditStaff, onDeleteStaff, onToggleStatus, selectionProps = null, departments = []) {
+export default function staffTableData(staff, onViewDetails, onDeleteStaff, onToggleStatus, selectionProps = null, departments = []) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
       <MDAvatar 
@@ -93,10 +93,6 @@ export default function staffTableData(staff, onViewDetails, onEditStaff, onDele
       handleClose();
     };
 
-    const handleEdit = () => {
-      onEditStaff(staffMember);
-      handleClose();
-    };
 
     const handleDelete = () => {
       onDeleteStaff(staffMember);
@@ -133,10 +129,6 @@ export default function staffTableData(staff, onViewDetails, onEditStaff, onDele
           <MenuItem onClick={handleViewDetails}>
             <Icon sx={{ mr: 1 }}>visibility</Icon>
             View Details
-          </MenuItem>
-          <MenuItem onClick={handleEdit}>
-            <Icon sx={{ mr: 1 }}>edit</Icon>
-            Edit Staff
           </MenuItem>
           {onToggleStatus && (
             <MenuItem onClick={handleToggleStatus}>

@@ -1131,8 +1131,12 @@ exports.getAllStaff = async (req, res) => {
 // @access  Private (Admin, Placement Director)
 exports.updateStaff = async (req, res) => {
   try {
+    console.log('🔍 updateStaff called with ID:', req.params.id);
+    console.log('🔍 Request body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Staff update validation errors:', errors.array());
+      console.log('❌ Request body:', req.body);
       return res.status(400).json({
         success: false,
         message: 'Validation failed',

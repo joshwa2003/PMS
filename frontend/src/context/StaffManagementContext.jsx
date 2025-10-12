@@ -602,11 +602,11 @@ export const StaffManagementProvider = ({ children }) => {
     getStaffStatusColor: staffService.getStaffStatusColor,
     getStaffStatusText: staffService.getStaffStatusText,
     formatLastLogin: staffService.formatLastLogin,
-    validateStaffData: staffService.validateStaffData,
-    generateEmployeeIdSuggestion: staffService.generateEmployeeIdSuggestion,
-    getAvailableRoles: staffService.getAvailableRoles,
-    getAvailableDepartments: staffService.getAvailableDepartments,
-    getCommonDesignations: staffService.getCommonDesignations
+    validateStaffData: staffService.validateStaffData.bind(staffService),
+    generateEmployeeIdSuggestion: staffService.generateEmployeeIdSuggestion.bind(staffService),
+    getAvailableRoles: staffService.getAvailableRoles.bind(staffService),
+    getAvailableDepartments: staffService.getAvailableDepartments.bind(staffService),
+    getCommonDesignations: staffService.getCommonDesignations.bind(staffService)
   };
 
   return (

@@ -62,11 +62,30 @@ const createStudent = async (req, res) => {
     const studentIdPrefix = `${currentYear}STU`;
     
     // Find the last student ID to generate next sequential number
-    const lastStudent = await User.findOne(
+    // Check both User and Student collections to get the highest student ID
+    const lastUserStudent = await User.findOne(
       { studentId: { $regex: `^${studentIdPrefix}` } },
       {},
       { sort: { studentId: -1 } }
     );
+    
+    const lastStudentProfile = await Student.findOne(
+      { studentId: { $regex: `^${studentIdPrefix}` } },
+      {},
+      { sort: { studentId: -1 } }
+    );
+    
+    // Get the highest student ID from both collections
+    let lastStudent = null;
+    if (lastUserStudent && lastStudentProfile) {
+      const userNumber = parseInt(lastUserStudent.studentId.replace(studentIdPrefix, ''));
+      const studentNumber = parseInt(lastStudentProfile.studentId.replace(studentIdPrefix, ''));
+      lastStudent = userNumber > studentNumber ? lastUserStudent : lastStudentProfile;
+    } else if (lastUserStudent) {
+      lastStudent = lastUserStudent;
+    } else if (lastStudentProfile) {
+      lastStudent = lastStudentProfile;
+    }
     
     let nextNumber = 1;
     if (lastStudent && lastStudent.studentId) {
@@ -354,11 +373,30 @@ const createBulkStudents = async (req, res) => {
     const studentIdPrefix = `${currentYear}STU`;
     
     // Get the last student ID once at the beginning
-    const lastStudent = await User.findOne(
+    // Check both User and Student collections to get the highest student ID
+    const lastUserStudent = await User.findOne(
       { studentId: { $regex: `^${studentIdPrefix}` } },
       {},
       { sort: { studentId: -1 } }
     );
+    
+    const lastStudentProfile = await Student.findOne(
+      { studentId: { $regex: `^${studentIdPrefix}` } },
+      {},
+      { sort: { studentId: -1 } }
+    );
+    
+    // Get the highest student ID from both collections
+    let lastStudent = null;
+    if (lastUserStudent && lastStudentProfile) {
+      const userNumber = parseInt(lastUserStudent.studentId.replace(studentIdPrefix, ''));
+      const studentNumber = parseInt(lastStudentProfile.studentId.replace(studentIdPrefix, ''));
+      lastStudent = userNumber > studentNumber ? lastUserStudent : lastStudentProfile;
+    } else if (lastUserStudent) {
+      lastStudent = lastUserStudent;
+    } else if (lastStudentProfile) {
+      lastStudent = lastStudentProfile;
+    }
     
     let startingNumber = 1;
     if (lastStudent && lastStudent.studentId) {
@@ -371,12 +409,15 @@ const createBulkStudents = async (req, res) => {
     // Process each student
     for (let i = 0; i < studentData.length; i++) {
       const student = studentData[i];
+      console.log(`🔍 Processing student ${i + 1}/${studentData.length}:`, student);
       
       try {
         const { firstName, lastName, email } = student;
+        console.log(`🔍 Extracted data: firstName="${firstName}", lastName="${lastName}", email="${email}"`);
 
         // Validate required fields
         if (!firstName || !lastName || !email) {
+          console.log(`❌ Validation failed for student ${i + 1}: missing required fields`);
           results.failed.push({
             index: i + 1,
             email: email || 'No email provided',
@@ -384,6 +425,7 @@ const createBulkStudents = async (req, res) => {
           });
           continue;
         }
+        console.log(`✅ Basic validation passed for student ${i + 1}`);
 
         // Check if user already exists
         const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -417,6 +459,15 @@ const createBulkStudents = async (req, res) => {
         const tempPassword = "Student@123";
         
         // Create user account (password will be hashed by User model pre-save middleware)
+        console.log(`🔍 Creating User object for: ${firstName.trim()} ${lastName.trim()}`);
+        console.log(`🔍 User data:`, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.toLowerCase().trim(),
+          role: 'student',
+          studentId: studentId
+        });
+        
         const newUser = new User({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -429,9 +480,21 @@ const createBulkStudents = async (req, res) => {
           createdBy: req.user.id
         });
 
+        console.log(`🔍 About to save User...`);
         const savedUser = await newUser.save();
+        console.log(`✅ User saved successfully: ${savedUser._id}`);
 
         // Create basic student profile with staff's department
+        console.log(`🔍 Creating Student profile for: ${firstName.trim()} ${lastName.trim()}`);
+        console.log(`🔍 Student data:`, {
+          userId: savedUser._id,
+          studentId: studentId,
+          registrationNumber: studentId,
+          batchId: batch ? batch._id : null,
+          fullName: `${firstName.trim()} ${lastName.trim()}`,
+          department: staffDepartment
+        });
+        
         const newStudent = new Student({
           userId: savedUser._id,
           studentId: studentId,
@@ -452,7 +515,9 @@ const createBulkStudents = async (req, res) => {
           }
         });
 
+        console.log(`🔍 About to save Student profile...`);
         const savedStudent = await newStudent.save();
+        console.log(`✅ Student profile saved successfully: ${savedStudent._id}`);
 
         // Update user with student profile reference
         savedUser.studentProfile = savedStudent._id;
@@ -472,7 +537,15 @@ const createBulkStudents = async (req, res) => {
         console.log(`Successfully created student: ${firstName} ${lastName} (${studentId})`);
 
       } catch (error) {
-        console.error(`Error creating student at index ${i}:`, error);
+        console.error(`❌ Error creating student at index ${i}:`, error);
+        console.error(`❌ Error details:`, {
+          message: error.message,
+          code: error.code,
+          name: error.name,
+          keyPattern: error.keyPattern,
+          errors: error.errors,
+          stack: error.stack
+        });
         
         // Provide more specific error messages
         let errorMessage = 'Unknown error occurred';
@@ -486,6 +559,10 @@ const createBulkStudents = async (req, res) => {
           } else {
             errorMessage = `Duplicate ${field} detected`;
           }
+        } else if (error.name === 'ValidationError') {
+          // Mongoose validation error
+          const validationErrors = Object.values(error.errors || {}).map(err => err.message);
+          errorMessage = `Validation failed: ${validationErrors.join(', ')}`;
         } else if (error.message) {
           errorMessage = error.message;
         }

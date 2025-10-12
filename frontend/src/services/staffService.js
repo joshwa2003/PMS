@@ -720,8 +720,12 @@ class StaffService {
   async getAvailableDepartments() {
     try {
       const response = await api.get('/departments');
-      if (response.success && response.departments) {
-        return response.departments.map(dept => ({
+      
+      // Check both possible response structures
+      const departments = response.data?.departments || response.departments;
+      
+      if (response.success && departments) {
+        return departments.map(dept => ({
           value: dept.code,
           label: `${dept.name} (${dept.code})`,
           id: dept._id,

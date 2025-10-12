@@ -15,8 +15,8 @@ const passwordValidation = body('password')
 const nameValidation = (field) => 
   body(field)
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage(`${field} must be between 2 and 50 characters`)
+    .isLength({ min: 1, max: 50 })
+    .withMessage(`${field} must be between 1 and 50 characters`)
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage(`${field} must contain only letters and spaces`);
 
@@ -207,14 +207,14 @@ exports.validateUserUpdate = [
   body('firstName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters'),
   
   body('lastName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters'),
   
   body('email')
     .optional()
@@ -297,16 +297,16 @@ exports.validatePlacementDirectorProfileUpdate = [
   body('name.firstName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('First name must contain only letters and spaces'),
   
   body('name.lastName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Last name must contain only letters and spaces'),
   
@@ -452,15 +452,15 @@ exports.validateStaffCreation = [
     .trim()
     .notEmpty()
     .withMessage('First name is required')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters'),
   
   body('lastName')
     .trim()
     .notEmpty()
     .withMessage('Last name is required')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters'),
   
   body('email')
     .isEmail()
@@ -509,19 +509,20 @@ exports.validateStaffUpdate = [
   body('firstName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters'),
   
   body('lastName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters'),
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters'),
   
   body('department')
     .optional()
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
-    .withMessage('Invalid department specified'),
+    .trim()
+    .isLength({ min: 2, max: 10 })
+    .withMessage('Department code must be between 2 and 10 characters'),
   
   body('designation')
     .optional()
@@ -575,16 +576,16 @@ exports.validatePlacementStaffProfileUpdate = [
   body('name.firstName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('First name must contain only letters and spaces'),
   
   body('name.lastName')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters')
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Last name must contain only letters and spaces'),
   

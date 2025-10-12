@@ -80,6 +80,11 @@ router.patch('/staff/:id/status',
 );
 
 router.put('/staff/:id', 
+  (req, res, next) => {
+    console.log('🔍 PUT /staff/:id route hit with ID:', req.params.id);
+    console.log('🔍 User role:', req.user?.role);
+    next();
+  },
   authorize('admin', 'placement_director'), 
   validateObjectId('id'),
   validateStaffUpdate,

@@ -328,7 +328,6 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   const { columns, rows } = staffTableData(
     staff,
     handleViewDetails,
-    handleEditStaff,
     canDelete ? handleDeleteStaff : null,
     handleToggleStatus,
     // Pass selection props for checkboxes
@@ -1065,25 +1064,6 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
               </Button>
               
               <Box display="flex" gap={2}>
-                <MDButton
-                  variant="gradient"
-                  color="info"
-                  size="large"
-                  onClick={() => {
-                    setDetailModalOpen(false);
-                    if (onEditStaff) onEditStaff(selectedStaff);
-                  }}
-                  startIcon={<EditIcon />}
-                  sx={{
-                    borderRadius: '8px',
-                    textTransform: 'none',
-                    fontWeight: 'bold',
-                    px: 3
-                  }}
-                >
-                  Edit Staff
-                </MDButton>
-                
                 {canDelete && (
                   <MDButton
                     variant="gradient"

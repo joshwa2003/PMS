@@ -18,7 +18,7 @@ const studentSchema = new mongoose.Schema({
       type: String, 
       required: [true, 'Full name is required'],
       trim: true,
-      minlength: [2, 'Full name must be at least 2 characters long']
+      minlength: [1, 'Full name must be at least 1 character long']
     },
     dateOfBirth: { type: Date },
     gender: { 

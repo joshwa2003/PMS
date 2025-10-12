@@ -8,15 +8,49 @@ const googleDriveService = require('../services/googleDriveService');
 // @access  Private (Student only)
 const getStudentProfile = async (req, res) => {
   try {
-    const student = await Student.findByUserId(req.user.id);
+    console.log('🔍 Student Profile - Get Profile Request');
+    console.log('User ID:', req.user.id);
+    console.log('User Role:', req.user.role);
+    
+    let student = await Student.findByUserId(req.user.id);
     
     if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found'
+      console.log('🔍 No existing profile found, creating basic profile');
+      
+      // Create a basic student profile with minimal required fields
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Generate basic student ID and registration number
+      const timestamp = Date.now().toString().slice(-6);
+      const basicStudentId = `STU${timestamp}`;
+      const basicRegNumber = `REG${timestamp}`;
+
+      student = new Student({
+        studentId: basicStudentId,
+        registrationNumber: basicRegNumber,
+        personalInfo: {
+          fullName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Student Name'
+        },
+        contact: {
+          email: user.email
+        },
+        userId: req.user.id
       });
+
+      await student.save();
+      console.log('🔍 Basic student profile created successfully');
     }
 
+    // Populate user data
+    await student.populate('userId', 'firstName lastName email');
+
+    console.log('🔍 Student profile found/created successfully');
     res.status(200).json({
       success: true,
       student
