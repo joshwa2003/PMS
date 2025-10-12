@@ -46,6 +46,7 @@ import StudentProfileViewPage from "pages/StudentProfileViewPage";
 import PlacementDirectorProfile from "pages/PlacementDirectorProfile";
 import PlacementStaffProfile from "pages/PlacementStaffProfile";
 import DepartmentHODProfile from "pages/DepartmentHODProfile";
+import OtherStaffProfile from "pages/OtherStaffProfile";
 import PlacementDirectorStudentProfile from "pages/PlacementDirectorStudentProfile";
 import StaffManagement from "pages/StaffManagement";
 import StudentManagement from "pages/StudentManagement";
@@ -394,6 +395,19 @@ const routes = [
         <DepartmentHODProfile />
       </ProtectedRoute>
     ),
+  },
+  {
+    type: "collapse",
+    name: "Other Staff Profile",
+    key: "other-staff-profile",
+    icon: <Icon fontSize="small">badge</Icon>,
+    route: "/other-staff-profile",
+    component: (
+      <ProtectedRoute requiredRoles={['other_staff']}>
+        <OtherStaffProfile />
+      </ProtectedRoute>
+    ),
+    hideForRoles: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'student'],
   },
   // Department Staff Management (hidden from sidebar - accessed via departments)
   {

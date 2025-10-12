@@ -17,6 +17,7 @@ const administratorProfileRoutes = require('./routes/administratorProfiles');
 const placementDirectorProfileRoutes = require('./routes/placementDirectorProfiles');
 const placementStaffProfileRoutes = require('./routes/placementStaffProfiles');
 const departmentHODProfileRoutes = require('./routes/departmentHODProfiles');
+const otherStaffProfileRoutes = require('./routes/otherStaffProfiles');
 const courseCategoryRoutes = require('./routes/courseCategories');
 const departmentRoutes = require('./routes/departments');
 const dashboardRoutes = require('./routes/dashboard');
@@ -86,6 +87,7 @@ app.use(`/api/${API_VERSION}/administrator-profiles`, administratorProfileRoutes
 app.use(`/api/${API_VERSION}/placement-director-profiles`, placementDirectorProfileRoutes);
 app.use(`/api/${API_VERSION}/placement-staff-profiles`, placementStaffProfileRoutes);
 app.use(`/api/${API_VERSION}/department-hod-profiles`, departmentHODProfileRoutes);
+app.use(`/api/${API_VERSION}/other-staff-profiles`, otherStaffProfileRoutes);
 app.use(`/api/${API_VERSION}/course-categories`, courseCategoryRoutes);
 app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
