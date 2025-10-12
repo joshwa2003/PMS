@@ -198,6 +198,24 @@ class AuthService {
     }
   }
 
+  // First-time login password reset
+  async firstLoginPasswordReset(currentPassword, newPassword) {
+    try {
+      const response = await api.post('/auth/first-login-password-reset', {
+        currentPassword,
+        newPassword
+      });
+      
+      if (response.success) {
+        return response;
+      }
+      
+      throw new Error(response.message || 'Password update failed');
+    } catch (error) {
+      throw error;
+    }
+  }
+
 
   // Check if user is authenticated
   isAuthenticated() {

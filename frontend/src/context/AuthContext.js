@@ -198,6 +198,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // First-time login password reset function
+  const updateFirstLoginPassword = async (currentPassword, newPassword) => {
+    try {
+      const response = await authService.firstLoginPasswordReset(currentPassword, newPassword);
+      // Update user state to mark first login as complete
+      if (response.success) {
+        const updatedUser = { ...state.user, isFirstLogin: false };
+        dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: updatedUser });
+      }
+      return response;
+    } catch (error) {
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: error.message });
+      throw error;
+    }
+  };
+
 
   // Clear error function
   const clearError = () => {
@@ -261,6 +277,7 @@ export const AuthProvider = ({ children }) => {
     // First login actions
     checkFirstLogin,
     setInitialPassword,
+    updateFirstLoginPassword,
 
     // Role-based access control
     hasRole,

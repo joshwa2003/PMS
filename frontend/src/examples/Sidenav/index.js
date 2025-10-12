@@ -126,12 +126,28 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   }, [dispatch, location]);
 
   // Filter routes based on user role
-  const filteredRoutes = routes.filter(({ key, hideForRoles }) => {
+  const filteredRoutes = routes.filter(({ key, hideForRoles, collapse }) => {
     if (!user) return true; // Show all routes if no user (shouldn't happen in protected routes)
     
     // Check if route should be hidden for current user role
     if (hideForRoles && hideForRoles.includes(user.role)) {
       return false;
+    }
+
+    // For collapse routes, check if any nested routes are visible
+    if (collapse && Array.isArray(collapse)) {
+      const visibleNestedRoutes = collapse.filter((nestedRoute) => {
+        if (!user) return true;
+        if (nestedRoute.hideForRoles && nestedRoute.hideForRoles.includes(user.role)) {
+          return false;
+        }
+        return true;
+      });
+      
+      // Hide parent if no nested routes are visible
+      if (visibleNestedRoutes.length === 0) {
+        return false;
+      }
     }
     
     // Define role groups
@@ -270,7 +286,16 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             {/* Nested items */}
             <Collapse in={isOpen} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
-                {collapse.map((nestedRoute) => (
+                {collapse
+                  .filter((nestedRoute) => {
+                    // Filter nested routes based on hideForRoles
+                    if (!user) return true;
+                    if (nestedRoute.hideForRoles && nestedRoute.hideForRoles.includes(user.role)) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((nestedRoute) => (
                   <NavLink key={nestedRoute.key} to={nestedRoute.route} style={{ textDecoration: "none" }}>
                     <ListItem component="li" sx={{ pl: 2 }}>
                       <MDBox

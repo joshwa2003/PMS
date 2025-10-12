@@ -7,6 +7,16 @@ const emailService = require('../services/emailService');
 // Constants
 const STAFF_ROLES = ['placement_staff', 'department_hod', 'other_staff'];
 
+// Default passwords that require password reset
+const DEFAULT_PASSWORDS = {
+  'admin': 'Admin@123',
+  'placement_director': 'Director@123',
+  'placement_staff': 'Staff@123',
+  'department_hod': 'HOD@123',
+  'other_staff': 'Staff@123',
+  'student': 'Student@123'
+};
+
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -170,6 +180,10 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Check if user is using default password and needs to change it
+    const defaultPassword = DEFAULT_PASSWORDS[user.role];
+    const isUsingDefaultPassword = defaultPassword && password === defaultPassword;
+
     // Update login history
     const now = new Date();
     user.lastLogin = now;
@@ -194,8 +208,8 @@ exports.login = async (req, res) => {
     
     await user.save({ validateBeforeSave: false });
 
-    // Check if staff user needs first login setup
-    const needsFirstLogin = STAFF_ROLES.includes(user.role) && user.isFirstLogin;
+    // Check if user needs first login setup (either flagged or using default password)
+    const needsFirstLogin = user.isFirstLogin || isUsingDefaultPassword;
     const needsDepartmentSelection = STAFF_ROLES.includes(user.role) && (!user.department || user.department === null);
 
     // Send token response with first login status
@@ -841,6 +855,101 @@ exports.resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// @desc    First time login password reset
+// @route   POST /api/v1/auth/first-login-password-reset
+// @access  Private
+exports.firstLoginPasswordReset = async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Find user and include password for comparison
+    const user = await User.findById(userId).select('+password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Check if new password is different from current
+    const isSamePassword = await user.comparePassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from current password'
+      });
+    }
+
+    // Check if new password is a default password
+    const defaultPassword = DEFAULT_PASSWORDS[user.role];
+    if (defaultPassword && newPassword === defaultPassword) {
+      return res.status(400).json({
+        success: false,
+        message: `You cannot use the default password "${defaultPassword}" as your new password. Please choose a different password.`
+      });
+    }
+
+    // Validate new password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+      });
+    }
+
+    // Update password and mark first login as complete
+    user.password = newPassword;
+    user.isFirstLogin = false;
+    user.passwordChangedAt = new Date();
+    
+    await user.save();
+
+    console.log(`First login password reset successful for user: ${user.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. Welcome to the system!'
+    });
+  } catch (error) {
+    console.error('First login password reset error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during password reset',

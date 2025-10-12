@@ -131,7 +131,7 @@ function Basic() {
       
       // Check if user needs first login setup
       if (response.needsFirstLogin) {
-        navigate("/authentication/first-login-password-reset");
+        navigate("/authentication/first-login-password-reset", { replace: true });
         return;
       }
       

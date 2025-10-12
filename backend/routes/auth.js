@@ -11,7 +11,8 @@ const {
   selectDepartment,
   forgotPassword,
   verifyResetOTP,
-  resetPassword
+  resetPassword,
+  firstLoginPasswordReset
 } = require('../controllers/authController');
 
 const { protect, rateLimitLogin } = require('../middleware/auth');
@@ -22,7 +23,8 @@ const {
   validateChangePassword,
   validateForgotPassword,
   validateVerifyOTP,
-  validateResetPassword
+  validateResetPassword,
+  validateFirstLoginPasswordReset
 } = require('../middleware/validation');
 
 const router = express.Router();
@@ -46,5 +48,6 @@ router.post('/logout', protect, logout);
 router.get('/first-login-check', protect, checkFirstLogin);
 router.put('/set-initial-password', protect, setInitialPassword);
 router.put('/select-department', protect, selectDepartment);
+router.post('/first-login-password-reset', protect, validateFirstLoginPasswordReset, firstLoginPasswordReset);
 
 module.exports = router;

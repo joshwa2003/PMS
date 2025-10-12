@@ -29,7 +29,8 @@ import {
   TableRow,
   Paper,
   TablePagination,
-  InputAdornment
+  InputAdornment,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -48,6 +49,15 @@ import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from '../examples/Navbars/DashboardNavbar';
 import placementDirectorManagementService from '../services/placementDirectorManagementService';
+
+// S.A. Engineering College React components
+import MDBox from "../components/MDBox";
+import MDTypography from "../components/MDTypography";
+import MDButton from "../components/MDButton";
+
+// S.A. Engineering College React example components
+import DataTableHeadCell from "../examples/Tables/DataTable/DataTableHeadCell";
+import DataTableBodyCell from "../examples/Tables/DataTable/DataTableBodyCell";
 
 const PlacementDirectorManagement = () => {
   const { user } = useAuth();
@@ -387,105 +397,224 @@ const PlacementDirectorManagement = () => {
 
         {/* Directors Table */}
         <Card>
-          <CardContent>
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <>
-                <TableContainer component={Paper}>
+          {loading ? (
+            <MDBox p={4} textAlign="center">
+              <CircularProgress />
+              <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
+                Loading placement directors...
+              </Typography>
+            </MDBox>
+          ) : (
+            <>
+              {/* Blue Header Bar - Same as Staff Management */}
+              <MDBox
+                mx={2}
+                mt={2}
+                py={3}
+                px={2}
+                variant="gradient"
+                bgColor="info"
+                borderRadius="lg"
+                coloredShadow="info"
+              >
+                <MDBox display="flex" justifyContent="space-between" alignItems="center">
+                  <MDTypography variant="h6" color="white">
+                    Placement Directors Table
+                  </MDTypography>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Tooltip title="Refresh">
+                      <IconButton onClick={loadDirectors} disabled={loading} sx={{ color: 'white' }}>
+                        <RefreshIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </MDBox>
+              </MDBox>
+
+              <MDBox pt={3}>
+                <TableContainer sx={{ boxShadow: "none" }}>
                   <Table>
-                    <TableHead>
+                    <MDBox component="thead">
                       <TableRow>
-                        <TableCell><strong>Name</strong></TableCell>
-                        <TableCell><strong>Email</strong></TableCell>
-                        <TableCell><strong>Status</strong></TableCell>
-                        <TableCell><strong>Verified</strong></TableCell>
-                        <TableCell><strong>Actions</strong></TableCell>
+                        <DataTableHeadCell width="30%" align="left">
+                          Name
+                        </DataTableHeadCell>
+                        <DataTableHeadCell width="25%" align="left">
+                          Email
+                        </DataTableHeadCell>
+                        <DataTableHeadCell width="15%" align="center">
+                          Status
+                        </DataTableHeadCell>
+                        <DataTableHeadCell width="15%" align="center">
+                          Verified
+                        </DataTableHeadCell>
+                        <DataTableHeadCell width="15%" align="center">
+                          Actions
+                        </DataTableHeadCell>
                       </TableRow>
-                    </TableHead>
+                    </MDBox>
                     <TableBody>
-                      {directors.map((director) => (
-                        <TableRow key={director.id}>
-                          <TableCell>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                {director.firstName} {director.lastName}
-                              </Typography>
-                              {director.employeeId && (
-                                <Typography variant="caption" color="textSecondary">
-                                  ID: {director.employeeId}
-                                </Typography>
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell>{director.email}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={director.isActive ? 'Active' : 'Inactive'}
-                              color={director.isActive ? 'success' : 'error'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={director.isVerified ? 'Verified' : 'Unverified'}
-                              color={director.isVerified ? 'success' : 'warning'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Tooltip title="Edit Director">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => openEditDialog(director)}
-                                  color="primary"
+                      {directors.map((director) => {
+                        const getInitials = (director) => {
+                          return `${director.firstName?.charAt(0) || ''}${director.lastName?.charAt(0) || ''}`.toUpperCase();
+                        };
+
+                        return (
+                          <TableRow key={director.id}>
+                            <DataTableBodyCell align="left">
+                              <MDBox display="flex" alignItems="center" gap={2}>
+                                <Avatar
+                                  sx={{
+                                    width: 40,
+                                    height: 40,
+                                    bgcolor: '#1976d2',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 'bold'
+                                  }}
                                 >
-                                  <EditIcon />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Resend Welcome Email">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleResendEmail(director)}
-                                  color="info"
-                                >
-                                  <EmailIcon />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete Director">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => openDeleteDialog(director)}
-                                  color="error"
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                  {getInitials(director)}
+                                </Avatar>
+                                <MDBox>
+                                  <MDTypography 
+                                    variant="button" 
+                                    fontWeight="medium"
+                                    sx={{ 
+                                      fontSize: '0.875rem',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {director.firstName} {director.lastName}
+                                  </MDTypography>
+                                  {director.employeeId && (
+                                    <MDTypography 
+                                      variant="caption" 
+                                      color="text"
+                                      sx={{ 
+                                        fontSize: '0.75rem',
+                                        display: 'block'
+                                      }}
+                                    >
+                                      ID: {director.employeeId}
+                                    </MDTypography>
+                                  )}
+                                </MDBox>
+                              </MDBox>
+                            </DataTableBodyCell>
+                            <DataTableBodyCell align="left">
+                              <MDTypography 
+                                variant="caption" 
+                                color="text"
+                                sx={{ 
+                                  fontSize: '0.875rem'
+                                }}
+                              >
+                                {director.email}
+                              </MDTypography>
+                            </DataTableBodyCell>
+                            <DataTableBodyCell align="center">
+                              <Chip
+                                label={director.isActive ? 'Active' : 'Inactive'}
+                                color={director.isActive ? 'success' : 'error'}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  height: '24px'
+                                }}
+                              />
+                            </DataTableBodyCell>
+                            <DataTableBodyCell align="center">
+                              <Chip
+                                label={director.isVerified ? 'Verified' : 'Unverified'}
+                                color={director.isVerified ? 'success' : 'warning'}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  height: '24px'
+                                }}
+                              />
+                            </DataTableBodyCell>
+                            <DataTableBodyCell align="center">
+                              <MDBox sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                                <Tooltip title="Edit Director">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => openEditDialog(director)}
+                                    sx={{ 
+                                      color: '#1976d2',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                                      }
+                                    }}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Resend Welcome Email">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleResendEmail(director)}
+                                    sx={{ 
+                                      color: '#0288d1',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(2, 136, 209, 0.04)'
+                                      }
+                                    }}
+                                  >
+                                    <EmailIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Director">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => openDeleteDialog(director)}
+                                    sx={{ 
+                                      color: '#d32f2f',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(211, 47, 47, 0.04)'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </MDBox>
+                            </DataTableBodyCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
 
-                <TablePagination
-                  component="div"
-                  count={totalDirectors}
-                  page={page}
-                  onPageChange={(event, newPage) => setPage(newPage)}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={(event) => {
-                    setRowsPerPage(parseInt(event.target.value, 10));
-                    setPage(0);
-                  }}
-                />
-              </>
-            )}
-          </CardContent>
+                {/* Pagination */}
+                <Box mt={2} mb={2}>
+                  <TablePagination
+                    component="div"
+                    count={totalDirectors}
+                    page={page}
+                    onPageChange={(event, newPage) => setPage(newPage)}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={(event) => {
+                      setRowsPerPage(parseInt(event.target.value, 10));
+                      setPage(0);
+                    }}
+                    sx={{
+                      '& .MuiTablePagination-toolbar': {
+                        paddingLeft: 2,
+                        paddingRight: 2
+                      },
+                      '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                        color: '#344767',
+                        fontSize: '0.875rem'
+                      }
+                    }}
+                  />
+                </Box>
+              </MDBox>
+            </>
+          )}
         </Card>
 
         {/* Create Director Dialog */}

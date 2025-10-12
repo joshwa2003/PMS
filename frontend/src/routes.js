@@ -69,7 +69,7 @@ import AppliedJobs from "pages/AppliedJobs";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import ForgotPassword from "layouts/authentication/forgot-password";
-import FirstLoginPasswordReset from "layouts/authentication/first-login/FirstLoginPasswordReset";
+import FirstLoginPasswordReset from "layouts/authentication/first-login-password-reset";
 import PlacementDirectorManagement from "pages/PlacementDirectorManagement";
 
 // Protected Route Component
@@ -123,6 +123,7 @@ const routes = [
             <PlacementDirectorManagement />
           </ProtectedRoute>
         ),
+        hideForRoles: ['placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student'],
       },
       {
         name: "Staff Management",
