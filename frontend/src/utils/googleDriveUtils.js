@@ -10,8 +10,9 @@
 export const getGoogleDriveThumbnail = (url) => {
   if (!url) return null;
 
-  // If it's a Google Drive URL, try multiple methods
+  // If it's a Google Drive URL, route via backend proxy so the image can render
   if (url.includes('drive.google.com')) {
+    const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
     let fileId = null;
 
     // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
@@ -27,8 +28,7 @@ export const getGoogleDriveThumbnail = (url) => {
     }
 
     if (fileId) {
-      // Try direct Google Drive thumbnail URL first (works for public images)
-      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w200-h200`;
+      return `${API_BASE}/api/google-drive-image?id=${fileId}`;
     }
   }
 

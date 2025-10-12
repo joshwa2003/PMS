@@ -12,7 +12,7 @@ exports.getProfile = async (req, res) => {
     
     let profile = await PlacementStaffProfile.findByUserId(userId);
     
-    // If profile doesn't exist, check if there's an existing profile with same employeeId
+    // If profile doesn't exist, create one from user data
     if (!profile) {
       const user = await User.findById(userId);
       if (!user) {
@@ -20,58 +20,6 @@ exports.getProfile = async (req, res) => {
           success: false,
           message: 'User not found'
         });
-      }
-      
-      // Check if there's an existing profile with the same employeeId
-      if (user.employeeId) {
-        const existingProfile = await PlacementStaffProfile.findOne({ 
-          employeeId: user.employeeId 
-        });
-        
-        if (existingProfile) {
-          // Update the existing profile's userId to current user
-          existingProfile.userId = userId;
-          await existingProfile.save({ validateBeforeSave: false });
-          profile = existingProfile;
-          
-          // Return the updated existing profile
-          return res.status(200).json({
-            success: true,
-            profile: {
-              id: profile._id,
-              userId: profile.userId,
-              name: profile.name,
-              email: profile.email,
-              mobileNumber: profile.mobileNumber,
-              gender: profile.gender,
-              profilePhotoUrl: profile.profilePhotoUrl,
-              role: profile.role,
-              department: profile.department,
-              designation: profile.designation,
-              status: profile.status,
-              dateOfJoining: profile.dateOfJoining,
-              registrationDate: profile.registrationDate,
-              lastLoginAt: profile.lastLoginAt,
-              authProvider: profile.authProvider,
-              employeeId: profile.employeeId,
-              officeLocation: profile.officeLocation,
-              officialEmail: profile.officialEmail,
-              experienceYears: profile.experienceYears,
-              qualifications: profile.qualifications,
-              assignedStudents: profile.assignedStudents,
-              responsibilitiesText: profile.responsibilitiesText,
-              trainingProgramsHandled: profile.trainingProgramsHandled,
-              languagesSpoken: profile.languagesSpoken,
-              availabilityTimeSlots: profile.availabilityTimeSlots,
-              contact: profile.contact,
-              adminNotes: profile.adminNotes,
-              profileCompletion: profile.profileCompletion,
-              isProfileComplete: profile.isProfileComplete,
-              createdAt: profile.createdAt,
-              updatedAt: profile.updatedAt
-            }
-          });
-        }
       }
       
       // Create initial profile from user data with required defaults
@@ -115,33 +63,9 @@ exports.getProfile = async (req, res) => {
         lastLoginAt: user.lastLogin
       });
       
-      try {
-        // Save with validation disabled initially, then update profile completion
-        await profile.save({ validateBeforeSave: false });
-        await profile.updateProfileCompletion();
-      } catch (saveError) {
-        // Handle duplicate key error
-        if (saveError.code === 11000) {
-          // If duplicate employeeId, try to find existing profile by employeeId
-          const existingProfile = await PlacementStaffProfile.findOne({ 
-            employeeId: user.employeeId 
-          });
-          
-          if (existingProfile) {
-            // Update the existing profile's userId to current user
-            existingProfile.userId = userId;
-            await existingProfile.save({ validateBeforeSave: false });
-            profile = existingProfile;
-          } else {
-            // Generate a unique employeeId
-            profile.employeeId = `PS${Date.now()}`;
-            await profile.save({ validateBeforeSave: false });
-            await profile.updateProfileCompletion();
-          }
-        } else {
-          throw saveError;
-        }
-      }
+      // Save with validation disabled initially, then update profile completion
+      await profile.save({ validateBeforeSave: false });
+      await profile.updateProfileCompletion();
     }
 
     res.status(200).json({

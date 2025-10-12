@@ -46,6 +46,20 @@ class PlacementDirectorProfileService {
     }
   }
 
+  // Update profile image with Google Drive URL
+  async updateProfileImageUrl(googleDriveUrl) {
+    try {
+      const response = await api.post(`${this.baseURL}/update-profile-image`, {
+        googleDriveUrl
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Update profile image URL error:', error);
+      throw new Error(error.message || 'Failed to update profile image URL');
+    }
+  }
+
   // Upload resume
   async uploadResume(file) {
     try {
@@ -62,31 +76,6 @@ class PlacementDirectorProfileService {
     } catch (error) {
       console.error('Upload resume error:', error);
       throw new Error(error.message || 'Failed to upload resume');
-    }
-  }
-
-  // Update profile image with Google Drive link
-  async updateProfileImage(googleDriveUrl) {
-    try {
-      console.log('PlacementDirectorProfileService - updateProfileImage called with:', googleDriveUrl);
-      
-      const response = await api.post(`${this.baseURL}/update-profile-image`, {
-        googleDriveUrl: googleDriveUrl
-      });
-      
-      if (response.success) {
-        console.log('PlacementDirectorProfileService - Profile image updated successfully:', response.profilePhotoUrl);
-        return {
-          success: true,
-          profilePhotoUrl: response.profilePhotoUrl,
-          thumbnailUrl: response.thumbnailUrl
-        };
-      }
-      
-      throw new Error(response.message || 'Failed to update profile image');
-    } catch (error) {
-      console.error('PlacementDirectorProfileService - Update profile image error:', error);
-      throw error;
     }
   }
 

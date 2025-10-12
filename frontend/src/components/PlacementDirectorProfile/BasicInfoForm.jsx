@@ -15,7 +15,7 @@ function BasicInfoForm() {
     getFieldValue,
     hasFieldError,
     getFieldError,
-    goToNextTab
+    setActiveTab
   } = usePlacementDirectorProfile();
 
   const handleInputChange = (field, value) => {
@@ -33,7 +33,10 @@ function BasicInfoForm() {
 
     const result = await saveProfile(basicInfoData);
     if (result.success) {
-      goToNextTab();
+      // Automatically move to the next tab (Professional Details) after successful save
+      setTimeout(() => {
+        setActiveTab(1); // Professional Details tab
+      }, 1000); // Wait 1 second to show success message
     }
   };
 

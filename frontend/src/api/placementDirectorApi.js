@@ -15,6 +15,11 @@ export const placementDirectorProfileApi = {
     },
   }),
   
+  // Update profile image with Google Drive URL
+  updateProfileImageUrl: (googleDriveUrl) => api.post('/placement-director-profiles/update-profile-image', {
+    googleDriveUrl
+  }),
+  
   // Upload resume
   uploadResume: (formData) => api.post('/placement-director-profiles/upload-resume', formData, {
     headers: {

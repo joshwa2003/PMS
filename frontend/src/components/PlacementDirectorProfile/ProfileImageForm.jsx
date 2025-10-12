@@ -168,7 +168,41 @@ function ProfileImageForm() {
           Profile Image Management
         </MDTypography>
         
+        {/* Current Profile Image Display */}
         <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <MDBox mb={3}>
+              <MDTypography variant="h6" fontWeight="medium" mb={2}>
+                Current Profile Image
+              </MDTypography>
+              <MDBox display="flex" justifyContent="center" mb={2}>
+                <Avatar
+                  key={imageKey}
+                  src={getGoogleDriveThumbnail(currentProfileImage)}
+                  alt="Current Profile"
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    border: '3px solid',
+                    borderColor: 'info.main',
+                    fontSize: '3rem'
+                  }}
+                  imgProps={{ referrerPolicy: 'no-referrer' }}
+                  onError={(e) => { e.currentTarget.removeAttribute('src'); }}
+                >
+                  {!currentProfileImage && (user?.firstName?.[0] || 'P')}
+                </Avatar>
+              </MDBox>
+              {currentProfileImage && (
+                <MDBox textAlign="center">
+                  <MDTypography variant="caption" color="text">
+                    Current image from Google Drive
+                  </MDTypography>
+                </MDBox>
+              )}
+            </MDBox>
+          </Grid>
+
           {/* Google Drive URL Input */}
           <Grid item xs={12}>
             <MDBox>

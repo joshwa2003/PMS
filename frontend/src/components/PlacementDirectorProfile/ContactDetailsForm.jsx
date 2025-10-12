@@ -14,7 +14,8 @@ function ContactDetailsForm() {
     isSaving,
     hasFieldError,
     getFieldError,
-    getFieldValue
+    getFieldValue,
+    setActiveTab
   } = usePlacementDirectorProfile();
 
   const [localErrors, setLocalErrors] = useState({});
@@ -66,6 +67,10 @@ function ContactDetailsForm() {
 
       if (result.success) {
         setSuccessMessage('Contact details updated successfully!');
+        // Automatically move to the next tab (Profile Image) after successful save
+        setTimeout(() => {
+          setActiveTab(3); // Profile Image tab
+        }, 1000); // Wait 1 second to show success message
       } else {
         setLocalErrors({ general: result.error || 'Failed to update profile' });
       }

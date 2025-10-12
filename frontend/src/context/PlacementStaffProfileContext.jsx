@@ -397,49 +397,6 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     }
   };
 
-  // Update profile image with Google Drive link
-  const updateProfileImage = async (googleDriveUrl) => {
-    console.log('PlacementStaffProfileContext - updateProfileImage called with:', googleDriveUrl);
-    dispatch({ type: ACTIONS.SET_SAVING, payload: true });
-
-    try {
-      console.log('PlacementStaffProfileContext - Calling placementStaffProfileService.updateProfileImage');
-      // Use the placementStaffProfileService to update the image with Google Drive URL
-      const result = await placementStaffProfileService.updateProfileImage(googleDriveUrl);
-      
-      console.log('PlacementStaffProfileContext - Service result:', result);
-      const profilePhotoUrl = result.profilePhotoUrl;
-      
-      // Update form data with new profile image URL
-      updateFormData('profilePhotoUrl', profilePhotoUrl);
-      
-      // Also update the profile state to trigger re-render
-      if (state.profile) {
-        dispatch({ 
-          type: ACTIONS.SET_PROFILE, 
-          payload: { 
-            ...state.profile, 
-            profilePhotoUrl: profilePhotoUrl 
-          } 
-        });
-      }
-      
-      // Sync profile image with AuthContext if it exists
-      if (profilePhotoUrl) {
-        updateProfilePicture(profilePhotoUrl);
-      }
-      
-      console.log('PlacementStaffProfileContext - Profile image updated successfully');
-      return { success: true, profilePhotoUrl };
-    } catch (error) {
-      console.error('PlacementStaffProfileContext - Update profile image error:', error);
-      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
-      return { success: false, error: error.message };
-    } finally {
-      dispatch({ type: ACTIONS.SET_SAVING, payload: false });
-    }
-  };
-
   // Helper function to get nested values
   const getNestedValue = (obj, path) => {
     return path.split('.').reduce((current, key) => {
@@ -469,7 +426,7 @@ export const PlacementStaffProfileProvider = ({ children }) => {
 
   // Navigation helpers
   const goToNextTab = () => {
-    if (state.activeTab < 4) { // 5 tabs total (0-4)
+    if (state.activeTab < 3) { // 4 tabs total (0-3)
       setActiveTab(state.activeTab + 1);
     }
   };
@@ -520,7 +477,6 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     clearError,
     resetForm,
     uploadProfileImage,
-    updateProfileImage,
 
     // Helpers
     getFieldValue,

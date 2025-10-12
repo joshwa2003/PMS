@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, Avatar, Box, Typography } from '@mui/material';
 import { Person } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
@@ -6,57 +6,23 @@ import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
 import { usePlacementDirectorProfile } from '../../context/PlacementDirectorProfileContext';
 import { useAuth } from '../../context/AuthContext';
-import { getGoogleDriveDirectImageUrl, isGoogleDriveUrl, extractGoogleDriveFileId } from '../../utils/googleDriveUtils';
+import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
   const { user } = useAuth();
-  const { formData, profile, getProfileCompletion } = usePlacementDirectorProfile();
-  const [imageError, setImageError] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { formData, getProfileCompletion } = usePlacementDirectorProfile();
+
+  console.log('🔍 ProfileHeader - formData.profilePhotoUrl:', formData.profilePhotoUrl);
+  console.log('🔍 ProfileHeader - user.profilePicture:', user?.profilePicture);
 
   const profileCompletion = getProfileCompletion();
   
-  // Get profile image with priority: formData > profile > user
-  const profileImage = formData.profilePhotoUrl || profile?.profilePhotoUrl || user?.profilePicture;
   
-  // Create multiple fallback URLs for Google Drive images
-  const getImageUrls = (url) => {
-    if (!url || !isGoogleDriveUrl(url)) return [url];
-    
-    const fileId = extractGoogleDriveFileId(url);
-    if (!fileId) return [url];
-    
-    return [
-      `https://drive.google.com/thumbnail?id=${fileId}&sz=w200-h200`,
-      `https://drive.google.com/uc?export=view&id=${fileId}`,
-      `https://lh3.googleusercontent.com/d/${fileId}`,
-      getGoogleDriveDirectImageUrl(url) // Backend proxy as last resort
-    ];
-  };
+  const profileImage = formData.profilePhotoUrl || user?.profilePicture;
+  const processedImageUrl = getGoogleDriveThumbnail(profileImage);
   
-  const imageUrls = getImageUrls(profileImage);
-  const currentImageUrl = imageUrls[currentImageIndex];
-  
-  // Create a unique key to force re-render when image changes
-  const imageKey = `${profileImage}-${currentImageIndex}-${Date.now()}`;
-  
-  // Reset image index when profile image changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-    setImageError(false);
-  }, [profileImage]);
-
-  // Debug logging
-  console.log('ProfileHeader Debug:', {
-    profileImage,
-    currentImageUrl,
-    imageUrls,
-    currentImageIndex,
-    isGoogleDrive: isGoogleDriveUrl(profileImage),
-    formDataUrl: formData.profilePhotoUrl,
-    profileUrl: profile?.profilePhotoUrl,
-    userPicture: user?.profilePicture
-  });
+  console.log('🔍 ProfileHeader - Final profileImage:', profileImage);
+  console.log('🔍 ProfileHeader - processedImageUrl:', processedImageUrl);
 
   const getCompletionColor = (percentage) => {
     if (percentage >= 80) return 'success';
@@ -76,72 +42,32 @@ function ProfileHeader() {
           <MDBox position="relative" mr={3}>
             {profileImage && isGoogleDriveUrl(profileImage) ? (
               <Box
-                key={imageKey}
                 sx={{
                   width: 80,
                   height: 80,
                   borderRadius: '50%',
+                  bgcolor: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   position: 'relative',
                   overflow: 'hidden',
                   border: '3px solid',
                   borderColor: 'info.main',
-                  cursor: 'pointer',
+                  backgroundImage: processedImageUrl ? `url(${processedImageUrl})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
                   '&:hover': {
                     opacity: 0.8
                   }
                 }}
                 onClick={() => window.open(profileImage, '_blank')}
               >
-                {currentImageUrl ? (
-                  <img
-                    key={imageKey}
-                    src={currentImageUrl}
-                    alt="Profile"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '50%'
-                    }}
-                    onError={(e) => {
-                      console.error('Image failed to load:', currentImageUrl);
-                      // Try next URL in fallback list
-                      if (currentImageIndex < imageUrls.length - 1) {
-                        setCurrentImageIndex(prev => prev + 1);
-                      } else {
-                        // All URLs failed, show fallback
-                        setImageError(true);
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }
-                    }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', currentImageUrl);
-                      setImageError(false);
-                    }}
-                  />
-                ) : null}
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    bgcolor: 'primary.main',
-                    display: (currentImageUrl && !imageError) ? 'none' : 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: (currentImageUrl && !imageError) ? 'absolute' : 'static',
-                    top: 0,
-                    left: 0
-                  }}
-                >
-                  <Person sx={{ fontSize: 40, color: 'white' }} />
-                </Box>
+                {!processedImageUrl && <Person sx={{ fontSize: 40, color: 'white' }} />}
               </Box>
             ) : (
               <Avatar
-                key={imageKey}
-                src={currentImageUrl}
+                src={processedImageUrl}
                 sx={{
                   width: 80,
                   height: 80,

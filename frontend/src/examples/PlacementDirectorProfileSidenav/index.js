@@ -102,6 +102,14 @@ function PlacementDirectorProfileSidenav({ color, brand, brandName, ...rest }) {
       icon: <Icon fontSize="small">contact_phone</Icon>,
       active: activeTab === 2,
       onClick: () => setActiveTab(2)
+    },
+    {
+      type: "collapse",
+      name: "Profile Image", 
+      key: "profile-image",
+      icon: <Icon fontSize="small">photo_camera</Icon>,
+      active: activeTab === 3,
+      onClick: () => setActiveTab(3)
     }
   ];
 
