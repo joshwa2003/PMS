@@ -31,6 +31,20 @@ class PlacementStaffProfileService {
     }
   }
 
+  // Update profile image with Google Drive URL
+  async updateProfileImageUrl(googleDriveUrl) {
+    try {
+      const response = await api.post('/placement-staff-profiles/update-profile-image', {
+        googleDriveUrl
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Update profile image URL error:', error);
+      throw new Error(error.message || 'Failed to update profile image URL');
+    }
+  }
+
   // Get placement staff profile by ID (Admin only)
   async getProfileById(profileId) {
     try {

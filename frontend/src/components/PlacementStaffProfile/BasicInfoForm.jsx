@@ -16,7 +16,7 @@ function BasicInfoForm() {
     getFieldValue,
     hasFieldError,
     getFieldError,
-    goToNextTab
+    setActiveTab
   } = usePlacementStaffProfile();
 
   const [successMessage, setSuccessMessage] = useState('');
@@ -45,8 +45,8 @@ function BasicInfoForm() {
     if (result.success) {
       setSuccessMessage('Basic information saved successfully!');
       setTimeout(() => {
-        goToNextTab();
-      }, 1500); // Show success message for 1.5 seconds before moving to next tab
+        setActiveTab(1); // Professional Details tab
+      }, 1000); // Show success message for 1 second before moving to next tab
     } else {
       setErrorMessage(result.error || 'Failed to save basic information. Please try again.');
     }

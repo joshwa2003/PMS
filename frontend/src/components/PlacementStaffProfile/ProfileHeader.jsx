@@ -1,6 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Card, Avatar, IconButton, CircularProgress, Box, Snackbar, Alert, Typography } from '@mui/material';
-import { PhotoCamera } from '@mui/icons-material';
+import React from 'react';
+import { Card, Avatar, Box, Typography } from '@mui/material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
@@ -12,45 +11,8 @@ function ProfileHeader() {
   const {
     profile,
     formData,
-    uploadProfileImage,
-    isSaving,
-    error,
-    clearError,
     getProfileCompletion
   } = usePlacementStaffProfile();
-
-  const fileInputRef = useRef(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      console.log('File selected for upload:', file.name);
-      
-      const result = await uploadProfileImage(file);
-      
-      if (result.success) {
-        setUploadSuccess(true);
-        // Clear the file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }
-      // Error handling is done in the context, no need to handle here
-    }
-  };
-
-  const handleCloseSuccess = () => {
-    setUploadSuccess(false);
-  };
-
-  const handleCloseError = () => {
-    clearError();
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
 
   const getStatusColor = () => {
     if (profile?.status === 'inactive') return 'error';
@@ -75,8 +37,7 @@ function ProfileHeader() {
   const processedImageUrl = getGoogleDriveThumbnail(profileImageUrl);
 
   return (
-    <>
-      <Card sx={{ overflow: 'visible' }}>
+    <Card sx={{ overflow: 'visible' }}>
         <MDBox p={3}>
           <MDBox display="flex" alignItems="center" justifyContent="space-between">
             {/* Profile Image and Basic Info */}
@@ -96,29 +57,21 @@ function ProfileHeader() {
                       position: 'relative',
                       overflow: 'hidden',
                       border: '2px solid',
-                      borderColor: 'primary.main'
+                      borderColor: 'primary.main',
+                      backgroundImage: processedImageUrl ? `url(${processedImageUrl})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
                     }}
                     onClick={() => window.open(profileImageUrl, '_blank')}
                   >
-                    <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
-                      {displayName.charAt(0).toUpperCase()}
-                    </Typography>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        bgcolor: 'rgba(0,0,0,0.7)',
-                        color: 'white',
-                        textAlign: 'center',
-                        py: 0.5
-                      }}
-                    >
-                      <Typography variant="caption" fontSize="10px">
-                        Google Drive
+                    {!processedImageUrl && (
+                      <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
+                        {displayName.charAt(0).toUpperCase()}
                       </Typography>
-                    </Box>
+                    )}
                   </Box>
                 ) : (
                   <Avatar
@@ -136,43 +89,6 @@ function ProfileHeader() {
                     {displayName.charAt(0).toUpperCase()}
                   </Avatar>
                 )}
-                
-                {/* Upload Button Overlay */}
-                <IconButton
-                  onClick={triggerFileInput}
-                  disabled={isSaving}
-                  title={isSaving ? 'Uploading...' : 'Upload profile image'}
-                  sx={{
-                    position: 'absolute',
-                    bottom: -5,
-                    right: -5,
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    width: 30,
-                    height: 30,
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                    '&:disabled': {
-                      bgcolor: 'grey.400',
-                    }
-                  }}
-                >
-                  {isSaving ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <PhotoCamera sx={{ fontSize: 16 }} />
-                  )}
-                </IconButton>
-
-                {/* Hidden File Input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                />
               </MDBox>
 
             <MDBox>
@@ -263,31 +179,6 @@ function ProfileHeader() {
         </MDBox>
       </MDBox>
     </Card>
-
-    {/* Success Snackbar */}
-    <Snackbar
-      open={uploadSuccess}
-      autoHideDuration={4000}
-      onClose={handleCloseSuccess}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-    >
-      <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
-        Profile image uploaded successfully!
-      </Alert>
-    </Snackbar>
-
-    {/* Error Snackbar */}
-    <Snackbar
-      open={!!error}
-      autoHideDuration={6000}
-      onClose={handleCloseError}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-    >
-      <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
-        {error}
-      </Alert>
-    </Snackbar>
-  </>
   );
 }
 

@@ -27,6 +27,11 @@ router.put('/profile', protect, updateProfile);
 // @access  Private
 router.post('/upload-profile-image', protect, updateProfileImage);
 
+// @route   POST /api/v1/placement-staff-profiles/update-profile-image
+// @desc    Update placement staff profile image with Google Drive link
+// @access  Private
+router.post('/update-profile-image', protect, updateProfileImage);
+
 // @route   GET /api/v1/placement-staff-profiles/stats
 // @desc    Get placement staff profile statistics
 // @access  Private (Admin only)

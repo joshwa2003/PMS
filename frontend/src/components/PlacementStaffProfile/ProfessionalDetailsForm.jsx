@@ -16,7 +16,7 @@ function ProfessionalDetailsForm() {
     getFieldValue,
     hasFieldError,
     getFieldError,
-    goToNextTab,
+    setActiveTab,
     goToPreviousTab,
     addArrayItem,
     removeArrayItem,
@@ -94,7 +94,10 @@ function ProfessionalDetailsForm() {
 
     const result = await saveProfile(professionalData);
     if (result.success) {
-      goToNextTab();
+      // Automatically move to the next tab (Contact Details) after successful save
+      setTimeout(() => {
+        setActiveTab(2); // Contact Details tab
+      }, 1000); // Wait 1 second to show success message
     }
   };
 

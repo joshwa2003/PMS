@@ -15,7 +15,7 @@ function ContactDetailsForm() {
     getFieldValue,
     hasFieldError,
     getFieldError,
-    goToNextTab,
+    setActiveTab,
     goToPreviousTab
   } = usePlacementStaffProfile();
 
@@ -30,7 +30,10 @@ function ContactDetailsForm() {
 
     const result = await saveProfile(contactData);
     if (result.success) {
-      goToNextTab();
+      // Automatically move to the next tab (Profile Image) after successful save
+      setTimeout(() => {
+        setActiveTab(3); // Profile Image tab
+      }, 1000); // Wait 1 second to show success message
     }
   };
 

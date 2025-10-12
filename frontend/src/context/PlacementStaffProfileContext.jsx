@@ -397,6 +397,46 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     }
   };
 
+  // Update profile image with Google Drive URL function
+  const updateProfileImage = async (googleDriveUrl) => {
+    dispatch({ type: ACTIONS.SET_SAVING, payload: true });
+
+    try {
+      // Use the placementStaffProfileService to update the image URL
+      const result = await placementStaffProfileService.updateProfileImageUrl(googleDriveUrl);
+      
+      const profilePhotoUrl = result.profilePhotoUrl;
+      
+      // Update form data with new profile image URL
+      updateFormData('profilePhotoUrl', profilePhotoUrl);
+      
+      // Update the profile state
+      dispatch({ 
+        type: ACTIONS.SET_PROFILE, 
+        payload: { ...state.profile, profilePhotoUrl } 
+      });
+      
+      // Sync with AuthContext
+      if (updateProfilePicture) {
+        updateProfilePicture(profilePhotoUrl);
+      }
+      
+      // Force reload the profile to ensure all data is fresh
+      setTimeout(async () => {
+        hasLoadedRef.current = false;
+        await loadProfile();
+      }, 500);
+      
+      return { success: true, profilePhotoUrl };
+    } catch (error) {
+      console.error('Update profile image error:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: ACTIONS.SET_SAVING, payload: false });
+    }
+  };
+
   // Helper function to get nested values
   const getNestedValue = (obj, path) => {
     return path.split('.').reduce((current, key) => {
@@ -426,7 +466,7 @@ export const PlacementStaffProfileProvider = ({ children }) => {
 
   // Navigation helpers
   const goToNextTab = () => {
-    if (state.activeTab < 3) { // 4 tabs total (0-3)
+    if (state.activeTab < 4) { // 5 tabs total (0-4)
       setActiveTab(state.activeTab + 1);
     }
   };
@@ -477,6 +517,7 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     clearError,
     resetForm,
     uploadProfileImage,
+    updateProfileImage,
 
     // Helpers
     getFieldValue,
