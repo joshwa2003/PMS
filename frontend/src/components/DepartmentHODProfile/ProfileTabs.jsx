@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, Tab, Box } from '@mui/material';
-import { Person, Work, ContactPhone, School } from '@mui/icons-material';
+import { Person, Work, ContactPhone, PhotoCamera, School } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import { useDepartmentHODProfile } from '../../context/DepartmentHODProfileContext';
 
@@ -9,6 +9,7 @@ import ProfileHeader from "./ProfileHeader";
 import BasicInfoForm from "./BasicInfoForm";
 import ProfessionalDetailsForm from "./ProfessionalDetailsForm";
 import ContactDetailsForm from "./ContactDetailsForm";
+import ProfileImageForm from "./ProfileImageForm";
 import HODSpecificForm from "./HODSpecificForm";
 
 function ProfileTabs() {
@@ -38,6 +39,11 @@ function ProfileTabs() {
       label: "Contact",
       icon: <ContactPhone />,
       component: <ContactDetailsForm />
+    },
+    {
+      label: "Profile Image",
+      icon: <PhotoCamera />,
+      component: <ProfileImageForm />
     },
     {
       label: "HOD Specific",

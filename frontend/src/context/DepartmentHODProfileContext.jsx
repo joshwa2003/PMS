@@ -19,7 +19,7 @@ const initialState = {
     mobileNumber: '',
     gender: '',
     profilePhotoUrl: '',
-    role: 'hod',
+    role: 'department_hod',
     department: '',
     designation: 'Head of Department',
     status: 'active',
@@ -199,11 +199,13 @@ export const DepartmentHODProfileProvider = ({ children }) => {
       const dataToSave = sectionData || state.formData;
       const cleanedData = cleanFormData(dataToSave);
       const validationErrors = departmentHODProfileService.validateProfileData(cleanedData, true);
+      
       if (validationErrors.length > 0) {
         dispatch({ type: ACTIONS.SET_VALIDATION_ERRORS, payload: { general: validationErrors } });
         dispatch({ type: ACTIONS.SET_SAVING, payload: false });
         return { success: false, errors: validationErrors };
       }
+      
       const updatedProfile = await departmentHODProfileService.updateProfile(cleanedData);
       dispatch({ type: ACTIONS.SET_PROFILE, payload: updatedProfile });
       return { success: true, profile: updatedProfile };
@@ -309,6 +311,46 @@ export const DepartmentHODProfileProvider = ({ children }) => {
     }
   };
 
+  // Update profile image with Google Drive URL function
+  const updateProfileImage = async (googleDriveUrl) => {
+    dispatch({ type: ACTIONS.SET_SAVING, payload: true });
+
+    try {
+      // Use the departmentHODProfileService to update the image URL
+      const result = await departmentHODProfileService.updateProfileImageUrl(googleDriveUrl);
+      
+      const profilePhotoUrl = result.profilePhotoUrl;
+      
+      // Update form data with new profile image URL
+      updateFormData('profilePhotoUrl', profilePhotoUrl);
+      
+      // Update the profile state
+      dispatch({ 
+        type: ACTIONS.SET_PROFILE, 
+        payload: { ...state.profile, profilePhotoUrl } 
+      });
+      
+      // Sync with AuthContext
+      if (updateProfilePicture) {
+        updateProfilePicture(profilePhotoUrl);
+      }
+      
+      // Force reload the profile to ensure all data is fresh
+      setTimeout(async () => {
+        hasLoadedRef.current = false;
+        await loadProfile();
+      }, 500);
+      
+      return { success: true, profilePhotoUrl };
+    } catch (error) {
+      console.error('Update profile image error:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    } finally {
+      dispatch({ type: ACTIONS.SET_SAVING, payload: false });
+    }
+  };
+
   // Calculate profile completion
   const getProfileCompletion = () => {
     return departmentHODProfileService.calculateProfileCompletion(state.formData);
@@ -331,7 +373,7 @@ export const DepartmentHODProfileProvider = ({ children }) => {
 
   // Navigation helpers
   const goToNextTab = () => {
-    if (state.activeTab < 3) {
+    if (state.activeTab < 4) { // 5 tabs total (0-4)
       setActiveTab(state.activeTab + 1);
     }
   };
@@ -370,6 +412,7 @@ export const DepartmentHODProfileProvider = ({ children }) => {
     clearError,
     resetForm,
     uploadProfileImage,
+    updateProfileImage,
 
     // Helpers
     getFieldValue,

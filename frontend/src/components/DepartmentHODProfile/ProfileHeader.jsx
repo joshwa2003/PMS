@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Card, Avatar, IconButton, CircularProgress, Box, Typography } from '@mui/material';
-import { PhotoCamera, Person } from '@mui/icons-material';
+import React from 'react';
+import { Card, Avatar, Box, Typography } from '@mui/material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDProgress from 'components/MDProgress';
@@ -9,54 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 import { getGoogleDriveThumbnail, isGoogleDriveUrl } from '../../utils/googleDriveUtils';
 
 function ProfileHeader() {
-  const { user, updateProfilePicture } = useAuth();
-  const { formData, uploadProfileImage, isSaving, getProfileCompletion } = useDepartmentHODProfile();
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, or WebP)');
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const result = await uploadProfileImage(file);
-      if (result.success) {
-        // Update the profile picture in AuthContext as well
-        updateProfilePicture(result.profilePhotoUrl);
-        console.log('Profile image uploaded successfully');
-      } else {
-        alert(result.error || 'Failed to upload image');
-      }
-    } catch (error) {
-      console.error('Image upload error:', error);
-      alert('Failed to upload image. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const { user } = useAuth();
+  const { formData, profile, getProfileCompletion } = useDepartmentHODProfile();
 
   const profileCompletion = getProfileCompletion();
   
-  
-  const profileImage = formData.profilePhotoUrl || user?.profilePicture;
+  const profileImage = formData?.profilePhotoUrl || profile?.profilePhotoUrl || user?.profilePicture;
   const processedImageUrl = getGoogleDriveThumbnail(profileImage);
 
   const getCompletionColor = (percentage) => {
@@ -66,8 +23,8 @@ function ProfileHeader() {
     return 'error';
   };
 
-  const fullName = `${formData.name?.firstName || ''} ${formData.name?.lastName || ''}`.trim();
-  const displayName = fullName || user?.firstName + ' ' + user?.lastName || 'Department HOD';
+  const fullName = `${formData?.name?.firstName || ''} ${formData?.name?.lastName || ''}`.trim();
+  const displayName = fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Department HOD';
 
   return (
     <Card sx={{ overflow: 'visible' }}>
@@ -90,29 +47,20 @@ function ProfileHeader() {
                   overflow: 'hidden',
                   border: '3px solid',
                   borderColor: 'info.main',
+                  backgroundImage: processedImageUrl ? `url(${processedImageUrl})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
                   '&:hover': {
                     opacity: 0.8
                   }
                 }}
                 onClick={() => window.open(profileImage, '_blank')}
               >
-                <Person sx={{ fontSize: 40, color: 'white' }} />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    bgcolor: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    textAlign: 'center',
-                    py: 0.5
-                  }}
-                >
-                  <Typography variant="caption" fontSize="10px">
-                    Google Drive
+                {!processedImageUrl && (
+                  <Typography sx={{ fontSize: '2rem', color: 'white', fontWeight: 'bold' }}>
+                    {displayName.charAt(0).toUpperCase()}
                   </Typography>
-                </Box>
+                )}
               </Box>
             ) : (
               <Avatar
@@ -120,51 +68,16 @@ function ProfileHeader() {
                 sx={{
                   width: 80,
                   height: 80,
-                  cursor: 'pointer',
                   border: '3px solid',
                   borderColor: 'info.main',
-                  '&:hover': {
-                    opacity: 0.8
-                  }
+                  fontSize: '2rem',
+                  bgcolor: 'grey.300',
+                  color: 'grey.700'
                 }}
-                onClick={handleImageClick}
               >
-                {!profileImage && <Person sx={{ fontSize: 40 }} />}
+                {displayName.charAt(0).toUpperCase()}
               </Avatar>
             )}
-            
-            {/* Upload Button Overlay */}
-            <IconButton
-              sx={{
-                position: 'absolute',
-                bottom: -5,
-                right: -5,
-                backgroundColor: 'info.main',
-                color: 'white',
-                width: 30,
-                height: 30,
-                '&:hover': {
-                  backgroundColor: 'info.dark'
-                }
-              }}
-              onClick={handleImageClick}
-              disabled={isUploading || isSaving}
-            >
-              {isUploading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PhotoCamera sx={{ fontSize: 16 }} />
-              )}
-            </IconButton>
-
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-            />
           </MDBox>
 
           {/* Profile Info */}

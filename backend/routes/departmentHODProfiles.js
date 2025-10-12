@@ -27,6 +27,11 @@ router.put('/profile', protect, validateProfileUpdate, updateProfile);
 // @access  Private
 router.post('/upload-profile-image', protect, updateProfileImage);
 
+// @route   POST /api/v1/department-hod-profiles/update-profile-image
+// @desc    Update department HOD profile image with Google Drive link
+// @access  Private
+router.post('/update-profile-image', protect, updateProfileImage);
+
 // @route   GET /api/v1/department-hod-profiles/stats
 // @desc    Get department HOD profile statistics
 // @access  Private (Admin only)

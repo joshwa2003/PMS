@@ -123,6 +123,20 @@ class DepartmentHODProfileService {
     }
   }
 
+  // Update profile image with Google Drive URL
+  async updateProfileImageUrl(googleDriveUrl) {
+    try {
+      const response = await api.post('/department-hod-profiles/update-profile-image', {
+        googleDriveUrl
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Update profile image URL error:', error);
+      throw new Error(error.message || 'Failed to update profile image URL');
+    }
+  }
+
   // Get profiles by department head of
   async getProfilesByDepartmentHeadOf(departmentHeadOf, params = {}) {
     try {
@@ -183,12 +197,11 @@ class DepartmentHODProfileService {
   getRoleDisplayName(role) {
     const roleNames = {
       admin: 'Administrator',
-      director: 'Director',
-      staff: 'Staff',
-      hod: 'Head of Department',
-      other: 'Other',
+      placement_director: 'Placement Director',
+      placement_staff: 'Placement Staff',
+      department_hod: 'Head of Department',
+      other_staff: 'Other Staff',
       student: 'Student',
-  
       company: 'Company'
     };
     return roleNames[role] || role;
@@ -332,7 +345,7 @@ class DepartmentHODProfileService {
     }
 
     if (!isUpdate || profileData.role) {
-      const validRoles = ['admin', 'director', 'staff', 'hod', 'other', 'student', 'company'];
+      const validRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'company'];
       if (!profileData.role || !validRoles.includes(profileData.role)) {
         errors.push('Please select a valid role');
       }

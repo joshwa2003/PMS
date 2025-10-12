@@ -8,9 +8,15 @@ const googleDriveService = require('../services/googleDriveService');
 // @access  Private (Own profile only)
 exports.getProfile = async (req, res) => {
   try {
+    console.log('🔍 Department HOD Profile - Get Profile Request');
+    console.log('User ID:', req.user._id);
+    console.log('User Role:', req.user.role);
+    console.log('User Department:', req.user.department);
+    
     const userId = req.user._id;
     
     let profile = await DepartmentHODProfile.findByUserId(userId);
+    console.log('🔍 Existing profile found:', !!profile);
     
     // If profile doesn't exist, create one from user data
     if (!profile) {
@@ -22,10 +28,22 @@ exports.getProfile = async (req, res) => {
         });
       }
       
+      console.log('🔍 Creating new profile for user:', user.email);
+      console.log('🔍 User data:', {
+        employeeId: user.employeeId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        department: user.department
+      });
+      
       // Create initial profile from user data with default values for required fields
+      // Generate unique employeeId if not present
+      const employeeId = user.employeeId || `HOD${Date.now().toString().slice(-6)}`;
+      
       profile = new DepartmentHODProfile({
         userId: user._id,
-        employeeId: user.employeeId || 'TBD',
+        employeeId: employeeId,
         name: {
           firstName: user.firstName || 'Not Set',
           lastName: user.lastName || 'Not Set'
@@ -34,7 +52,7 @@ exports.getProfile = async (req, res) => {
         mobileNumber: user.mobileNumber || user.phone || '0000000000',
         gender: user.gender || 'Other',
         profilePhotoUrl: user.profilePhotoUrl || user.profilePicture || '',
-        role: user.role === 'hod' ? 'hod' : 'hod',
+        role: user.role === 'department_hod' ? 'department_hod' : 'department_hod',
         department: user.department || 'OTHER',
         designation: user.designation || 'Head of Department',
         dateOfJoining: user.dateOfJoining || new Date(),
@@ -63,7 +81,14 @@ exports.getProfile = async (req, res) => {
         lastLoginAt: user.lastLogin
       });
       
-      await profile.save();
+      console.log('🔍 Attempting to save new profile...');
+      try {
+        await profile.save();
+        console.log('✅ Profile saved successfully');
+      } catch (saveError) {
+        console.error('❌ Profile save error:', saveError);
+        throw saveError;
+      }
     }
 
     res.status(200).json({
@@ -169,21 +194,22 @@ exports.updateProfile = async (req, res) => {
       mobileNumber: updatedProfile.mobileNumber,
       gender: updatedProfile.gender,
       profilePhotoUrl: updatedProfile.profilePhotoUrl,
-      department: updatedProfile.department,
+      departmentCode: updatedProfile.department, // Use departmentCode instead of department
       employeeId: updatedProfile.employeeId,
       designation: updatedProfile.designation,
       dateOfJoining: updatedProfile.dateOfJoining,
-      departmentHeadOf: updatedProfile.departmentHeadOf,
-      officeRoomNo: updatedProfile.officeRoomNo,
-      yearsAsHOD: updatedProfile.yearsAsHOD,
-      academicBackground: updatedProfile.academicBackground,
-      numberOfFacultyManaged: updatedProfile.numberOfFacultyManaged,
-      subjectsTaught: updatedProfile.subjectsTaught,
-      responsibilities: updatedProfile.responsibilities,
-      meetingSlots: updatedProfile.meetingSlots,
-      calendarLink: updatedProfile.calendarLink,
-      contact: updatedProfile.contact,
-      adminNotes: updatedProfile.adminNotes
+      // Remove fields that don't exist in User model
+      // departmentHeadOf: updatedProfile.departmentHeadOf,
+      // officeRoomNo: updatedProfile.officeRoomNo,
+      // yearsAsHOD: updatedProfile.yearsAsHOD,
+      // academicBackground: updatedProfile.academicBackground,
+      // numberOfFacultyManaged: updatedProfile.numberOfFacultyManaged,
+      // subjectsTaught: updatedProfile.subjectsTaught,
+      // responsibilities: updatedProfile.responsibilities,
+      // meetingSlots: updatedProfile.meetingSlots,
+      // calendarLink: updatedProfile.calendarLink,
+      // contact: updatedProfile.contact,
+      // adminNotes: updatedProfile.adminNotes
     });
 
     res.status(200).json({

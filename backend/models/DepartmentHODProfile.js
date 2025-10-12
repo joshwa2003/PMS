@@ -58,8 +58,8 @@ const departmentHODProfileSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['admin', 'director', 'staff', 'hod', 'other', 'student', 'company'],
-    default: 'hod'
+    enum: ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'company'],
+    default: 'department_hod'
   },
   department: {
     type: String,

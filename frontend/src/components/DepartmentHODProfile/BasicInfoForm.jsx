@@ -15,7 +15,7 @@ function BasicInfoForm() {
     getFieldValue,
     hasFieldError,
     getFieldError,
-    goToNextTab
+    setActiveTab
   } = useDepartmentHODProfile();
 
   const handleInputChange = (field, value) => {
@@ -33,9 +33,17 @@ function BasicInfoForm() {
       designation: formData.designation
     };
 
-    const result = await saveProfile(basicInfoData);
-    if (result.success) {
-      goToNextTab();
+    try {
+      const result = await saveProfile(basicInfoData);
+      
+      if (result && result.success) {
+        // Automatically move to the next tab (Professional Details) after successful save
+        setTimeout(() => {
+          setActiveTab(1); // Professional Details tab
+        }, 1000); // Wait 1 second to show success message
+      }
+    } catch (error) {
+      console.error('Save error:', error);
     }
   };
 
@@ -67,18 +75,18 @@ function BasicInfoForm() {
               <MDInput
                 select
                 label="Role"
-                value={getFieldValue('role') || 'hod'}
+                value={getFieldValue('role') || 'department_hod'}
                 onChange={(e) => handleInputChange('role', e.target.value)}
                 fullWidth
                 required
                 error={hasFieldError('role')}
                 helperText={getFieldError('role')}
               >
-                <MenuItem value="hod">Head of Department</MenuItem>
+                <MenuItem value="department_hod">Head of Department</MenuItem>
                 <MenuItem value="admin">Administrator</MenuItem>
-                <MenuItem value="director">Director</MenuItem>
-                <MenuItem value="staff">Staff</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
+                <MenuItem value="placement_director">Placement Director</MenuItem>
+                <MenuItem value="placement_staff">Placement Staff</MenuItem>
+                <MenuItem value="other_staff">Other Staff</MenuItem>
               </MDInput>
             </Grid>
 
