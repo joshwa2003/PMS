@@ -57,20 +57,44 @@ const JobFilters = ({
 
   const sortOptions = [
     { value: 'createdAt', label: 'Latest First' },
-    { value: 'deadline', label: 'Deadline' },
     { value: 'company.name', label: 'Company Name' },
     { value: 'title', label: 'Job Title' }
   ];
 
   return (
-    <Card sx={{ borderRadius: 2, height: 'fit-content' }}>
-      <CardContent sx={{ p: 3 }}>
+    <Card sx={{ 
+      borderRadius: '12px', 
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+      border: '1px solid #e5e5e5'
+    }}>
+      <CardContent sx={{ p: 2.5 }}>
         {/* Header */}
-        <MDBox display="flex" alignItems="center" gap={1} mb={3}>
-          <FilterIcon sx={{ color: 'info.main', fontSize: 20 }} />
-          <MDTypography variant="h6" fontWeight="medium" color="dark">
+        <MDBox display="flex" alignItems="center" gap={1.5} mb={3}>
+          <MDBox 
+            sx={{ 
+              p: 0.75, 
+              borderRadius: '8px', 
+              bgcolor: 'rgba(25, 118, 210, 0.1)',
+              border: '1px solid rgba(25, 118, 210, 0.2)'
+            }}
+          >
+            <FilterIcon sx={{ fontSize: 18, color: '#1976d2' }} />
+          </MDBox>
+          <MDTypography variant="h6" fontWeight="bold" sx={{ fontSize: '16px' }}>
             Filters
           </MDTypography>
+          <Chip 
+            label={`${totalJobs} job${totalJobs !== 1 ? 's' : ''}`}
+            size="small"
+            sx={{ 
+              ml: 'auto', 
+              fontSize: '11px',
+              height: 22,
+              bgcolor: '#f0f0f0',
+              color: '#666',
+              border: '1px solid #ddd'
+            }}
+          />
           {hasActiveFilters && (
             <MDButton
               variant="text"
@@ -84,16 +108,10 @@ const JobFilters = ({
           )}
         </MDBox>
 
-        {/* Results Count */}
-        <MDBox mb={3} p={2} sx={{ backgroundColor: '#f8f9fa', borderRadius: 1 }}>
-          <MDTypography variant="body2" color="text" textAlign="center">
-            <strong>{totalJobs}</strong> job{totalJobs !== 1 ? 's' : ''} found
-          </MDTypography>
-        </MDBox>
 
         {/* Search Bar */}
-        <MDBox mb={3}>
-          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1}>
+        <MDBox mb={2.5}>
+          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1} sx={{ fontSize: '13px' }}>
             Search
           </MDTypography>
           <TextField
@@ -105,7 +123,7 @@ const JobFilters = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                  <SearchIcon sx={{ color: '#888', fontSize: 18 }} />
                 </InputAdornment>
               ),
               endAdornment: localFilters.search && (
@@ -113,6 +131,7 @@ const JobFilters = ({
                   <IconButton
                     size="small"
                     onClick={() => handleFilterChange('search', '')}
+                    sx={{ color: '#888' }}
                   >
                     <ClearIcon fontSize="small" />
                   </IconButton>
@@ -121,17 +140,25 @@ const JobFilters = ({
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 1,
-              }
+                borderRadius: '8px',
+                fontSize: '14px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1px',
+                },
+              },
             }}
           />
         </MDBox>
 
-        <Divider sx={{ mb: 3 }} />
-
-        {/* Job Type Filter */}
-        <MDBox mb={3}>
-          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1}>
+        <MDBox mb={2.5}>
+          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1} sx={{ fontSize: '13px' }}>
             Job Type
           </MDTypography>
           <FormControl fullWidth size="small">
@@ -139,7 +166,20 @@ const JobFilters = ({
               value={localFilters.jobType || ''}
               onChange={(e) => handleFilterChange('jobType', e.target.value)}
               displayEmpty
-              sx={{ borderRadius: 1 }}
+              sx={{ 
+                borderRadius: '8px',
+                fontSize: '14px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1px',
+                },
+              }}
             >
               <MenuItem value="">All Types</MenuItem>
               {availableFilters.jobTypes?.map((type) => (
@@ -152,8 +192,8 @@ const JobFilters = ({
         </MDBox>
 
         {/* Location Filter */}
-        <MDBox mb={3}>
-          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1}>
+        <MDBox mb={2.5}>
+          <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1} sx={{ fontSize: '13px' }}>
             Location
           </MDTypography>
           <FormControl fullWidth size="small">
@@ -161,7 +201,20 @@ const JobFilters = ({
               value={localFilters.location || ''}
               onChange={(e) => handleFilterChange('location', e.target.value)}
               displayEmpty
-              sx={{ borderRadius: 1 }}
+              sx={{ 
+                borderRadius: '8px',
+                fontSize: '14px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1px',
+                },
+              }}
             >
               <MenuItem value="">All Locations</MenuItem>
               {availableFilters.locations?.map((location) => (

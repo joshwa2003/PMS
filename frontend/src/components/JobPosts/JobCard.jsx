@@ -35,10 +35,19 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
   const navigate = useNavigate();
   const [controller] = useMaterialUIController();
   const { darkMode } = controller;
-  const { isStudent } = useAuth();
+  const { isStudent, user } = useAuth();
   const { recordApplyClick } = useApplicationResponse();
   const daysLeft = getDaysUntilDeadline(job.deadline);
   const isUrgent = daysLeft <= 7;
+  
+  // Debug logging
+  console.log('JobCard Debug:', {
+    userRole: user?.role,
+    isStudentFunction: isStudent(),
+    hasApplied: job.hasApplied,
+    showAppliedBadge,
+    shouldShowApplyButton: isStudent() && !job.hasApplied
+  });
   
   // Format company logo
   const companyLogo = job.company?.logo || null;
@@ -61,92 +70,111 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
   return (
     <Card 
       sx={{ 
-        mb: 3,
-        borderRadius: '15px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-        backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-        transition: 'all 0.3s ease-in-out',
+        mb: 2.5,
+        borderRadius: '12px',
+        boxShadow: darkMode ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
+        backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+        transition: 'all 0.2s ease-in-out',
         cursor: 'pointer',
         width: '100%',
         overflow: 'hidden',
         border: '1px solid',
-        borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+        borderColor: darkMode ? '#333' : '#e5e5e5',
         '&:hover': {
-          boxShadow: '0 12px 28px rgba(0, 0, 0, 0.25)',
-          transform: 'translateY(-5px)',
+          boxShadow: darkMode ? '0 4px 16px rgba(0, 0, 0, 0.4)' : '0 4px 16px rgba(0, 0, 0, 0.12)',
+          transform: 'translateY(-2px)',
+          borderColor: darkMode ? '#444' : '#d0d0d0',
         },
       }}
       onClick={() => navigate(`/job-detail/${job._id}`)}
     >
-      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
         {/* Header Section */}
-        <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <MDBox display="flex" alignItems="flex-start" gap={2} flex={1}>
+        <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2.5}>
+          <MDBox display="flex" alignItems="flex-start" gap={2.5} flex={1}>
             {/* Company Logo */}
             {companyLogo ? (
               <Avatar 
                 src={companyLogo} 
                 alt={job.company?.name}
                 sx={{ 
-                  width: 60, 
-                  height: 60, 
+                  width: 56, 
+                  height: 56, 
                   border: '1px solid',
-                  borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                  p: 1,
-                  bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#fff'
+                  borderColor: darkMode ? '#333' : '#e0e0e0',
+                  bgcolor: darkMode ? '#2a2a2a' : '#fafafa'
                 }}
               />
             ) : (
               <Avatar sx={{ 
-                width: 60, 
-                height: 60, 
-                bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#f5f5f5', 
-                color: darkMode ? '#aaa' : '#666',
+                width: 56, 
+                height: 56, 
+                bgcolor: darkMode ? '#2a2a2a' : '#f5f5f5', 
+                color: darkMode ? '#999' : '#666',
                 border: '1px solid',
-                borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+                borderColor: darkMode ? '#333' : '#e0e0e0'
               }}>
-                <BusinessIcon sx={{ fontSize: 30 }} />
+                <BusinessIcon sx={{ fontSize: 28 }} />
               </Avatar>
             )}
             
             {/* Job Title and Company */}
             <MDBox flex={1}>
-              <MDTypography 
-                variant="h5" 
-                fontWeight="bold" 
-                color={darkMode ? "white" : "dark"}
-                sx={{ 
-                  fontSize: '20px',
-                  lineHeight: 1.3,
-                  mb: 1,
-                  '&:hover': { color: 'primary.main' }
-                }}
-              >
-                {job.title}
+              <MDBox display="flex" alignItems="center" gap={1} mb={1}>
+                <MDTypography 
+                  variant="h6" 
+                  fontWeight="bold" 
+                  color={darkMode ? "white" : "dark"}
+                  sx={{ 
+                    fontSize: '18px',
+                    lineHeight: 1.3,
+                    color: darkMode ? '#fff !important' : 'inherit',
+                    '&:hover': { color: '#1976d2' }
+                  }}
+                >
+                  {job.title}
+                </MDTypography>
                 {/* Applied Badge */}
                 {(showAppliedBadge || job.hasApplied) && (
                   <Chip
-                    icon={<CheckCircleIcon />}
+                    icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
                     label="Applied"
                     size="small"
-                    color="success"
-                    sx={{ ml: 1, height: 24, fontSize: '12px' }}
+                    sx={{ 
+                      height: 22, 
+                      fontSize: '11px',
+                      bgcolor: '#e8f5e8',
+                      color: '#2e7d32',
+                      border: '1px solid #c8e6c9',
+                      fontWeight: 500
+                    }}
                   />
                 )}
-              </MDTypography>
+              </MDBox>
               
-              <MDBox display="flex" alignItems="center" gap={1} mb={2}>
+              <MDBox display="flex" alignItems="center" gap={1.5} mb={1.5}>
                 <MDTypography 
-                  variant="h6" 
-                  color={darkMode ? "white" : "dark"}
-                  sx={{ fontSize: '16px', fontWeight: 600 }}
+                  variant="body1" 
+                  color={darkMode ? "white" : "text"}
+                  sx={{ 
+                    fontSize: '15px', 
+                    fontWeight: 500,
+                    color: darkMode ? '#fff !important' : 'inherit'
+                  }}
                 >
                   {job.company.name}
                 </MDTypography>
                 {job.company.size && (
                   <>
-                    <StarIcon sx={{ fontSize: 14, color: '#ffa726' }} />
-                    <MDTypography variant="body2" color="text">
+                    <Box sx={{ width: 4, height: 4, bgcolor: darkMode ? '#fff' : '#ccc', borderRadius: '50%' }} />
+                    <MDTypography 
+                      variant="body2" 
+                      color={darkMode ? "white" : "text"} 
+                      sx={{ 
+                        fontSize: '13px',
+                        color: darkMode ? '#fff !important' : 'inherit'
+                      }}
+                    >
                       {job.company.size}
                     </MDTypography>
                   </>
@@ -157,12 +185,16 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
           
           {/* Save Button */}
           <IconButton 
-            size="medium" 
+            size="small" 
             sx={{ 
-              color: job.isSaved ? 'primary.main' : 'text.secondary',
+              color: job.isSaved ? '#1976d2' : (darkMode ? '#888' : '#999'),
+              bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+              border: '1px solid',
+              borderColor: darkMode ? '#333' : '#e0e0e0',
               '&:hover': { 
-                color: 'primary.main',
-                backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                color: '#1976d2',
+                bgcolor: darkMode ? 'rgba(25, 118, 210, 0.1)' : 'rgba(25, 118, 210, 0.04)',
+                borderColor: '#1976d2'
               }
             }}
             onClick={(e) => {
@@ -172,61 +204,108 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
               }
             }}
           >
-            {job.isSaved ? <BookmarkIcon fontSize="medium" /> : <BookmarkBorderIcon fontSize="medium" />}
+            {job.isSaved ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
           </IconButton>
         </MDBox>
 
         {/* Job Details Row */}
-        <MDBox display="flex" alignItems="center" gap={4} mb={3} flexWrap="wrap">
+        <MDBox 
+          display="flex" 
+          alignItems="center" 
+          gap={3} 
+          mb={2.5} 
+          flexWrap="wrap"
+          sx={{
+            bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+            borderRadius: '8px',
+            p: 1.5,
+            border: '1px solid',
+            borderColor: darkMode ? '#333' : '#f0f0f0'
+          }}
+        >
           {/* Experience */}
           <MDBox display="flex" alignItems="center" gap={1}>
-            <WorkIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            <MDTypography variant="body1" color={darkMode ? "white" : "text"} sx={{ fontSize: '14px', fontWeight: 500 }}>
+            <WorkIcon sx={{ fontSize: 16, color: darkMode ? '#fff' : '#666' }} />
+            <MDTypography 
+              variant="body2" 
+              color={darkMode ? "white" : "text"} 
+              sx={{ 
+                fontSize: '13px', 
+                fontWeight: 500,
+                color: darkMode ? '#fff !important' : 'inherit'
+              }}
+            >
               0-2 Yrs
             </MDTypography>
           </MDBox>
           
           {/* Salary */}
           {(job.salary?.min || job.salary?.max || job.stipend?.amount) && (
-            <MDBox display="flex" alignItems="center" gap={1}>
-              <MDTypography variant="body1" color={darkMode ? "white" : "text"} sx={{ fontSize: '14px', fontWeight: 500 }}>
+            <>
+              <Box sx={{ width: 4, height: 4, bgcolor: darkMode ? '#fff' : '#ccc', borderRadius: '50%' }} />
+              <MDTypography 
+                variant="body2" 
+                color={darkMode ? "white" : "text"} 
+                sx={{ 
+                  fontSize: '13px', 
+                  fontWeight: 600,
+                  color: darkMode ? '#fff !important' : 'inherit'
+                }}
+              >
                 ₹ {job.salary?.min || job.salary?.max ? 
                   formatSalary(job.salary).replace('INR', '') : 
                   `${job.stipend.amount} ${job.stipend.period || 'Monthly'}`
                 }
               </MDTypography>
-            </MDBox>
+            </>
           )}
           
           {/* Location */}
+          <Box sx={{ width: 4, height: 4, bgcolor: darkMode ? '#fff' : '#ccc', borderRadius: '50%' }} />
           <MDBox display="flex" alignItems="center" gap={1}>
-            <LocationIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            <MDTypography variant="body1" color={darkMode ? "white" : "text"} sx={{ fontSize: '14px', fontWeight: 500 }}>
+            <LocationIcon sx={{ fontSize: 16, color: darkMode ? '#fff' : '#666' }} />
+            <MDTypography 
+              variant="body2" 
+              color={darkMode ? "white" : "text"} 
+              sx={{ 
+                fontSize: '13px', 
+                fontWeight: 500,
+                color: darkMode ? '#fff !important' : 'inherit'
+              }}
+            >
               {job.location}
             </MDTypography>
           </MDBox>
           
           {/* Posted Time */}
           <MDBox display="flex" alignItems="center" gap={1} ml="auto">
-            <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ fontSize: '13px' }}>
+            <TimeIcon sx={{ fontSize: 16, color: darkMode ? '#fff' : '#666' }} />
+            <MDTypography 
+              variant="body2" 
+              color={darkMode ? "white" : "text"} 
+              sx={{ 
+                fontSize: '12px',
+                color: darkMode ? '#fff !important' : 'inherit'
+              }}
+            >
               {getPostedTime(job.createdAt)}
             </MDTypography>
           </MDBox>
         </MDBox>
 
         {/* Job Description */}
-        <MDBox mb={3}>
+        <MDBox mb={2.5}>
           <MDTypography 
-            variant="body1" 
+            variant="body2" 
             color={darkMode ? "white" : "text"}
             sx={{ 
               fontSize: '14px',
-              lineHeight: 1.6,
+              lineHeight: 1.5,
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
+              color: darkMode ? '#fff !important' : 'inherit'
             }}
           >
             {job.description}
@@ -251,22 +330,24 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
 
         {/* Skills */}
         {displaySkills.length > 0 && (
-          <MDBox mb={3}>
+          <MDBox mb={2.5}>
             <MDBox display="flex" flexWrap="wrap" gap={1}>
               {displaySkills.map((skill, index) => (
                 <Chip
                   key={index}
                   label={skill}
                   size="small"
-                  variant="outlined"
                   sx={{
-                    fontSize: '12px',
-                    height: 24,
-                    borderColor: darkMode ? '#555' : '#e0e0e0',
-                    color: darkMode ? 'white' : 'text.secondary',
+                    fontSize: '11px',
+                    height: 22,
+                    bgcolor: darkMode ? '#2a2a2a' : '#f8f9fa',
+                    color: darkMode ? '#fff !important' : '#666',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#444' : '#e0e0e0',
                     '&:hover': {
-                      borderColor: 'primary.main',
-                      color: 'primary.main'
+                      bgcolor: darkMode ? '#333' : '#e3f2fd',
+                      borderColor: '#1976d2',
+                      color: '#1976d2 !important'
                     }
                   }}
                 />
@@ -275,12 +356,13 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
                 <Chip
                   label={`+${remainingSkills} more`}
                   size="small"
-                  variant="outlined"
                   sx={{
-                    fontSize: '12px',
-                    height: 24,
-                    borderColor: darkMode ? '#555' : '#e0e0e0',
-                    color: darkMode ? 'white' : 'text.secondary'
+                    fontSize: '11px',
+                    height: 22,
+                    bgcolor: darkMode ? '#2a2a2a' : '#f0f0f0',
+                    color: darkMode ? '#bbb' : '#999',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#444' : '#ddd'
                   }}
                 />
               )}
@@ -289,20 +371,40 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
         )}
 
         {/* Footer Section */}
-        <MDBox display="flex" justifyContent="space-between" alignItems="center" pt={2} borderTop={`1px solid ${darkMode ? '#444' : '#f0f0f0'}`}>
-          <MDBox display="flex" alignItems="center" gap={2}>
+        <MDBox 
+          display="flex" 
+          justifyContent="space-between" 
+          alignItems="center" 
+          pt={2} 
+          borderTop={`1px solid ${darkMode ? '#333' : '#e5e5e5'}`}
+        >
+          <MDBox display="flex" alignItems="center" gap={3}>
             {/* View Count */}
             <MDBox display="flex" alignItems="center" gap={0.5}>
-              <EyeIcon sx={{ fontSize: 18, color: darkMode ? '#90caf9' : '#1976d2' }} />
-              <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ fontSize: '13px', fontWeight: 500 }}>
+              <EyeIcon sx={{ fontSize: 16, color: darkMode ? '#fff' : '#666' }} />
+              <MDTypography 
+                variant="body2" 
+                color={darkMode ? "white" : "text"} 
+                sx={{ 
+                  fontSize: '12px',
+                  color: darkMode ? '#fff !important' : 'inherit'
+                }}
+              >
                 {job.stats?.totalViews || 0} views
               </MDTypography>
             </MDBox>
             
             {/* Apply Count */}
             <MDBox display="flex" alignItems="center" gap={0.5}>
-              <PeopleIcon sx={{ fontSize: 18, color: darkMode ? '#a5d6a7' : '#388e3c' }} />
-              <MDTypography variant="body2" color={darkMode ? "white" : "text"} sx={{ fontSize: '13px', fontWeight: 500 }}>
+              <PeopleIcon sx={{ fontSize: 16, color: darkMode ? '#fff' : '#666' }} />
+              <MDTypography 
+                variant="body2" 
+                color={darkMode ? "white" : "text"} 
+                sx={{ 
+                  fontSize: '12px',
+                  color: darkMode ? '#fff !important' : 'inherit'
+                }}
+              >
                 {job.stats?.totalApplications || 0} applied
               </MDTypography>
             </MDBox>
@@ -313,33 +415,35 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
                 label={`${daysLeft} days left`}
                 size="small"
                 sx={{
-                  height: 24,
-                  fontSize: '12px',
-                  backgroundColor: '#fff3e0',
+                  height: 20,
+                  fontSize: '10px',
+                  bgcolor: '#fff8e1',
                   color: '#f57c00',
                   border: '1px solid #ffcc02',
-                  fontWeight: 600
+                  fontWeight: 500
                 }}
               />
             )}
           </MDBox>
           
           {/* Action Buttons */}
-          <MDBox display="flex" alignItems="center" gap={2}>
+          <MDBox display="flex" alignItems="center" gap={1.5}>
             <MDButton
               variant="outlined"
-              color="primary"
-              size="medium"
+              size="small"
               sx={{
-                px: 3,
-                py: 1,
-                fontSize: '14px',
+                px: 2,
+                py: 0.75,
+                fontSize: '12px',
                 textTransform: 'none',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 fontWeight: 500,
+                borderColor: darkMode ? '#444' : '#ddd',
+                color: darkMode ? '#fff !important' : '#666',
                 '&:hover': {
-                  backgroundColor: 'primary.main',
-                  color: 'white'
+                  borderColor: '#1976d2',
+                  color: '#1976d2 !important',
+                  bgcolor: darkMode ? 'rgba(25, 118, 210, 0.1)' : 'rgba(25, 118, 210, 0.04)'
                 }
               }}
               onClick={(e) => {
@@ -350,23 +454,28 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
               View Details
             </MDButton>
             
-            {/* Show Apply Now button only if user is a student and not applied */}
-            {isStudent() && !job.hasApplied && !showAppliedBadge ? (
+            {/* Show Apply Now button for students who haven't applied */}
+            {isStudent() && !job.hasApplied && (
               <MDButton
                 variant="contained"
-                color="primary"
-                size="medium"
+                size="small"
                 sx={{
-                  px: 3,
-                  py: 1,
-                  fontSize: '14px',
+                  px: 2.5,
+                  py: 0.75,
+                  fontSize: '12px',
                   textTransform: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   fontWeight: 600,
-                  boxShadow: '0 2px 8px rgba(25,118,210,0.3)',
+                  bgcolor: '#1976d2',
+                  color: '#ffffff !important',
+                  boxShadow: 'none',
                   '&:hover': {
-                    boxShadow: '0 4px 12px rgba(25,118,210,0.4)',
-                    transform: 'translateY(-1px)'
+                    bgcolor: '#1565c0',
+                    color: '#ffffff !important',
+                    boxShadow: 'none'
+                  },
+                  '& .MuiButton-root': {
+                    color: '#ffffff !important'
                   }
                 }}
                 onClick={(e) => {
@@ -405,7 +514,7 @@ const JobCard = ({ job, onApply, onSave, showAppliedBadge }) => {
               >
                 Apply Now
               </MDButton>
-            ) : null}
+            )}
           </MDBox>
         </MDBox>
       </CardContent>

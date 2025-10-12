@@ -262,13 +262,22 @@ const JobPosts = () => {
         <Container maxWidth="xl">
           {/* Header */}
           <MDBox mb={4}>
-            <MDBox display="flex" alignItems="center" gap={2} mb={2}>
-              <WorkIcon sx={{ fontSize: 32, color: 'info.main' }} />
+            <MDBox display="flex" alignItems="center" gap={2.5} mb={3}>
+              <MDBox 
+                sx={{ 
+                  p: 1.5, 
+                  borderRadius: '12px', 
+                  bgcolor: 'rgba(25, 118, 210, 0.1)',
+                  border: '1px solid rgba(25, 118, 210, 0.2)'
+                }}
+              >
+                <WorkIcon sx={{ fontSize: 28, color: '#1976d2' }} />
+              </MDBox>
               <MDBox>
-                <MDTypography variant="h3" fontWeight="bold" color="dark">
+                <MDTypography variant="h4" fontWeight="bold" color="dark" sx={{ mb: 0.5 }}>
                   Job Opportunities
                 </MDTypography>
-                <MDTypography variant="body1" color="text">
+                <MDTypography variant="body1" color="text" sx={{ fontSize: '15px' }}>
                   Discover exciting career opportunities from top companies
                 </MDTypography>
               </MDBox>
@@ -334,18 +343,25 @@ const JobPosts = () => {
                         page={pagination.currentPage}
                         onChange={handlePageChange}
                         color="primary"
-                        size="large"
+                        size="medium"
                         showFirstButton
                         showLastButton
                         sx={{
                           '& .MuiPaginationItem-root': {
-                            borderRadius: 2,
+                            borderRadius: '8px',
+                            border: '1px solid #e0e0e0',
+                            color: '#666',
+                            '&:hover': {
+                              backgroundColor: '#f5f5f5',
+                              borderColor: '#1976d2',
+                            },
                           },
                           '& .Mui-selected': {
-                            backgroundColor: 'info.main',
+                            backgroundColor: '#1976d2',
                             color: 'white',
+                            borderColor: '#1976d2',
                             '&:hover': {
-                              backgroundColor: 'info.dark',
+                              backgroundColor: '#1565c0',
                             },
                           },
                         }}
