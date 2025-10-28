@@ -159,6 +159,10 @@ function Dashboard() {
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        // Silently handle 403 errors for users without dashboard access
+        if (error.response?.status === 403 || error.message?.includes('403') || error.message?.includes('not authorized')) {
+          console.log('User does not have access to dashboard - this is normal for some roles');
+        }
         setDashboardData(prev => ({ ...prev, loading: false }));
       }
     };

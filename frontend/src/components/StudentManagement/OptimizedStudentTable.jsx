@@ -15,7 +15,7 @@ import MDTypography from 'components/MDTypography';
 import MDBadge from 'components/MDBadge';
 
 // Memoized row component for performance
-const StudentRow = memo(({ student, isSelected, onToggleSelection, onDeleteStudent }) => {
+const StudentRow = memo(({ student, isSelected, onToggleSelection, onViewStudent, onDeleteStudent }) => {
   return (
     <Box
       sx={{
@@ -103,7 +103,11 @@ const StudentRow = memo(({ student, isSelected, onToggleSelection, onDeleteStude
       {/* Actions */}
       <Box sx={{ flex: '0 0 10%', display: 'flex', gap: 1 }}>
         <Tooltip title="View Student">
-          <IconButton size="small" color="info">
+          <IconButton 
+            size="small" 
+            color="info"
+            onClick={() => onViewStudent(student)}
+          >
             <VisibilityIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -127,6 +131,7 @@ const OptimizedStudentTable = ({
   students = [],
   selectedStudents = [],
   onToggleSelection,
+  onViewStudent,
   onDeleteStudent,
   height = 600
 }) => {
@@ -188,6 +193,7 @@ const OptimizedStudentTable = ({
             student={student}
             isSelected={selectedStudents.includes(student.id)}
             onToggleSelection={onToggleSelection}
+            onViewStudent={onViewStudent}
             onDeleteStudent={onDeleteStudent}
           />
         ))}

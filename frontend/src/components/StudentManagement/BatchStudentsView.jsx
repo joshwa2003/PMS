@@ -49,6 +49,7 @@ import OptimizedStudentTable from 'components/StudentManagement/OptimizedStudent
 import studentManagementService from 'services/studentManagementService';
 
 const BatchStudentsView = ({ batch, onBackToBatches }) => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -135,6 +136,15 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
 
   const handleRefreshData = () => {
     fetchBatchStudents();
+  };
+
+  // View student handler
+  const handleViewStudent = (student) => {
+    // Navigate to student profile page
+    console.log('Navigating to student profile:', student);
+    // Use profileId if available, otherwise use id
+    const studentId = student.profileId || student.id;
+    navigate(`/student-profile/${studentId}`);
   };
 
   // Delete student handlers
@@ -255,7 +265,11 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
   const Actions = ({ student }) => (
     <MDBox display="flex" gap={1}>
       <Tooltip title="View Student">
-        <IconButton size="small" color="info">
+        <IconButton 
+          size="small" 
+          color="info"
+          onClick={() => handleViewStudent(student)}
+        >
           <VisibilityIcon fontSize="small" />
         </IconButton>
       </Tooltip>
@@ -559,6 +573,7 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
               students={students}
               selectedStudents={selectedStudents}
               onToggleSelection={toggleStudentSelection}
+              onViewStudent={handleViewStudent}
               onDeleteStudent={handleDeleteStudent}
               height={600}
             />

@@ -784,7 +784,7 @@ function PlacementDirectorStudentProfileContent() {
 
 export default function PlacementDirectorStudentProfile() {
   return (
-    <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+    <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
       <PlacementDirectorStudentProfileContent />
     </ProtectedRoute>
   );

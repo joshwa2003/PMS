@@ -343,7 +343,7 @@ const routes = [
     route: "/student-profile/:studentId",
     component: (
       <ProtectedRoute requiredRoles={['placement_staff']}>
-        <StudentProfileViewPage />
+        <PlacementDirectorStudentProfile />
       </ProtectedRoute>
     ),
   },
@@ -354,7 +354,7 @@ const routes = [
     key: "placement-director-student-profile",
     route: "/placement-director/student-profile/:studentId",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <PlacementDirectorStudentProfile />
       </ProtectedRoute>
     ),

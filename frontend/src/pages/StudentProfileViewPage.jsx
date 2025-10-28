@@ -16,7 +16,7 @@ import MDTypography from 'components/MDTypography';
 import MDAlert from 'components/MDAlert';
 
 // Layout
-import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
+import PageLayout from 'examples/LayoutContainers/PageLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 import Footer from 'examples/Footer';
 
@@ -50,7 +50,7 @@ function StudentProfileViewContent() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <PageLayout>
         <DashboardNavbar />
         <MDBox py={3}>
           <Grid container spacing={3}>
@@ -71,12 +71,12 @@ function StudentProfileViewContent() {
           </Grid>
         </MDBox>
         <Footer />
-      </DashboardLayout>
+      </PageLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <PageLayout>
       <DashboardNavbar />
       <MDBox py={3}>
         {/* Header */}
@@ -116,7 +116,7 @@ function StudentProfileViewContent() {
         </Grid>
       </MDBox>
       <Footer />
-    </DashboardLayout>
+    </PageLayout>
   );
 }
 
