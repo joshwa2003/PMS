@@ -378,6 +378,46 @@ class DepartmentWiseStudentService {
         return 'schedule';
     }
   }
+
+  // Delete multiple students (bulk delete)
+  async deleteBulkStudents(studentIds) {
+    try {
+      console.log('🔍 Service: Deleting bulk students:', studentIds);
+      
+      // Ensure studentIds is an array of strings
+      const ids = Array.isArray(studentIds) 
+        ? studentIds.map(id => typeof id === 'object' ? id.id || id._id : id)
+        : [studentIds];
+      
+      console.log('🔧 Processed student IDs for deletion:', ids);
+      
+      const requestData = { studentIds: ids };
+      
+      const response = await api.delete('/student-management/students/bulk', {
+        data: requestData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('✅ Service: Bulk delete response:', response);
+      
+      if (response && response.success) {
+        return response;
+      }
+      
+      throw new Error(response?.message || 'Failed to delete students. Please try again.');
+    } catch (error) {
+      console.error('❌ Service: Error in deleteBulkStudents:', error);
+      
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         'An error occurred while deleting students. Please try again.';
+      
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 // Create and export singleton instance

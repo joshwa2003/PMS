@@ -17,7 +17,9 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
-  Alert
+  Alert,
+  Checkbox,
+  TablePagination
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -70,6 +72,8 @@ const DepartmentStaffList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Handle menu
   const handleMenuOpen = (event, staffMember) => {
@@ -126,9 +130,26 @@ const DepartmentStaffList = () => {
   // Handle refresh
   const handleRefresh = () => {
     if (currentDepartment) {
-      fetchStaffByDepartment(currentDepartment.code, { page: 1 });
+      fetchStaffByDepartment(currentDepartment.code, { page: page + 1, limit: rowsPerPage });
     }
     handleClearFilters();
+  };
+
+  // Handle pagination
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+    if (currentDepartment) {
+      fetchStaffByDepartment(currentDepartment.code, { page: newPage + 1, limit: rowsPerPage });
+    }
+  };
+
+  const handleRowsPerPageChange = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+    if (currentDepartment) {
+      fetchStaffByDepartment(currentDepartment.code, { page: 1, limit: newRowsPerPage });
+    }
   };
 
   // Get role color
@@ -154,12 +175,43 @@ const DepartmentStaffList = () => {
   // Refresh data when filters change
   useEffect(() => {
     if (currentDepartment) {
-      fetchStaffByDepartment(currentDepartment.code, { page: 1 });
+      fetchStaffByDepartment(currentDepartment.code, { page: page + 1, limit: rowsPerPage });
     }
-  }, [filters, currentDepartment, fetchStaffByDepartment]);
+  }, [filters, currentDepartment, fetchStaffByDepartment, page, rowsPerPage]);
+
+  // Handle staff selection
+  const handleStaffSelection = (staffMember) => {
+    toggleStaffSelection(staffMember);
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectedStaff.length === staff.length) {
+      clearSelectedStaff();
+    } else {
+      selectAllStaff();
+    }
+  };
+
+  // Check if staff member is selected
+  const isStaffSelected = (staffMember) => {
+    return selectedStaff.some(selected => selected.id === staffMember.id);
+  };
 
   // Create table data using the same pattern as DepartmentDataTable
   const columns = [
+    { 
+      Header: (
+        <Checkbox
+          checked={selectedStaff.length === staff.length && staff.length > 0}
+          indeterminate={selectedStaff.length > 0 && selectedStaff.length < staff.length}
+          onChange={handleSelectAll}
+        />
+      ), 
+      accessor: "select", 
+      width: "5%", 
+      align: "center" 
+    },
     { Header: "Staff Member", accessor: "staffMember", width: "25%", align: "left" },
     { Header: "Role", accessor: "role", width: "15%", align: "left" },
     { Header: "Status", accessor: "status", width: "10%", align: "center" },
@@ -170,6 +222,12 @@ const DepartmentStaffList = () => {
   ];
 
   const rows = staff.map((staffMember) => ({
+    select: (
+      <Checkbox
+        checked={isStaffSelected(staffMember)}
+        onChange={() => handleStaffSelection(staffMember)}
+      />
+    ),
     staffMember: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
         <MDAvatar 
@@ -390,10 +448,82 @@ const DepartmentStaffList = () => {
           </Grid>
 
           {/* Results Summary */}
-          <MDBox mt={2}>
+          <MDBox mt={2} mb={2}>
             <Typography variant="body2" color="text.secondary">
               Showing {staff.length} of {pagination.totalStaff || 0} staff members
+              {selectedStaff.length > 0 && (
+                <span style={{ marginLeft: 8, fontWeight: 'bold', color: '#1976d2' }}>
+                  ({selectedStaff.length} selected)
+                </span>
+              )}
             </Typography>
+          </MDBox>
+
+          {/* Selection Actions */}
+          <MDBox mb={2}>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    const pendingEmailStaff = staff.filter(s => !s.emailSent);
+                    setSelectedStaff(pendingEmailStaff);
+                  }}
+                  disabled={staff.filter(s => !s.emailSent).length === 0}
+                  sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                >
+                  Select Pending Emails ({staff.filter(s => !s.emailSent).length})
+                </Button>
+              </Grid>
+              
+              <Grid item>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    const pendingRoleStaff = staff.filter(s => !s.roleAssignedAt);
+                    setSelectedStaff(pendingRoleStaff);
+                  }}
+                  disabled={staff.filter(s => !s.roleAssignedAt).length === 0}
+                  sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                >
+                  Select Pending Roles ({staff.filter(s => !s.roleAssignedAt).length})
+                </Button>
+              </Grid>
+              
+              <Grid item>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    const otherStaff = staff.filter(s => s.role === 'other_staff');
+                    setSelectedStaff(otherStaff);
+                  }}
+                  disabled={staff.filter(s => s.role === 'other_staff').length === 0}
+                  sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                >
+                  Select Other Staff ({staff.filter(s => s.role === 'other_staff').length})
+                </Button>
+              </Grid>
+              
+              {selectedStaff.length > 0 && (
+                <Grid item>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                    onClick={clearSelectedStaff}
+                    sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                  >
+                    Clear Selection
+                  </Button>
+                </Grid>
+              )}
+            </Grid>
           </MDBox>
         </MDBox>
 
@@ -423,11 +553,36 @@ const DepartmentStaffList = () => {
               </Alert>
             </MDBox>
           ) : (
-            <DataTable
-              table={{ columns, rows }}
-              isSorted={false}
-              noEndBorder
-            />
+            <>
+              <DataTable
+                table={{ columns, rows }}
+                isSorted={false}
+                noEndBorder
+              />
+              
+              {/* Pagination */}
+              <Box mt={2} mb={2}>
+                <TablePagination
+                  component="div"
+                  count={pagination.totalStaff || 0}
+                  page={page}
+                  onPageChange={handlePageChange}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleRowsPerPageChange}
+                  rowsPerPageOptions={[5, 10, 25, 50]}
+                  sx={{
+                    '& .MuiTablePagination-toolbar': {
+                      paddingLeft: 2,
+                      paddingRight: 2
+                    },
+                    '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                      color: '#344767',
+                      fontSize: '0.875rem'
+                    }
+                  }}
+                />
+              </Box>
+            </>
           )}
         </MDBox>
       </Card>

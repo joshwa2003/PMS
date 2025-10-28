@@ -270,10 +270,10 @@ export const DepartmentStaffProvider = ({ children }) => {
     }
   }, [setLoading, setError]);
 
-  const bulkAssignRoles = useCallback(async (assignments) => {
+  const bulkAssignRoles = useCallback(async (assignments, onProgress = null) => {
     try {
       setLoading(true);
-      const response = await departmentStaffService.bulkAssignRoles(assignments);
+      const response = await departmentStaffService.bulkAssignRoles(assignments, onProgress);
       
       if (response.success) {
         // Update successful assignments

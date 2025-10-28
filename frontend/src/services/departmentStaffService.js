@@ -112,7 +112,7 @@ class DepartmentStaffService {
   }
 
   // Bulk assign roles to multiple staff members
-  async bulkAssignRoles(assignments) {
+  async bulkAssignRoles(assignments, onProgress = null) {
     try {
       const results = {
         successful: [],
@@ -122,7 +122,14 @@ class DepartmentStaffService {
         failureCount: 0
       };
 
-      for (const assignment of assignments) {
+      for (let i = 0; i < assignments.length; i++) {
+        const assignment = assignments[i];
+        
+        // Report progress if callback provided
+        if (onProgress) {
+          onProgress({ current: i + 1, total: assignments.length });
+        }
+        
         try {
           const result = await this.assignStaffRole(assignment.staffId, assignment.role);
           
@@ -130,7 +137,8 @@ class DepartmentStaffService {
             results.successful.push({
               staffId: assignment.staffId,
               role: assignment.role,
-              staff: result.staff
+              staff: result.staff,
+              emailResult: result.emailResult
             });
             results.successCount++;
           } else {
@@ -148,6 +156,11 @@ class DepartmentStaffService {
             error: error.message || 'Failed to assign role'
           });
           results.failureCount++;
+        }
+        
+        // Small delay to prevent overwhelming the server
+        if (i < assignments.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 

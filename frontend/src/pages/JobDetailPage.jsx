@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useApplicationResponse } from 'context/ApplicationResponseContext';
-import { useAuth } from 'context/AuthContext';
 import {
   Container,
   Grid,
-  IconButton,
   Chip,
   Avatar,
   List,
@@ -13,7 +10,9 @@ import {
   ListItemIcon,
   ListItemText,
   CircularProgress,
-  Alert
+  Alert,
+  Modal,
+  IconButton
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -29,7 +28,11 @@ import {
   Language as WebsiteIcon,
   CalendarToday as CalendarIcon,
   AttachMoney as AttachMoneyIcon,
-  AttachMoney as SalaryIcon
+  AttachMoney as SalaryIcon,
+  Close as CloseIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  Fullscreen as FullscreenIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -37,7 +40,6 @@ import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
 import MDBadge from 'components/MDBadge';
-import GoogleDrivePreview from 'components/GoogleDrivePreview';
 
 // Material Dashboard 2 React examples
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
@@ -46,6 +48,10 @@ import Footer from 'examples/Footer';
 
 // Material Dashboard 2 React contexts
 import { useMaterialUIController } from 'context';
+
+// Auth and Application contexts - Fixed import paths
+import { useAuth } from '../context/AuthContext';
+import { useApplicationResponse } from '../context/ApplicationResponseContext';
 
 // Services
 import { getPublicJobById, recordJobView } from 'services/jobService';
@@ -64,8 +70,14 @@ const JobDetailPage = () => {
 
   const { checkIfApplied, pendingResponse } = useApplicationResponse();
   const [isApplied, setIsApplied] = useState(false);
+  
+  // Document viewer state
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
+  const [documentZoom, setDocumentZoom] = useState(1);
 
   useEffect(() => {
+    if (!jobId) return;
+    
     const fetchJobDetails = async () => {
       try {
         setLoading(true);
@@ -76,8 +88,8 @@ const JobDetailPage = () => {
         if (response.success) {
           setJob(response.data.job);
           
-          // Record job view (only counted for students on first view)
-          if (response.data.job._id) {
+          // Record job view (only counted for students on first view) - with error prevention
+          if (response.data.job._id && !sessionStorage.getItem(`job-view-${response.data.job._id}`)) {
             try {
               console.log('📊 Attempting to record job view for job:', response.data.job._id);
               const viewResponse = await recordJobView(response.data.job._id, {
@@ -89,17 +101,25 @@ const JobDetailPage = () => {
                 }
               });
               console.log('✅ Job view recorded successfully:', viewResponse);
+              // Mark as recorded to prevent retries
+              sessionStorage.setItem(`job-view-${response.data.job._id}`, 'recorded');
             } catch (viewErr) {
-              console.error('❌ Error recording job view:', viewErr);
-              console.error('❌  Error details:', viewErr.message, viewErr.response);
+              console.warn('⚠️ Job view recording failed (non-critical):', viewErr.message);
+              // Mark as attempted to prevent infinite retries
+              sessionStorage.setItem(`job-view-${response.data.job._id}`, 'failed');
               // Don't block the page if view recording fails
             }
           }
           
           // Check if user has already applied for this job
           if (response.data.job._id) {
-            const applied = await checkIfApplied(response.data.job._id);
-            setIsApplied(applied);
+            try {
+              const applied = await checkIfApplied(response.data.job._id);
+              setIsApplied(applied);
+            } catch (appliedErr) {
+              console.warn('⚠️ Could not check applied status (non-critical):', appliedErr.message);
+              setIsApplied(false); // Default to not applied if check fails
+            }
           }
         } else {
           setError(response.message || 'Failed to fetch job details');
@@ -112,18 +132,20 @@ const JobDetailPage = () => {
       }
     };
 
-    if (jobId) {
-      fetchJobDetails();
-    }
-  }, [jobId, checkIfApplied]);
+    fetchJobDetails();
+  }, [jobId]); // Only depend on jobId to prevent unnecessary re-renders
 
-  // Refresh job details when application response modal closes
+  // Separate useEffect for checking applied status when pendingResponse changes
   useEffect(() => {
-    if (!pendingResponse && jobId) {
-      // Modal was closed, refresh to update applied status
+    if (jobId && pendingResponse) {
       const refreshAppliedStatus = async () => {
-        const applied = await checkIfApplied(jobId);
-        setIsApplied(applied);
+        try {
+          const applied = await checkIfApplied(jobId);
+          setIsApplied(applied);
+        } catch (err) {
+          console.warn('⚠️ Failed to refresh applied status (non-critical):', err.message);
+          // Don't change isApplied state if refresh fails
+        }
       };
       refreshAppliedStatus();
     }
@@ -178,6 +200,29 @@ const JobDetailPage = () => {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  // Document viewer functions
+  const handleOpenDocumentViewer = () => {
+    setDocumentViewerOpen(true);
+    setDocumentZoom(1); // Reset zoom when opening
+  };
+
+  const handleCloseDocumentViewer = () => {
+    setDocumentViewerOpen(false);
+    setDocumentZoom(1);
+  };
+
+  const handleZoomIn = () => {
+    setDocumentZoom(prev => Math.min(prev + 0.25, 3)); // Max zoom 3x
+  };
+
+  const handleZoomOut = () => {
+    setDocumentZoom(prev => Math.max(prev - 0.25, 0.5)); // Min zoom 0.5x
+  };
+
+  const handleResetZoom = () => {
+    setDocumentZoom(1);
   };
 
   if (loading) {
@@ -270,83 +315,129 @@ const JobDetailPage = () => {
         customRoute={customRoute}
       />
       
-      <MDBox py={3}>
+      <MDBox py={3} pb={{ xs: 10, lg: 3 }}>
         <Container maxWidth="lg">
           {/* Header Section */}
           <MDBox mb={4}>
             <MDButton
               variant="outlined"
-              color="primary"
               onClick={handleBack}
               startIcon={<BackIcon />}
-              sx={{ mb: 3 }}
+              sx={{ 
+                mb: 3,
+                borderRadius: '8px',
+                borderColor: darkMode ? '#444' : '#ddd',
+                color: darkMode ? '#fff' : '#666',
+                '&:hover': {
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  bgcolor: darkMode ? 'rgba(25, 118, 210, 0.1)' : 'rgba(25, 118, 210, 0.04)'
+                }
+              }}
             >
               Back to Jobs
             </MDButton>
             
             <MDBox 
-              p={4} 
-              borderRadius={3}
+              p={3} 
+              borderRadius="12px"
               sx={{ 
-                backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                border: 1,
-                borderColor: 'divider',
-                boxShadow: (theme) => theme.shadows[1]
+                backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                border: '1px solid',
+                borderColor: darkMode ? '#333' : '#e5e5e5',
+                boxShadow: 'none'
               }}
             >
-              <MDBox display="flex" alignItems="flex-start" gap={4} mb={4}>
+              <MDBox display="flex" alignItems="flex-start" gap={3} mb={3}>
                 {/* Company Logo */}
                 {companyLogo ? (
                   <Avatar 
                     src={companyLogo} 
                     alt={job.company.name}
-                    sx={{ width: 80, height: 80, border: '2px solid #e0e0e0' }}
+                    sx={{ 
+                      width: 72, 
+                      height: 72, 
+                      border: '1px solid',
+                      borderColor: darkMode ? '#333' : '#e0e0e0',
+                      bgcolor: darkMode ? '#2a2a2a' : '#fafafa'
+                    }}
                   />
                 ) : (
-                  <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main' }}>
-                    <BusinessIcon sx={{ fontSize: 40 }} />
+                  <Avatar sx={{ 
+                    width: 72, 
+                    height: 72, 
+                    bgcolor: darkMode ? '#2a2a2a' : '#f5f5f5',
+                    color: darkMode ? '#999' : '#666',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e0e0e0'
+                  }}>
+                    <BusinessIcon sx={{ fontSize: 36 }} />
                   </Avatar>
                 )}
                 
                 {/* Job Title and Company */}
                 <MDBox flex={1}>
                   <MDTypography 
-                    variant="h3" 
+                    variant="h4" 
                     fontWeight="bold" 
                     color={darkMode ? "white" : "dark"}
-                    gutterBottom
+                    sx={{ 
+                      mb: 1,
+                      color: darkMode ? '#fff !important' : 'inherit'
+                    }}
                   >
                     {job.title}
                   </MDTypography>
                   
                   <MDBox display="flex" alignItems="center" gap={2} mb={2}>
-                    <MDTypography variant="h5" color="info" fontWeight="medium">
+                    <MDTypography 
+                      variant="h6" 
+                      fontWeight="medium"
+                      sx={{ 
+                        color: darkMode ? '#e0e0e0 !important' : '#666'
+                      }}
+                    >
                       {job.company.name}
                     </MDTypography>
                     {job.company.website && (
                       <IconButton 
                         size="small" 
                         onClick={() => window.open(job.company.website, '_blank')}
-                        sx={{ color: 'info.main' }}
+                        sx={{ 
+                          color: darkMode ? '#bbb' : '#666',
+                          '&:hover': { color: '#1976d2' }
+                        }}
                       >
-                        <WebsiteIcon />
+                        <WebsiteIcon fontSize="small" />
                       </IconButton>
                     )}
                   </MDBox>
                   
-                  <MDBox display="flex" alignItems="center" gap={2} flexWrap="wrap">
-                    <MDBadge 
-                      badgeContent={job.jobType} 
-                      color={getJobTypeColor(job.jobType)} 
-                      variant="gradient" 
-                      size="lg"
+                  <MDBox display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+                    <Chip 
+                      label={job.jobType}
+                      size="small"
+                      sx={{
+                        bgcolor: darkMode ? '#2a2a2a' : '#f0f0f0',
+                        color: darkMode ? '#fff !important' : '#666',
+                        border: '1px solid',
+                        borderColor: darkMode ? '#444' : '#ddd',
+                        fontSize: '12px',
+                        height: 24
+                      }}
                     />
                     {isUrgent && (
-                      <MDBadge 
-                        badgeContent={`${daysLeft} days left`} 
-                        color="error" 
-                        variant="gradient" 
-                        size="lg"
+                      <Chip 
+                        label={`${daysLeft} days left`}
+                        size="small"
+                        sx={{
+                          bgcolor: '#fff8e1',
+                          color: '#f57c00',
+                          border: '1px solid #ffcc02',
+                          fontSize: '11px',
+                          height: 24,
+                          fontWeight: 500
+                        }}
                       />
                     )}
                   </MDBox>
@@ -355,12 +446,21 @@ const JobDetailPage = () => {
                 {/* Apply Button - Show only for students who haven't applied */}
                 {isStudent() && !isApplied && (
                   <MDButton
-                    variant="gradient"
-                    color="info"
+                    variant="contained"
                     onClick={handleApply}
                     startIcon={<OpenIcon />}
-                    size="large"
-                    sx={{ minWidth: 160, height: 48 }}
+                    sx={{ 
+                      minWidth: 140, 
+                      height: 44,
+                      bgcolor: '#1976d2',
+                      color: '#ffffff !important',
+                      borderRadius: '8px',
+                      boxShadow: 'none',
+                      '&:hover': {
+                        bgcolor: '#1565c0',
+                        boxShadow: 'none'
+                      }
+                    }}
                   >
                     Apply Now
                   </MDButton>
@@ -368,94 +468,167 @@ const JobDetailPage = () => {
               </MDBox>
 
               {/* Quick Info Grid */}
-              <Grid container spacing={3} mb={4}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <MDBox display="flex" alignItems="center" gap={2}>
-                    <LocationIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    <MDBox>
-                      <MDTypography variant="caption" color="text" display="block">
-                        Location
-                      </MDTypography>
-                      <MDTypography 
-                        variant="h6" 
-                        fontWeight="medium" 
-                        color={darkMode ? "white" : "dark"}
-                      >
-                        {job.location}
-                      </MDTypography>
+              <MDBox 
+                sx={{
+                  bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                  borderRadius: '8px',
+                  p: 2.5,
+                  border: '1px solid',
+                  borderColor: darkMode ? '#333' : '#f0f0f0',
+                  mb: 3
+                }}
+              >
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <MDBox display="flex" alignItems="center" gap={2}>
+                      <LocationIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 20 }} />
+                      <MDBox>
+                        <MDTypography 
+                          variant="caption" 
+                          display="block"
+                          sx={{ 
+                            color: darkMode ? '#aaa !important' : '#888',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          Location
+                        </MDTypography>
+                        <MDTypography 
+                          variant="body1" 
+                          fontWeight="medium" 
+                          sx={{ 
+                            color: darkMode ? '#fff !important' : '#333',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {job.location}
+                        </MDTypography>
+                      </MDBox>
                     </MDBox>
-                  </MDBox>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <MDBox display="flex" alignItems="center" gap={2}>
-                    <WorkIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    <MDBox>
-                      <MDTypography variant="caption" color="text" display="block">
-                        Work Mode
-                      </MDTypography>
-                      <MDTypography 
-                        variant="h6" 
-                        fontWeight="medium" 
-                        color={darkMode ? "white" : "dark"}
-                      >
-                        {job.workMode || 'On-site'}
-                      </MDTypography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <MDBox display="flex" alignItems="center" gap={2}>
+                      <WorkIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 20 }} />
+                      <MDBox>
+                        <MDTypography 
+                          variant="caption" 
+                          display="block"
+                          sx={{ 
+                            color: darkMode ? '#aaa !important' : '#888',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          Work Mode
+                        </MDTypography>
+                        <MDTypography 
+                          variant="body1" 
+                          fontWeight="medium" 
+                          sx={{ 
+                            color: darkMode ? '#fff !important' : '#333',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {job.workMode || 'Work from office'}
+                        </MDTypography>
+                      </MDBox>
                     </MDBox>
-                  </MDBox>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <MDBox display="flex" alignItems="center" gap={2}>
-                    <PeopleIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    <MDBox>
-                      <MDTypography variant="caption" color="text" display="block">
-                        Openings
-                      </MDTypography>
-                      <MDTypography 
-                        variant="h6" 
-                        fontWeight="medium" 
-                        color={darkMode ? "white" : "dark"}
-                      >
-                        {job.numberOfOpenings || 1} position{(job.numberOfOpenings || 1) > 1 ? 's' : ''}
-                      </MDTypography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <MDBox display="flex" alignItems="center" gap={2}>
+                      <PeopleIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 20 }} />
+                      <MDBox>
+                        <MDTypography 
+                          variant="caption" 
+                          display="block"
+                          sx={{ 
+                            color: darkMode ? '#aaa !important' : '#888',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          Openings
+                        </MDTypography>
+                        <MDTypography 
+                          variant="body1" 
+                          fontWeight="medium" 
+                          sx={{ 
+                            color: darkMode ? '#fff !important' : '#333',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {job.numberOfOpenings || 1} position{(job.numberOfOpenings || 1) > 1 ? 's' : ''}
+                        </MDTypography>
+                      </MDBox>
                     </MDBox>
-                  </MDBox>
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={3}>
-                  <MDBox display="flex" alignItems="center" gap={2}>
-                    <CalendarIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                    <MDBox>
-                      <MDTypography variant="caption" color="text" display="block">
-                        Start Date
-                      </MDTypography>
-                      <MDTypography 
-                        variant="h6" 
-                        fontWeight="medium" 
-                        color={darkMode ? "white" : "dark"}
-                      >
-                        {job.startDate || 'Immediately'}
-                      </MDTypography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6} md={3}>
+                    <MDBox display="flex" alignItems="center" gap={2}>
+                      <CalendarIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 20 }} />
+                      <MDBox>
+                        <MDTypography 
+                          variant="caption" 
+                          display="block"
+                          sx={{ 
+                            color: darkMode ? '#aaa !important' : '#888',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          Start Date
+                        </MDTypography>
+                        <MDTypography 
+                          variant="body1" 
+                          fontWeight="medium" 
+                          sx={{ 
+                            color: darkMode ? '#fff !important' : '#333',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {job.startDate || 'Immediately'}
+                        </MDTypography>
+                      </MDBox>
                     </MDBox>
-                  </MDBox>
+                  </Grid>
                 </Grid>
-              </Grid>
+              </MDBox>
 
               {/* Salary Information */}
               {(job.salary?.min || job.salary?.max || job.stipend?.amount) && (
-                <MDBox mb={4}>
-                  <MDBox display="flex" alignItems="center" gap={2} mb={2}>
-                    <SalaryIcon sx={{ color: 'success.main', fontSize: 24 }} />
+                <MDBox 
+                  sx={{
+                    bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                    borderRadius: '8px',
+                    p: 2.5,
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#f0f0f0',
+                    mb: 3
+                  }}
+                >
+                  <MDBox display="flex" alignItems="center" gap={2} mb={1.5}>
+                    <SalaryIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 20 }} />
                     <MDTypography 
-                      variant="h5" 
+                      variant="h6" 
                       fontWeight="medium" 
-                      color={darkMode ? "white" : "dark"}
+                      sx={{ 
+                        color: darkMode ? '#fff !important' : '#333'
+                      }}
                     >
                       Compensation
                     </MDTypography>
                   </MDBox>
-                  <MDTypography variant="h4" color="success" fontWeight="bold">
+                  <MDTypography 
+                    variant="h5" 
+                    fontWeight="bold"
+                    sx={{ 
+                      color: darkMode ? '#4caf50 !important' : '#2e7d32',
+                      fontSize: '20px'
+                    }}
+                  >
                     {job.salary?.min || job.salary?.max ? 
                       formatSalary(job.salary) : 
                       `₹${job.stipend.amount} ${job.stipend.period || 'Monthly'}`
@@ -466,20 +639,26 @@ const JobDetailPage = () => {
 
               {/* Application Deadline */}
               <MDBox 
-                p={3} 
-                borderRadius={2} 
-                sx={{ 
-                  backgroundColor: isUrgent ? 'error.light' : 'info.light',
-                  border: 1,
-                  borderColor: isUrgent ? 'error.main' : 'info.main',
+                sx={{
+                  bgcolor: isUrgent ? '#fff8e1' : (darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'),
+                  borderRadius: '8px',
+                  p: 2.5,
+                  border: '1px solid',
+                  borderColor: isUrgent ? '#ffcc02' : (darkMode ? '#333' : '#f0f0f0'),
                 }}
               >
-                <MDBox display="flex" alignItems="center" gap={2}>
-                  <TimeIcon sx={{ color: isUrgent ? 'error.main' : 'info.main', fontSize: 24 }} />
+                <MDBox display="flex" alignItems="center" gap={2} flexWrap="wrap">
+                  <TimeIcon sx={{ 
+                    color: isUrgent ? '#f57c00' : (darkMode ? '#bbb' : '#666'), 
+                    fontSize: 20 
+                  }} />
                   <MDTypography 
-                    variant="h6" 
+                    variant="body1" 
                     fontWeight="medium" 
-                    color={darkMode ? "white" : "dark"}
+                    sx={{ 
+                      color: isUrgent ? '#f57c00' : (darkMode ? '#fff !important' : '#333'),
+                      fontSize: '14px'
+                    }}
                   >
                     Application Deadline: {new Date(job.deadline).toLocaleDateString('en-US', {
                       year: 'numeric',
@@ -487,46 +666,55 @@ const JobDetailPage = () => {
                       day: 'numeric'
                     })}
                   </MDTypography>
-                  <MDTypography 
-                    variant="h6" 
-                    color={isUrgent ? 'error' : 'info'} 
-                    fontWeight="bold"
-                  >
-                    ({daysLeft} days left)
-                  </MDTypography>
+                  <Chip 
+                    label={`${daysLeft} days left`}
+                    size="small"
+                    sx={{
+                      bgcolor: isUrgent ? '#f57c00' : (darkMode ? '#2a2a2a' : '#f0f0f0'),
+                      color: isUrgent ? '#fff' : (darkMode ? '#fff !important' : '#666'),
+                      fontSize: '11px',
+                      height: 22,
+                      fontWeight: 500
+                    }}
+                  />
                 </MDBox>
               </MDBox>
             </MDBox>
           </MDBox>
 
           {/* Main Content */}
-          <Grid container spacing={4}>
+          <Grid container spacing={3}>
             {/* Left Column - Job Details */}
             <Grid item xs={12} lg={8}>
               {/* Job Description */}
               <MDBox 
-                p={4} 
-                borderRadius={3}
+                p={3} 
+                borderRadius="12px"
                 sx={{ 
-                  backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                  border: 1,
-                  borderColor: 'divider',
-                  boxShadow: (theme) => theme.shadows[1]
+                  backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                  border: '1px solid',
+                  borderColor: darkMode ? '#333' : '#e5e5e5',
+                  boxShadow: 'none'
                 }}
-                mb={4}
+                mb={3}
               >
                 <MDTypography 
-                  variant="h4" 
+                  variant="h5" 
                   fontWeight="bold" 
-                  color={darkMode ? "white" : "dark"}
-                  mb={3}
+                  sx={{ 
+                    mb: 2.5,
+                    color: darkMode ? '#fff !important' : '#333'
+                  }}
                 >
                   Job Description
                 </MDTypography>
                 <MDTypography 
                   variant="body1" 
-                  color={darkMode ? "white" : "text"}
-                  sx={{ lineHeight: 1.8, fontSize: '16px' }}
+                  sx={{ 
+                    lineHeight: 1.7, 
+                    fontSize: '15px',
+                    color: darkMode ? '#e0e0e0 !important' : '#555'
+                  }}
                 >
                   {job.description}
                 </MDTypography>
@@ -535,36 +723,44 @@ const JobDetailPage = () => {
               {/* Key Responsibilities */}
               {job.keyResponsibilities && job.keyResponsibilities.length > 0 && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1]
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none'
                   }}
-                  mb={4}
+                  mb={3}
                 >
                   <MDTypography 
-                    variant="h4" 
+                    variant="h5" 
                     fontWeight="bold" 
-                    color={darkMode ? "white" : "dark"}
-                    mb={3}
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
                   >
                     Key Responsibilities
                   </MDTypography>
-                  <List>
+                  <List sx={{ p: 0 }}>
                     {job.keyResponsibilities.map((responsibility, index) => (
-                      <ListItem key={index} sx={{ px: 0, py: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <CheckIcon sx={{ color: 'success.main', fontSize: 24 }} />
+                      <ListItem key={index} sx={{ px: 0, py: 1.5 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          <CheckIcon sx={{ 
+                            color: darkMode ? '#4caf50' : '#2e7d32', 
+                            fontSize: 20 
+                          }} />
                         </ListItemIcon>
                         <ListItemText 
                           primary={
                             <MDTypography 
                               variant="body1" 
-                              color={darkMode ? "white" : "text"}
-                              sx={{ fontSize: '16px' }}
+                              sx={{ 
+                                fontSize: '15px',
+                                lineHeight: 1.6,
+                                color: darkMode ? '#e0e0e0 !important' : '#555'
+                              }}
                             >
                               {responsibility}
                             </MDTypography>
@@ -579,17 +775,24 @@ const JobDetailPage = () => {
               {/* Documents and Google Drive Link Preview */}
               {(job.documents && job.documents.length > 0) || job.googleDriveLink ? (
                 <MDBox
-                  p={4}
-                  borderRadius={3}
+                  p={3}
+                  borderRadius="12px"
                   sx={{
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1],
-                    mb: 4
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none',
+                    mb: 3
                   }}
                 >
-                  <MDTypography variant="h4" fontWeight="bold" color={darkMode ? "white" : "dark"} mb={3}>
+                  <MDTypography 
+                    variant="h5" 
+                    fontWeight="bold" 
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
+                  >
                     Documents & Links
                   </MDTypography>
                   
@@ -627,14 +830,196 @@ const JobDetailPage = () => {
                   {/* Google Drive Link with Preview */}
                   {job.googleDriveLink && (
                     <MDBox>
-                      <MDTypography variant="h6" fontWeight="medium" color={darkMode ? "white" : "dark"} mb={2}>
-                        Document Preview
+                      <MDTypography 
+                        variant="body1" 
+                        fontWeight="medium" 
+                        sx={{ 
+                          mb: 2,
+                          color: darkMode ? '#fff !important' : '#333'
+                        }}
+                      >
+                        📄 Additional Documents
                       </MDTypography>
-                      <GoogleDrivePreview 
-                        link={job.googleDriveLink} 
-                        title={`${job.title} - Document`}
-                        showPreview={true}
-                      />
+                      
+                      {/* Document Preview Card */}
+                      <MDBox 
+                        sx={{
+                          border: '1px solid',
+                          borderColor: darkMode ? '#333' : '#e0e0e0',
+                          borderRadius: '8px',
+                          bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {/* Preview Image */}
+                        <MDBox 
+                          onClick={handleOpenDocumentViewer}
+                          sx={{
+                            width: '100%',
+                            height: 200,
+                            bgcolor: darkMode ? '#2a2a2a' : '#f8f9fa',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderBottom: '1px solid',
+                            borderColor: darkMode ? '#333' : '#e0e0e0',
+                            backgroundImage: `url(https://drive.google.com/thumbnail?id=${job.googleDriveLink.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1] || ''}&sz=w400)`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              '&::after': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                bgcolor: 'rgba(0,0,0,0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }
+                            }
+                          }}
+                        >
+                          {/* Fallback content when image doesn't load */}
+                          <MDBox 
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: 1,
+                              color: darkMode ? '#bbb' : '#666',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <MDTypography sx={{ fontSize: '48px' }}>📄</MDTypography>
+                            <MDTypography 
+                              variant="body2" 
+                              sx={{ 
+                                color: darkMode ? '#bbb !important' : '#666',
+                                fontSize: '14px'
+                              }}
+                            >
+                              Document Preview
+                            </MDTypography>
+                          </MDBox>
+                          
+                          {/* File type badge */}
+                          <MDBox 
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              bgcolor: 'rgba(0,0,0,0.7)',
+                              color: '#fff',
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}
+                          >
+                            PDF
+                          </MDBox>
+                          
+                          {/* Fullscreen icon overlay */}
+                          <MDBox 
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              left: 8,
+                              bgcolor: 'rgba(0,0,0,0.7)',
+                              color: '#fff',
+                              p: 0.5,
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <FullscreenIcon sx={{ fontSize: '16px' }} />
+                          </MDBox>
+                        </MDBox>
+                        
+                        {/* Document Info */}
+                        <MDBox 
+                          sx={{
+                            p: 2.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2
+                          }}
+                        >
+                          <MDBox 
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: '8px',
+                              bgcolor: darkMode ? '#2a2a2a' : '#f5f5f5',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid',
+                              borderColor: darkMode ? '#444' : '#ddd'
+                            }}
+                          >
+                            <MDTypography 
+                              sx={{ 
+                                fontSize: '18px',
+                                color: darkMode ? '#bbb' : '#666'
+                              }}
+                            >
+                              📎
+                            </MDTypography>
+                          </MDBox>
+                          
+                          <MDBox flex={1}>
+                            <MDTypography 
+                              variant="body1" 
+                              fontWeight="medium"
+                              sx={{ 
+                                color: darkMode ? '#fff !important' : '#333',
+                                mb: 0.5
+                              }}
+                            >
+                              Job Related Document
+                            </MDTypography>
+                            <MDTypography 
+                              variant="body2" 
+                              sx={{ 
+                                color: darkMode ? '#bbb !important' : '#666',
+                                fontSize: '13px'
+                              }}
+                            >
+                              Additional information and requirements
+                            </MDTypography>
+                          </MDBox>
+                          
+                          <MDButton
+                            variant="contained"
+                            onClick={() => window.open(job.googleDriveLink, '_blank')}
+                            sx={{
+                              fontSize: '13px',
+                              textTransform: 'none',
+                              bgcolor: '#1976d2',
+                              color: '#ffffff !important',
+                              borderRadius: '6px',
+                              boxShadow: 'none',
+                              px: 2,
+                              py: 1,
+                              '&:hover': {
+                                bgcolor: '#1565c0',
+                                boxShadow: 'none'
+                              }
+                            }}
+                          >
+                            View Document
+                          </MDButton>
+                        </MDBox>
+                      </MDBox>
                     </MDBox>
                   )}
                 </MDBox>
@@ -643,36 +1028,44 @@ const JobDetailPage = () => {
               {/* Requirements */}
               {job.requirements && job.requirements.length > 0 && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1]
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none'
                   }}
-                  mb={4}
+                  mb={3}
                 >
                   <MDTypography 
-                    variant="h4" 
+                    variant="h5" 
                     fontWeight="bold" 
-                    color={darkMode ? "white" : "dark"}
-                    mb={3}
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
                   >
                     Requirements
                   </MDTypography>
-                  <List>
+                  <List sx={{ p: 0 }}>
                     {job.requirements.map((requirement, index) => (
-                      <ListItem key={index} sx={{ px: 0, py: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <StarIcon sx={{ color: 'warning.main', fontSize: 24 }} />
+                      <ListItem key={index} sx={{ px: 0, py: 1.5 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          <StarIcon sx={{ 
+                            color: darkMode ? '#ffa726' : '#f57c00', 
+                            fontSize: 20 
+                          }} />
                         </ListItemIcon>
                         <ListItemText 
                           primary={
                             <MDTypography 
                               variant="body1" 
-                              color={darkMode ? "white" : "text"}
-                              sx={{ fontSize: '16px' }}
+                              sx={{ 
+                                fontSize: '15px',
+                                lineHeight: 1.6,
+                                color: darkMode ? '#e0e0e0 !important' : '#555'
+                              }}
                             >
                               {requirement}
                             </MDTypography>
@@ -687,39 +1080,43 @@ const JobDetailPage = () => {
               {/* Skills Required */}
               {job.skillsRequired && job.skillsRequired.length > 0 && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1]
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none'
                   }}
-                  mb={4}
+                  mb={3}
                 >
                   <MDTypography 
-                    variant="h4" 
+                    variant="h5" 
                     fontWeight="bold" 
-                    color={darkMode ? "white" : "dark"}
-                    mb={3}
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
                   >
                     Skills Required
                   </MDTypography>
-                  <MDBox display="flex" flexWrap="wrap" gap={1}>
+                  <MDBox display="flex" flexWrap="wrap" gap={1.5}>
                     {job.skillsRequired.map((skill, index) => (
                       <Chip
                         key={index}
                         label={skill}
-                        variant="outlined"
-                        size="medium"
+                        size="small"
                         sx={{ 
-                          borderColor: 'primary.main',
-                          color: darkMode ? 'white' : 'primary.main',
-                          fontSize: '14px',
-                          height: 32,
+                          bgcolor: darkMode ? '#2a2a2a' : '#f8f9fa',
+                          color: darkMode ? '#fff !important' : '#666',
+                          border: '1px solid',
+                          borderColor: darkMode ? '#444' : '#e0e0e0',
+                          fontSize: '13px',
+                          height: 28,
                           '&:hover': {
-                            backgroundColor: 'primary.main',
-                            color: 'white',
+                            bgcolor: darkMode ? '#333' : '#e3f2fd',
+                            borderColor: '#1976d2',
+                            color: '#1976d2 !important'
                           }
                         }}
                       />
@@ -731,38 +1128,46 @@ const JobDetailPage = () => {
               {/* Education Qualifications */}
               {job.educationQualifications && job.educationQualifications.length > 0 && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1]
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none'
                   }}
-                  mb={4}
+                  mb={3}
                 >
-                  <MDBox display="flex" alignItems="center" gap={2} mb={3}>
-                    <SchoolIcon sx={{ color: 'info.main', fontSize: 28 }} />
+                  <MDBox display="flex" alignItems="center" gap={2} mb={2.5}>
+                    <SchoolIcon sx={{ color: darkMode ? '#bbb' : '#666', fontSize: 24 }} />
                     <MDTypography 
-                      variant="h4" 
+                      variant="h5" 
                       fontWeight="bold" 
-                      color={darkMode ? "white" : "dark"}
+                      sx={{ 
+                        color: darkMode ? '#fff !important' : '#333'
+                      }}
                     >
                       Education Qualifications
                     </MDTypography>
                   </MDBox>
-                  <List>
+                  <List sx={{ p: 0 }}>
                     {job.educationQualifications.map((qualification, index) => (
-                      <ListItem key={index} sx={{ px: 0, py: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <CheckIcon sx={{ color: 'info.main', fontSize: 24 }} />
+                      <ListItem key={index} sx={{ px: 0, py: 1.5 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          <CheckIcon sx={{ 
+                            color: darkMode ? '#4caf50' : '#2e7d32', 
+                            fontSize: 20 
+                          }} />
                         </ListItemIcon>
                         <ListItemText 
                           primary={
                             <MDTypography 
                               variant="body1" 
-                              color={darkMode ? "white" : "text"}
-                              sx={{ fontSize: '16px' }}
+                              sx={{ 
+                                fontSize: '15px',
+                                lineHeight: 1.6,
+                                color: darkMode ? '#e0e0e0 !important' : '#555'
+                              }}
                             >
                               {qualification}
                             </MDTypography>
@@ -777,36 +1182,40 @@ const JobDetailPage = () => {
               {/* Benefits */}
               {job.benefits && job.benefits.length > 0 && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1]
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none'
                   }}
-                  mb={4}
+                  mb={3}
                 >
                   <MDTypography 
-                    variant="h4" 
+                    variant="h5" 
                     fontWeight="bold" 
-                    color={darkMode ? "white" : "dark"}
-                    mb={3}
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
                   >
                     Benefits & Perks
                   </MDTypography>
-                  <MDBox display="flex" flexWrap="wrap" gap={1}>
+                  <MDBox display="flex" flexWrap="wrap" gap={1.5}>
                     {job.benefits.map((benefit, index) => (
                       <Chip
                         key={index}
                         label={benefit}
-                        variant="filled"
-                        size="medium"
+                        size="small"
                         sx={{ 
-                          backgroundColor: darkMode ? 'success.main' : 'success.light',
-                          color: darkMode ? 'white' : 'success.dark',
-                          fontSize: '14px',
-                          height: 32,
+                          bgcolor: darkMode ? '#2a4d3a' : '#e8f5e8',
+                          color: darkMode ? '#4caf50' : '#2e7d32',
+                          border: '1px solid',
+                          borderColor: darkMode ? '#4caf50' : '#c8e6c9',
+                          fontSize: '12px',
+                          height: 26,
+                          fontWeight: 500
                         }}
                       />
                     ))}
@@ -819,22 +1228,24 @@ const JobDetailPage = () => {
             <Grid item xs={12} lg={4}>
               {job.company && (
                 <MDBox 
-                  p={4} 
-                  borderRadius={3}
+                  p={3} 
+                  borderRadius="12px"
                   sx={{ 
-                    backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-                    border: 1,
-                    borderColor: 'divider',
-                    boxShadow: (theme) => theme.shadows[1],
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: darkMode ? '#333' : '#e5e5e5',
+                    boxShadow: 'none',
                     position: { lg: 'sticky' },
                     top: { lg: 24 },
                   }}
                 >
                   <MDTypography 
-                    variant="h4" 
+                    variant="h5" 
                     fontWeight="bold" 
-                    color={darkMode ? "white" : "dark"}
-                    mb={3}
+                    sx={{ 
+                      mb: 2.5,
+                      color: darkMode ? '#fff !important' : '#333'
+                    }}
                   >
                     About {job.company.name}
                   </MDTypography>
@@ -842,115 +1253,334 @@ const JobDetailPage = () => {
                   {job.company.about && (
                     <MDTypography 
                       variant="body1" 
-                      color={darkMode ? "white" : "text"}
-                      mb={3} 
-                      sx={{ lineHeight: 1.6, fontSize: '16px' }}
+                      sx={{ 
+                        mb: 3, 
+                        lineHeight: 1.6, 
+                        fontSize: '14px',
+                        color: darkMode ? '#e0e0e0 !important' : '#555'
+                      }}
                     >
                       {job.company.about}
                     </MDTypography>
                   )}
-                  
+                  <MDBox 
+                    sx={{
+                      bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                      borderRadius: '8px',
+                      p: 2.5,
+                      border: '1px solid',
+                      borderColor: darkMode ? '#333' : '#f0f0f0',
+                      mb: 3
+                    }}
+                  >  
                   <Grid container spacing={2}>
-                    {job.company.industry && (
-                      <Grid item xs={12}>
-                        <MDTypography variant="h6" color="text" display="block">
-                          Industry
-                        </MDTypography>
-                        <MDTypography 
-                          variant="body1" 
-                          fontWeight="medium" 
-                          color={darkMode ? "white" : "dark"}
-                        >
-                          {job.company.industry}
-                        </MDTypography>
-                      </Grid>
-                    )}
+                      {job.company.industry && (
+                        <Grid item xs={12}>
+                          <MDTypography 
+                            variant="caption" 
+                            display="block"
+                            sx={{ 
+                              color: darkMode ? '#aaa !important' : '#888',
+                              fontSize: '11px',
+                              fontWeight: 500,
+                              mb: 0.5
+                            }}
+                          >
+                            Industry
+                          </MDTypography>
+                          <MDTypography 
+                            variant="body2" 
+                            fontWeight="medium" 
+                            sx={{ 
+                              color: darkMode ? '#fff !important' : '#333',
+                              fontSize: '13px'
+                            }}
+                          >
+                            {job.company.industry}
+                          </MDTypography>
+                        </Grid>
+                      )}
                     
-                    {job.company.size && (
-                      <Grid item xs={12}>
-                        <MDTypography variant="h6" color="text" display="block">
-                          Company Size
-                        </MDTypography>
-                        <MDTypography 
-                          variant="body1" 
-                          fontWeight="medium" 
-                          color={darkMode ? "white" : "dark"}
-                        >
-                          {job.company.size} employees
-                        </MDTypography>
-                      </Grid>
-                    )}
-                    
-                    {job.company.founded && (
-                      <Grid item xs={12}>
-                        <MDTypography variant="h6" color="text" display="block">
-                          Founded
-                        </MDTypography>
-                        <MDTypography 
-                          variant="body1" 
-                          fontWeight="medium" 
-                          color={darkMode ? "white" : "dark"}
-                        >
-                          {job.company.founded}
-                        </MDTypography>
-                      </Grid>
-                    )}
-                    
-                    {job.company.website && (
-                      <Grid item xs={12}>
-                        <MDTypography variant="h6" color="text" display="block">
-                          Website
-                        </MDTypography>
-                        <MDButton
-                          variant="text"
-                          color="info"
-                          onClick={() => window.open(job.company.website, '_blank')}
-                          startIcon={<WebsiteIcon />}
-                          sx={{ p: 0, textTransform: 'none' }}
-                        >
-                          {job.company.website}
-                        </MDButton>
-                      </Grid>
-                    )}
-                  </Grid>
+                      {job.company.size && (
+                        <Grid item xs={12}>
+                          <MDTypography 
+                            variant="caption" 
+                            display="block"
+                            sx={{ 
+                              color: darkMode ? '#aaa !important' : '#888',
+                              fontSize: '11px',
+                              fontWeight: 500,
+                              mb: 0.5
+                            }}
+                          >
+                            Company Size
+                          </MDTypography>
+                          <MDTypography 
+                            variant="body2" 
+                            fontWeight="medium" 
+                            sx={{ 
+                              color: darkMode ? '#fff !important' : '#333',
+                              fontSize: '13px'
+                            }}
+                          >
+                            {job.company.size} employees
+                          </MDTypography>
+                        </Grid>
+                      )}
+                      
+                      {job.company.founded && (
+                        <Grid item xs={12}>
+                          <MDTypography 
+                            variant="caption" 
+                            display="block"
+                            sx={{ 
+                              color: darkMode ? '#aaa !important' : '#888',
+                              fontSize: '11px',
+                              fontWeight: 500,
+                              mb: 0.5
+                            }}
+                          >
+                            Founded
+                          </MDTypography>
+                          <MDTypography 
+                            variant="body2" 
+                            fontWeight="medium" 
+                            sx={{ 
+                              color: darkMode ? '#fff !important' : '#333',
+                              fontSize: '13px'
+                            }}
+                          >
+                            {job.company.founded}
+                          </MDTypography>
+                        </Grid>
+                      )}
+                      
+                      {job.company.website && (
+                        <Grid item xs={12}>
+                          <MDTypography 
+                            variant="caption" 
+                            display="block"
+                            sx={{ 
+                              color: darkMode ? '#aaa !important' : '#888',
+                              fontSize: '11px',
+                              fontWeight: 500,
+                              mb: 0.5
+                            }}
+                          >
+                            Website
+                          </MDTypography>
+                          <MDButton
+                            variant="text"
+                            onClick={() => window.open(job.company.website, '_blank')}
+                            startIcon={<WebsiteIcon fontSize="small" />}
+                            sx={{ 
+                              p: 0, 
+                              textTransform: 'none',
+                              fontSize: '13px',
+                              color: darkMode ? '#1976d2 !important' : '#1976d2',
+                              '&:hover': {
+                                bgcolor: 'transparent',
+                                textDecoration: 'underline'
+                              }
+                            }}
+                          >
+                            Visit Website
+                          </MDButton>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </MDBox>
                 </MDBox>
               )}
             </Grid>
           </Grid>
 
           {/* Bottom Apply Button for mobile */}
-          <MDBox 
-            position="fixed" 
-            bottom={0} 
-            left={0} 
-            right={0} 
-            p={2} 
-            sx={{ 
-              backgroundColor: darkMode ? '#202940' : (theme) => theme.palette.background.paper,
-              borderTop: 1,
-              borderColor: 'divider',
-              display: { xs: 'flex', lg: 'none' },
-              justifyContent: 'center',
-              zIndex: 1000,
-              boxShadow: (theme) => theme.shadows[4]
-            }}
-          >
-            <MDButton
-              variant="gradient"
-              color={isApplied ? "success" : "info"}
-              onClick={isApplied ? null : handleApply}
-              startIcon={isApplied ? <CheckIcon /> : <OpenIcon />}
-              size="large"
-              fullWidth
-              sx={{ maxWidth: 400 }}
+          {isStudent() && !isApplied && (
+            <MDBox 
+              position="fixed" 
+              bottom={0} 
+              left={0} 
+              right={0} 
+              p={2} 
+              sx={{ 
+                backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                borderTop: '1px solid',
+                borderColor: darkMode ? '#333' : '#e5e5e5',
+                display: { xs: 'flex', lg: 'none' },
+                justifyContent: 'center',
+                zIndex: 1000,
+                boxShadow: 'none'
+              }}
             >
-              {isApplied ? "Applied" : "Apply Now"}
-            </MDButton>
-          </MDBox>
+              <MDButton
+                variant="contained"
+                onClick={handleApply}
+                startIcon={<OpenIcon />}
+                fullWidth
+                sx={{ 
+                  maxWidth: 400,
+                  height: 48,
+                  bgcolor: '#1976d2',
+                  color: '#ffffff !important',
+                  borderRadius: '8px',
+                  boxShadow: 'none',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  '&:hover': {
+                    bgcolor: '#1565c0',
+                    boxShadow: 'none'
+                  }
+                }}
+              >
+                Apply Now
+              </MDButton>
+            </MDBox>
+          )}
         </Container>
       </MDBox>
 
       <Footer />
+      
+      {/* Document Viewer Modal */}
+      {job?.googleDriveLink && (
+        <Modal
+          open={documentViewerOpen}
+          onClose={handleCloseDocumentViewer}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2
+          }}
+        >
+          <MDBox
+            sx={{
+              width: '90vw',
+              height: '90vh',
+              bgcolor: darkMode ? '#1a1a1a' : '#ffffff',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              position: 'relative',
+              border: '1px solid',
+              borderColor: darkMode ? '#333' : '#e0e0e0',
+              boxShadow: darkMode ? '0 8px 32px rgba(0, 0, 0, 0.5)' : '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            {/* Header with controls */}
+            <MDBox
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2,
+                borderBottom: '1px solid',
+                borderColor: darkMode ? '#333' : '#e0e0e0',
+                bgcolor: darkMode ? '#2a2a2a' : '#f8f9fa'
+              }}
+            >
+              <MDTypography
+                variant="h6"
+                fontWeight="medium"
+                sx={{ color: darkMode ? '#fff !important' : '#333' }}
+              >
+                Document Viewer
+              </MDTypography>
+              
+              <MDBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {/* Zoom controls */}
+                <IconButton
+                  onClick={handleZoomOut}
+                  disabled={documentZoom <= 0.5}
+                  sx={{
+                    color: darkMode ? '#fff' : '#333',
+                    '&:disabled': { color: darkMode ? '#666' : '#ccc' }
+                  }}
+                >
+                  <ZoomOutIcon />
+                </IconButton>
+                
+                <MDTypography
+                  variant="body2"
+                  sx={{
+                    color: darkMode ? '#bbb !important' : '#666',
+                    minWidth: '60px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {Math.round(documentZoom * 100)}%
+                </MDTypography>
+                
+                <IconButton
+                  onClick={handleZoomIn}
+                  disabled={documentZoom >= 3}
+                  sx={{
+                    color: darkMode ? '#fff' : '#333',
+                    '&:disabled': { color: darkMode ? '#666' : '#ccc' }
+                  }}
+                >
+                  <ZoomInIcon />
+                </IconButton>
+                
+                <MDButton
+                  variant="outlined"
+                  onClick={handleResetZoom}
+                  sx={{
+                    fontSize: '12px',
+                    textTransform: 'none',
+                    borderColor: darkMode ? '#444' : '#ddd',
+                    color: darkMode ? '#fff !important' : '#333',
+                    ml: 1
+                  }}
+                >
+                  Reset
+                </MDButton>
+                
+                <IconButton
+                  onClick={handleCloseDocumentViewer}
+                  sx={{ color: darkMode ? '#fff' : '#333', ml: 1 }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </MDBox>
+            </MDBox>
+            
+            {/* Document content */}
+            <MDBox
+              sx={{
+                height: 'calc(100% - 73px)',
+                overflow: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: darkMode ? '#1a1a1a' : '#f5f5f5'
+              }}
+            >
+              <MDBox
+                sx={{
+                  transform: `scale(${documentZoom})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.2s ease',
+                  maxWidth: '100%',
+                  maxHeight: '100%'
+                }}
+              >
+                <iframe
+                  src={`https://drive.google.com/file/d/${job.googleDriveLink.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1] || ''}/preview`}
+                  width="800"
+                  height="600"
+                  style={{
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: '#ffffff'
+                  }}
+                  title="Document Preview"
+                />
+              </MDBox>
+            </MDBox>
+          </MDBox>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 };

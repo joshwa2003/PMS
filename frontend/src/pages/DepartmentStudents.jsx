@@ -178,6 +178,24 @@ const DepartmentStudents = () => {
     }
   };
 
+  // Handle bulk delete students
+  const handleBulkDelete = async (studentIds) => {
+    try {
+      console.log('Deleting students:', studentIds);
+      const response = await departmentWiseStudentService.deleteBulkStudents(studentIds);
+      
+      if (response.success) {
+        // Refresh the student list and statistics
+        await fetchDepartmentStudents();
+        await fetchDepartmentStatistics();
+        return response;
+      }
+    } catch (error) {
+      console.error('Error deleting students:', error);
+      throw error;
+    }
+  };
+
   if (loading && !department) {
     return (
       <DashboardLayout>
@@ -270,6 +288,7 @@ const DepartmentStudents = () => {
           onRowsPerPageChange={handleRowsPerPageChange}
           onRefresh={handleRefresh}
           onExportCSV={handleExportCSV}
+          onBulkDelete={handleBulkDelete}
           department={department}
         />
       </MDBox>

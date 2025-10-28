@@ -12,14 +12,21 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Box
+  Box,
+  Checkbox,
+  Toolbar,
+  Collapse,
+  Alert,
+  DialogContentText
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Refresh as RefreshIcon,
   School as SchoolIcon,
   Visibility as VisibilityIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  DeleteSweep as DeleteSweepIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -30,6 +37,13 @@ import MDBadge from 'components/MDBadge';
 import DataTable from 'examples/Tables/DataTable';
 
 import AdvancedPagination from 'components/StaffManagement/AdvancedPagination';
+
+// Student Management components
+import CreateStudentForm from 'components/StudentManagement/CreateStudentForm';
+import BulkStudentUploadModal from 'components/StudentManagement/BulkStudentUploadModal';
+import StudentDataTable from 'components/StudentManagement/StudentDataTable';
+import BatchYearTable from 'components/StudentManagement/BatchYearTable';
+import OptimizedStudentTable from 'components/StudentManagement/OptimizedStudentTable';
 
 // Service
 import studentManagementService from 'services/studentManagementService';
@@ -49,6 +63,18 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
   // Delete student dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
+  
+  // Bulk selection state
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  
+  // Bulk delete dialog state
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState(null);
+  
+  // Show all students state
+  const [showAllStudents, setShowAllStudents] = useState(false);
 
   // Fetch students for the batch
   const fetchBatchStudents = useCallback(async (params = {}) => {
@@ -57,11 +83,18 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
       setLoading(true);
       setError(null);
       
+      // If showing all students, set limit to total count, otherwise use pagination
+      const limit = showAllStudents ? (batch.stats?.totalStudents || 1000) : 10;
+      
+      console.log('🔍 Fetching students with limit:', limit, 'showAllStudents:', showAllStudents);
+      
       const response = await studentManagementService.getStudentsForBatch(batch.id, {
         page: params.page || 1,
-        limit: 10,
+        limit: limit,
         ...params
       });
+      
+      console.log('✅ Received students:', response.students?.length);
       
       setStudents(response.students || []);
       setPagination(response.pagination || {
@@ -77,7 +110,7 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
     } finally {
       setLoading(false);
     }
-  }, [batch?.id]);
+  }, [batch?.id, showAllStudents, batch.stats?.totalStudents]);
 
   // Fetch students on component mount
   useEffect(() => {
@@ -133,6 +166,91 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
     setStudentToDelete(null);
   };
 
+  // Bulk selection handlers
+  const handleSelectAllChange = (event) => {
+    if (event.target.checked) {
+      setSelectedStudents(students.map(s => s.id));
+      setSelectAll(true);
+    } else {
+      setSelectedStudents([]);
+      setSelectAll(false);
+    }
+  };
+
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => {
+      if (prev.includes(studentId)) {
+        const newSelection = prev.filter(id => id !== studentId);
+        setSelectAll(newSelection.length === students.length && students.length > 0);
+        return newSelection;
+      } else {
+        const newSelection = [...prev, studentId];
+        setSelectAll(newSelection.length === students.length && students.length > 0);
+        return newSelection;
+      }
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedStudents([]);
+    setSelectAll(false);
+  };
+
+  // Bulk delete handlers
+  const handleBulkDeleteClick = () => {
+    if (selectedStudents.length === 0) return;
+    setBulkDeleteError(null);
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedStudents.length === 0) return;
+    
+    try {
+      setBulkDeleting(true);
+      setBulkDeleteError(null);
+      
+      await studentManagementService.deleteBulkStudents(selectedStudents);
+      
+      // Close dialog and clear selection
+      setBulkDeleteDialogOpen(false);
+      clearSelection();
+      
+      // Refresh the student list
+      fetchBatchStudents();
+    } catch (error) {
+      console.error('Error deleting students:', error);
+      setBulkDeleteError(error.message || 'Failed to delete students');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteCancel = () => {
+    if (!bulkDeleting) {
+      setBulkDeleteDialogOpen(false);
+      setBulkDeleteError(null);
+    }
+  };
+
+  // Reset selection when students change
+  useEffect(() => {
+    setSelectedStudents([]);
+    setSelectAll(false);
+  }, [students]);
+  
+  // Refetch when showAllStudents changes
+  useEffect(() => {
+    if (batch && batch.id) {
+      fetchBatchStudents({ page: 1 });
+    }
+  }, [showAllStudents]);
+  
+  // Toggle show all students
+  const handleToggleShowAll = () => {
+    setShowAllStudents(prev => !prev);
+  };
+
   // Actions component for the table
   const Actions = ({ student }) => (
     <MDBox display="flex" gap={1}>
@@ -167,16 +285,35 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
 
   // Table columns definition
   const columns = [
-    { Header: "Student", accessor: "student", width: "30%" },
+    { 
+      Header: (
+        <Checkbox
+          checked={selectAll}
+          indeterminate={selectedStudents.length > 0 && selectedStudents.length < students.length}
+          onChange={handleSelectAllChange}
+          sx={{ padding: 0 }}
+        />
+      ), 
+      accessor: "checkbox", 
+      width: "5%" 
+    },
+    { Header: "Student", accessor: "student", width: "25%" },
     { Header: "Department", accessor: "department", width: "15%" },
     { Header: "Status", accessor: "status", width: "10%" },
     { Header: "Placement", accessor: "placement", width: "15%" },
-    { Header: "Last Login", accessor: "lastLogin", width: "15%" },
-    { Header: "Actions", accessor: "actions", width: "15%" }
+    { Header: "Last Login", accessor: "lastLogin", width: "10%" },
+    { Header: "Actions", accessor: "actions", width: "10%" }
   ];
 
   // Map students to rows
   const rows = students.map(student => ({
+    checkbox: (
+      <Checkbox
+        checked={selectedStudents.includes(student.id)}
+        onChange={() => toggleStudentSelection(student.id)}
+        sx={{ padding: 0 }}
+      />
+    ),
     student: (
       <MDBox display="flex" alignItems="center">
         <MDBox
@@ -334,6 +471,14 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
             </MDTypography>
             <MDBox display="flex" gap={1}>
               <MDButton
+                variant={showAllStudents ? "contained" : "outlined"}
+                color="success"
+                size="small"
+                onClick={handleToggleShowAll}
+              >
+                {showAllStudents ? 'Show Paginated' : 'Show All Students'}
+              </MDButton>
+              <MDButton
                 variant="outlined"
                 color="info"
                 size="small"
@@ -360,16 +505,77 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
             </MDBox>
           )}
 
-          <DataTable
-            table={{ columns, rows }}
-            showTotalEntries={false}
-            isSorted={false}
-            noEndBorder
-            entriesPerPage={false}
-            canSearch={false}
-          />
+          {/* Bulk Selection Toolbar */}
+          <Collapse in={selectedStudents.length > 0}>
+            <MDBox mb={2}>
+              <Toolbar
+                sx={{
+                  bgcolor: 'error.main',
+                  color: 'white',
+                  borderRadius: '12px',
+                  minHeight: '64px !important',
+                  px: 2
+                }}
+              >
+                <MDBox display="flex" alignItems="center" flex={1}>
+                  <Checkbox
+                    checked={selectAll}
+                    indeterminate={selectedStudents.length > 0 && selectedStudents.length < students.length}
+                    onChange={handleSelectAllChange}
+                    sx={{ 
+                      color: 'white',
+                      '&.Mui-checked': { color: 'white' },
+                      '&.MuiCheckbox-indeterminate': { color: 'white' }
+                    }}
+                  />
+                  <MDTypography variant="h6" sx={{ ml: 1, color: 'white' }}>
+                    {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected
+                  </MDTypography>
+                </MDBox>
+                
+                <MDBox display="flex" alignItems="center" gap={1}>
+                  <Tooltip title="Clear Selection">
+                    <IconButton onClick={clearSelection} sx={{ color: 'white' }}>
+                      <ClearIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete Selected Students">
+                    <IconButton 
+                      onClick={handleBulkDeleteClick}
+                      disabled={selectedStudents.length === 0}
+                      sx={{ color: 'white' }}
+                    >
+                      <DeleteSweepIcon />
+                    </IconButton>
+                  </Tooltip>
+                </MDBox>
+              </Toolbar>
+            </MDBox>
+          </Collapse>
 
-          {pagination && (
+          {/* Use optimized table when showing all students for better performance */}
+          {showAllStudents ? (
+            <OptimizedStudentTable
+              students={students}
+              selectedStudents={selectedStudents}
+              onToggleSelection={toggleStudentSelection}
+              onDeleteStudent={handleDeleteStudent}
+              height={600}
+            />
+          ) : (
+            <DataTable
+              table={{ columns, rows }}
+              showTotalEntries={false}
+              isSorted={false}
+              noEndBorder
+              entriesPerPage={false}
+              canSearch={false}
+              pagination={{ variant: "gradient", color: "info" }}
+            />
+          )}
+
+          {/* Show pagination only when not showing all students */}
+          {pagination && !showAllStudents && (
             <MDBox mt={2} display="flex" justifyContent="center">
               <AdvancedPagination
                 currentPage={pagination.currentPage || 1}
@@ -382,6 +588,15 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
                 loading={loading}
                 showItemsPerPage={false}
               />
+            </MDBox>
+          )}
+          
+          {/* Show total count when showing all students */}
+          {showAllStudents && (
+            <MDBox mt={2} display="flex" justifyContent="center">
+              <MDTypography variant="body2" color="text">
+                Showing all {students.length} students
+              </MDTypography>
             </MDBox>
           )}
         </MDBox>
@@ -406,6 +621,45 @@ const BatchStudentsView = ({ batch, onBackToBatches }) => {
           </MDButton>
           <MDButton onClick={handleDeleteConfirm} color="error">
             Delete
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={bulkDeleteDialogOpen}
+        onClose={handleBulkDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm Bulk Delete
+        </DialogTitle>
+        <DialogContent>
+          {bulkDeleteError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {bulkDeleteError}
+            </Alert>
+          )}
+          <DialogContentText>
+            Are you sure you want to delete {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''}?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <MDButton 
+            onClick={handleBulkDeleteCancel} 
+            disabled={bulkDeleting}
+            color="secondary"
+          >
+            Cancel
+          </MDButton>
+          <MDButton 
+            onClick={handleBulkDeleteConfirm} 
+            color="error"
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? 'Deleting...' : 'Delete'}
           </MDButton>
         </DialogActions>
       </Dialog>

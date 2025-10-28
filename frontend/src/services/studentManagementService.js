@@ -127,20 +127,49 @@ class StudentManagementService {
     try {
       console.log('🔍 Service: Deleting bulk students:', studentIds);
       
+      // Ensure studentIds is an array of strings (not objects)
+      const ids = Array.isArray(studentIds) 
+        ? studentIds.map(id => typeof id === 'object' ? id.id || id._id : id)
+        : [studentIds];
+      
+      // Log the processed IDs for debugging
+      console.log('🔧 Processed student IDs for deletion:', ids);
+      
+      // Format the request data as expected by the backend
+      const requestData = { studentIds: ids };
+      
+      console.log('📤 Sending bulk delete request with data:', JSON.stringify(requestData, null, 2));
+      
       const response = await api.delete('/student-management/students/bulk', {
-        data: { studentIds }
+        data: requestData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
       
       console.log('✅ Service: Bulk delete response:', response);
       
-      if (response.success) {
+      if (response && response.success) {
         return response;
       }
       
-      throw new Error(response.message || 'Failed to delete students');
+      throw new Error(response?.message || 'Failed to delete students. Please try again.');
     } catch (error) {
       console.error('❌ Service: Error in deleteBulkStudents:', error);
-      throw error;
+      
+      // Extract and provide more specific error message if available
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         'An error occurred while deleting students. Please try again.';
+      
+      console.error('❌ Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
+      throw new Error(errorMessage);
     }
   }
 

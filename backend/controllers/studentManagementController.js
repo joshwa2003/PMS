@@ -971,12 +971,18 @@ const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the student
-    const student = await User.findOne({
+    // Find the student - admins can delete any students, placement staff can only delete their own
+    const query = {
       _id: id,
-      role: 'student',
-      createdBy: req.user.id // Ensure placement staff can only delete their own students
-    });
+      role: 'student'
+    };
+    
+    // If user is placement staff (not admin), restrict to their own students
+    if (req.user.role === 'placement_staff') {
+      query.createdBy = req.user.id;
+    }
+    
+    const student = await User.findOne(query);
 
     if (!student) {
       return res.status(404).json({
@@ -1055,20 +1061,48 @@ const deleteBulkStudents = async (req, res) => {
       });
     }
 
-    // Find students that belong to this placement staff
-    console.log('🔍 Searching for students with query:', {
-      _id: { $in: objectIds },
-      role: 'student',
-      createdBy: req.user.id
-    });
+    // First, try to find Student Profiles (these IDs might be profile IDs, not user IDs)
+    console.log('🔍 Searching for student profiles with IDs:', objectIds);
+    const studentProfiles = await Student.find({ _id: { $in: objectIds } }).populate('userId');
+    
+    console.log(`✅ Found ${studentProfiles.length} student profiles out of ${studentIds.length} requested`);
+    
+    // If we found profiles, get the associated user IDs
+    let students = [];
+    if (studentProfiles.length > 0) {
+      const userIds = studentProfiles.map(profile => profile.userId).filter(Boolean);
+      console.log('🔍 Found user IDs from profiles:', userIds);
+      
+      // Build query for users
+      const userQuery = {
+        _id: { $in: userIds },
+        role: 'student'
+      };
+      
+      // If user is placement staff (not admin), restrict to their own students
+      if (req.user.role === 'placement_staff') {
+        userQuery.createdBy = req.user.id;
+      }
+      
+      students = await User.find(userQuery);
+      console.log(`✅ Found ${students.length} users from profiles`);
+    } else {
+      // If no profiles found, try searching directly by user IDs
+      console.log('⚠️ No profiles found, searching for users directly');
+      const query = {
+        _id: { $in: objectIds },
+        role: 'student'
+      };
+      
+      // If user is placement staff (not admin), restrict to their own students
+      if (req.user.role === 'placement_staff') {
+        query.createdBy = req.user.id;
+      }
+      
+      students = await User.find(query);
+      console.log(`✅ Found ${students.length} users directly`);
+    }
 
-    const students = await User.find({
-      _id: { $in: objectIds },
-      role: 'student',
-      createdBy: req.user.id // Ensure placement staff can only delete their own students
-    });
-
-    console.log(`✅ Found ${students.length} students out of ${studentIds.length} requested`);
     console.log('Found students:', students.map(s => ({ id: s._id, email: s.email, name: `${s.firstName} ${s.lastName}` })));
 
     if (students.length === 0) {
@@ -1092,15 +1126,25 @@ const deleteBulkStudents = async (req, res) => {
       totalFailed: 0
     };
 
+    // Create a map of profile IDs to profiles for easy lookup
+    const profileMap = new Map(studentProfiles.map(p => [p.userId?.toString(), p]));
+    
     // Process each student deletion
     for (const student of students) {
       try {
         console.log(`🗑️ Deleting student: ${student.firstName} ${student.lastName} (${student.email})`);
 
-        // Delete the student profile if it exists
-        if (student.studentProfile) {
-          const deletedProfile = await Student.findByIdAndDelete(student.studentProfile);
+        // Find and delete the student profile
+        const profile = profileMap.get(student._id.toString()) || 
+                       studentProfiles.find(p => p.userId?.toString() === student._id.toString());
+        
+        if (profile) {
+          const deletedProfile = await Student.findByIdAndDelete(profile._id);
           console.log(`✅ Deleted student profile for: ${student.email}`, deletedProfile ? 'Success' : 'Profile not found');
+        } else if (student.studentProfile) {
+          // Fallback: try using studentProfile reference from user
+          const deletedProfile = await Student.findByIdAndDelete(student.studentProfile);
+          console.log(`✅ Deleted student profile (fallback) for: ${student.email}`, deletedProfile ? 'Success' : 'Profile not found');
         }
 
         // Delete the user account

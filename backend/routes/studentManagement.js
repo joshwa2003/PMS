@@ -18,12 +18,12 @@ const {
 // Middleware
 const { protect: auth } = require('../middleware/auth');
 
-// Role-based access middleware for placement staff
+// Role-based access middleware for placement staff and admin
 const requirePlacementStaff = (req, res, next) => {
-  if (req.user.role !== 'placement_staff') {
+  if (req.user.role !== 'placement_staff' && req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      message: 'Access denied. Placement staff role required.'
+      message: 'Access denied. Only placement staff and administrators can access this resource.'
     });
   }
   next();

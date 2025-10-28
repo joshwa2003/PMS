@@ -22,6 +22,7 @@ import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import Divider from '@mui/material/Divider';
+import LinearProgress from '@mui/material/LinearProgress';
 
 // @mui icons
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -49,6 +50,7 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   // Available roles
   const availableRoles = departmentStaffService.getAvailableRoles();
@@ -59,6 +61,7 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
       setSelectedRole('');
       setError('');
       setResults(null);
+      setProgress({ current: 0, total: 0 });
     }
   }, [open]);
 
@@ -85,17 +88,17 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
         role: selectedRole
       }));
 
-      const response = await bulkAssignRoles(assignments);
+      const response = await bulkAssignRoles(assignments, (progressData) => {
+        setProgress(progressData);
+      });
 
       if (response.success) {
         setResults(response.results);
         
-        // If all successful, close modal after a delay
-        if (response.results.failureCount === 0) {
-          setTimeout(() => {
-            onSuccess(response.results);
-          }, 2000);
-        }
+        // Always call onSuccess to refresh the staff list with updated email status
+        setTimeout(() => {
+          onSuccess(response.results);
+        }, response.results.failureCount === 0 ? 2000 : 3000);
       }
     } catch (error) {
       setError(error.message || 'Failed to assign roles');
@@ -152,6 +155,10 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
                 <Typography variant="body2">
                   You are about to assign roles to <strong>{selectedStaff.length}</strong> staff members.
                   Welcome emails will be sent to staff members who haven't received them yet.
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                  Note: If a staff member already has the same role, the system will still attempt to send 
+                  a welcome email if they haven't received one yet.
                 </Typography>
               </Alert>
 
@@ -256,6 +263,20 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
                 </List>
               </Box>
 
+              {/* Progress Display */}
+              {submitting && progress.total > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <MDTypography variant="body2" color="text" mb={1}>
+                    Processing role assignments and sending emails... ({progress.current}/{progress.total})
+                  </MDTypography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={(progress.current / progress.total) * 100}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+              )}
+
               {/* Error Alert */}
               {error && (
                 <Alert severity="error" sx={{ mt: 2 }}>
@@ -273,6 +294,10 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
                 <Typography variant="body2">
                   Bulk role assignment completed: <strong>{results.successCount}</strong> successful, 
                   <strong> {results.failureCount}</strong> failed out of <strong>{results.totalProcessed}</strong> total.
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                  Welcome emails have been sent to staff members who hadn't received them yet.
+                  Check the individual results below for email delivery status.
                 </Typography>
               </Alert>
 
@@ -303,8 +328,50 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
                             </ListItemAvatar>
                             <ListItemText
                               primary={result.staff.fullName}
-                              secondary={`Role: ${departmentStaffService.getRoleDisplayName(result.role)}`}
+                              secondary={
+                                <Box>
+                                  <Typography variant="body2" color="success.main">
+                                    Role: {departmentStaffService.getRoleDisplayName(result.role)}
+                                  </Typography>
+                                  {result.staff.emailSent ? (
+                                    <Typography variant="caption" color="success.main">
+                                      ✓ Welcome email sent successfully
+                                    </Typography>
+                                  ) : (
+                                    <Typography variant="caption" color="warning.main">
+                                      ⚠ Email sending failed or pending
+                                    </Typography>
+                                  )}
+                                </Box>
+                              }
                             />
+                            <ListItemSecondaryAction>
+                              <Box display="flex" flexDirection="column" alignItems="flex-end" gap={0.5}>
+                                <Chip
+                                  label={departmentStaffService.getRoleDisplayName(result.role)}
+                                  color="success"
+                                  size="small"
+                                  variant="outlined"
+                                />
+                                {result.staff.emailSent ? (
+                                  <Chip
+                                    icon={<EmailIcon />}
+                                    label="Email Sent"
+                                    color="success"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                ) : (
+                                  <Chip
+                                    icon={<EmailIcon />}
+                                    label="Email Failed"
+                                    color="error"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                )}
+                              </Box>
+                            </ListItemSecondaryAction>
                           </ListItem>
                           {index < results.successful.length - 1 && <Divider />}
                         </React.Fragment>
@@ -378,7 +445,13 @@ const BulkRoleAssignmentModal = ({ open, onClose, onSuccess, selectedStaff }) =>
               disabled={submitting || !selectedRole}
               startIcon={submitting ? <CircularProgress size={20} /> : <GroupAddIcon />}
             >
-              {submitting ? 'Assigning Roles...' : `Assign Role to ${selectedStaff.length} Staff`}
+              {submitting 
+                ? (progress.total > 0 
+                    ? `Processing ${progress.current}/${progress.total}...` 
+                    : 'Assigning Roles & Sending Emails...'
+                  )
+                : `Assign Role & Send Emails to ${selectedStaff.length} Staff`
+              }
             </MDButton>
           </>
         ) : (

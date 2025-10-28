@@ -141,10 +141,26 @@ const DepartmentStaffManagementContent = () => {
 
   // Handle bulk role assignment success
   const handleBulkRoleAssignmentSuccess = (results) => {
-    const { successCount, failureCount } = results;
+    const { successCount, failureCount, successful } = results;
+    
+    // Count how many emails were sent successfully
+    const emailsSent = successful.filter(result => result.staff.emailSent).length;
+    const emailsFailed = successful.filter(result => !result.staff.emailSent).length;
+    
+    let message = `Bulk assignment completed: ${successCount} roles assigned`;
+    if (failureCount > 0) {
+      message += `, ${failureCount} failed`;
+    }
+    if (emailsSent > 0) {
+      message += `. Welcome emails sent to ${emailsSent} staff members`;
+    }
+    if (emailsFailed > 0) {
+      message += `, ${emailsFailed} email(s) failed`;
+    }
+    
     setSnackbar({
       open: true,
-      message: `Bulk assignment completed: ${successCount} successful, ${failureCount} failed`,
+      message,
       color: successCount > 0 ? 'success' : 'warning'
     });
     closeModal('bulkRoleAssignment');

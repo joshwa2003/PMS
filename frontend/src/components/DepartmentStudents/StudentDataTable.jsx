@@ -20,7 +20,13 @@ import {
   Collapse,
   Button,
   Typography,
-  TablePagination
+  TablePagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Alert
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -53,12 +59,18 @@ const StudentDataTable = ({
   onRowsPerPageChange,
   onRefresh,
   onExportCSV,
+  onBulkDelete,
   department
 }) => {
   const navigate = useNavigate();
   
   // State for student detail modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  
+  // State for bulk delete confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,6 +240,45 @@ const StudentDataTable = ({
   const clearSelection = () => {
     setSelectedStudents([]);
     setSelectAll(false);
+  };
+
+  // Handle bulk delete button click
+  const handleBulkDeleteClick = () => {
+    if (selectedStudents.length === 0) return;
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle bulk delete confirmation
+  const handleBulkDeleteConfirm = async () => {
+    if (!onBulkDelete || selectedStudents.length === 0) return;
+    
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+      
+      await onBulkDelete(selectedStudents);
+      
+      // Close dialog and clear selection
+      setDeleteDialogOpen(false);
+      clearSelection();
+      
+      // Show success message (you can add a snackbar here)
+      console.log('Successfully deleted students');
+    } catch (error) {
+      console.error('Error deleting students:', error);
+      setDeleteError(error.message || 'Failed to delete students');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Handle delete dialog close
+  const handleDeleteDialogClose = () => {
+    if (!deleting) {
+      setDeleteDialogOpen(false);
+      setDeleteError(null);
+    }
   };
 
   // Get unique programs for filter
@@ -550,8 +601,12 @@ const StudentDataTable = ({
                     <ClearIcon />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Bulk Actions">
-                  <IconButton sx={{ color: 'white' }}>
+                <Tooltip title="Delete Selected Students">
+                  <IconButton 
+                    onClick={handleBulkDeleteClick}
+                    disabled={selectedStudents.length === 0}
+                    sx={{ color: 'white' }}
+                  >
                     <DeleteSweepIcon />
                   </IconButton>
                 </Tooltip>
@@ -647,6 +702,45 @@ const StudentDataTable = ({
         canEdit={false} // TODO: Implement based on user permissions
         canDelete={false} // TODO: Implement based on user permissions
       />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteDialogClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm Bulk Delete
+        </DialogTitle>
+        <DialogContent>
+          {deleteError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {deleteError}
+            </Alert>
+          )}
+          <DialogContentText>
+            Are you sure you want to delete {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''}?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleDeleteDialogClose} 
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleBulkDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

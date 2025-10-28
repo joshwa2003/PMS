@@ -32,7 +32,7 @@ import MDAlert from "components/MDAlert";
 import BasicLayout from "layouts/authentication/components/BasicLayout";
 
 // Images
-import bgImage from "assets/images/bg-sign-in-basic.jpeg";
+import bgImage from "assets/images/saecwall3.jpg";
 
 // Services
 import authService from "services/authService";
@@ -187,37 +187,11 @@ function ForgotPassword() {
         return (
           <>
             <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
-              Forgot Password
+              Placement Management System
             </MDTypography>
-            <MDTypography display="block" variant="button" color="white" my={1}>
+            <MDTypography variant="body2" color="white" mt={1}>
               Enter your email address to receive an OTP
             </MDTypography>
-            <MDBox pt={4} pb={3} px={3}>
-              <MDBox component="form" role="form" onSubmit={handleSendOTP}>
-                <MDBox mb={2}>
-                  <MDInput
-                    type="email"
-                    label="Email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required
-                  />
-                </MDBox>
-                <MDBox mt={4} mb={1}>
-                  <MDButton 
-                    variant="gradient" 
-                    color="info" 
-                    fullWidth 
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? <CircularProgress size={20} color="inherit" /> : "Send OTP"}
-                  </MDButton>
-                </MDBox>
-              </MDBox>
-            </MDBox>
           </>
         );
 
@@ -225,49 +199,11 @@ function ForgotPassword() {
         return (
           <>
             <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
-              Verify OTP
+              Placement Management System
             </MDTypography>
-            <MDTypography display="block" variant="button" color="white" my={1}>
+            <MDTypography variant="body2" color="white" mt={1}>
               Enter the 6-digit OTP sent to {formData.email}
             </MDTypography>
-            <MDBox pt={4} pb={3} px={3}>
-              <MDBox component="form" role="form" onSubmit={handleVerifyOTP}>
-                <MDBox mb={2}>
-                  <MDInput
-                    type="text"
-                    label="OTP"
-                    name="otp"
-                    value={formData.otp}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required
-                    inputProps={{ maxLength: 6, pattern: "[0-9]{6}" }}
-                  />
-                </MDBox>
-                <MDBox mt={4} mb={1}>
-                  <MDButton 
-                    variant="gradient" 
-                    color="info" 
-                    fullWidth 
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? <CircularProgress size={20} color="inherit" /> : "Verify OTP"}
-                  </MDButton>
-                </MDBox>
-                <MDBox mt={2} mb={1}>
-                  <MDButton 
-                    variant="text" 
-                    color="info" 
-                    fullWidth 
-                    onClick={() => setStep(1)}
-                    disabled={loading}
-                  >
-                    Back to Email
-                  </MDButton>
-                </MDBox>
-              </MDBox>
-            </MDBox>
           </>
         );
 
@@ -275,49 +211,130 @@ function ForgotPassword() {
         return (
           <>
             <MDTypography variant="h4" fontWeight="medium" color="white" mt={1}>
-              Reset Password
+              Placement Management System
             </MDTypography>
-            <MDTypography display="block" variant="button" color="white" my={1}>
+            <MDTypography variant="body2" color="white" mt={1}>
               Enter your new password
             </MDTypography>
-            <MDBox pt={4} pb={3} px={3}>
-              <MDBox component="form" role="form" onSubmit={handleResetPassword}>
-                <MDBox mb={2}>
-                  <MDInput
-                    type="password"
-                    label="New Password"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required
-                  />
-                </MDBox>
-                <MDBox mb={2}>
-                  <MDInput
-                    type="password"
-                    label="Confirm Password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required
-                  />
-                </MDBox>
-                <MDBox mt={4} mb={1}>
-                  <MDButton 
-                    variant="gradient" 
-                    color="info" 
-                    fullWidth 
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? <CircularProgress size={20} color="inherit" /> : "Reset Password"}
-                  </MDButton>
-                </MDBox>
-              </MDBox>
-            </MDBox>
           </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderFormContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <MDBox component="form" role="form" onSubmit={handleSendOTP}>
+            <MDBox mb={2}>
+              <MDInput
+                type="email"
+                label="Email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                fullWidth
+                required
+                disabled={loading}
+              />
+            </MDBox>
+            <MDBox mt={4} mb={1}>
+              <MDButton 
+                variant="gradient" 
+                color="info" 
+                fullWidth 
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={20} color="inherit" /> : "Send OTP"}
+              </MDButton>
+            </MDBox>
+          </MDBox>
+        );
+
+      case 2:
+        return (
+          <MDBox component="form" role="form" onSubmit={handleVerifyOTP}>
+            <MDBox mb={2}>
+              <MDInput
+                type="text"
+                label="OTP"
+                name="otp"
+                value={formData.otp}
+                onChange={handleInputChange}
+                fullWidth
+                required
+                disabled={loading}
+                inputProps={{ maxLength: 6, pattern: "[0-9]{6}" }}
+              />
+            </MDBox>
+            <MDBox mt={4} mb={1}>
+              <MDButton 
+                variant="gradient" 
+                color="info" 
+                fullWidth 
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={20} color="inherit" /> : "Verify OTP"}
+              </MDButton>
+            </MDBox>
+            <MDBox mt={2} mb={1}>
+              <MDButton 
+                variant="text" 
+                color="info" 
+                fullWidth 
+                onClick={() => setStep(1)}
+                disabled={loading}
+              >
+                Back to Email
+              </MDButton>
+            </MDBox>
+          </MDBox>
+        );
+
+      case 3:
+        return (
+          <MDBox component="form" role="form" onSubmit={handleResetPassword}>
+            <MDBox mb={2}>
+              <MDInput
+                type="password"
+                label="New Password"
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleInputChange}
+                fullWidth
+                required
+                disabled={loading}
+              />
+            </MDBox>
+            <MDBox mb={2}>
+              <MDInput
+                type="password"
+                label="Confirm Password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                fullWidth
+                required
+                disabled={loading}
+              />
+            </MDBox>
+            <MDBox mt={4} mb={1}>
+              <MDButton 
+                variant="gradient" 
+                color="info" 
+                fullWidth 
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={20} color="inherit" /> : "Reset Password"}
+              </MDButton>
+            </MDBox>
+          </MDBox>
         );
 
       default:
@@ -335,35 +352,40 @@ function ForgotPassword() {
           coloredShadow="info"
           mx={2}
           mt={-3}
-          p={3}
+          p={2}
           mb={1}
           textAlign="center"
         >
           {renderStepContent()}
         </MDBox>
         
-        {alert.show && (
-          <MDBox px={3} pt={2}>
-            <MDAlert color={alert.type} dismissible>
-              {alert.message}
-            </MDAlert>
-          </MDBox>
-        )}
+        <MDBox pt={4} pb={3} px={3}>
+          {alert.show && (
+            <MDBox mb={2}>
+              <MDAlert color={alert.type} dismissible>
+                {alert.message}
+              </MDAlert>
+            </MDBox>
+          )}
 
-        <MDBox mt={3} mb={1} textAlign="center" px={3} pb={3}>
-          <MDTypography variant="button" color="text">
-            Remember your password?{" "}
-            <MDTypography
-              component={Link}
-              to="/authentication/sign-in"
-              variant="button"
-              color="info"
-              fontWeight="medium"
-              textGradient
-            >
-              Sign In
+          {renderFormContent()}
+
+          {/* Sign In Link */}
+          <MDBox mt={2} mb={1} textAlign="center">
+            <MDTypography variant="button" color="text">
+              Remember your password?{" "}
+              <MDTypography
+                component={Link}
+                to="/authentication/sign-in"
+                variant="button"
+                color="info"
+                fontWeight="medium"
+                textGradient
+              >
+                Sign In
+              </MDTypography>
             </MDTypography>
-          </MDTypography>
+          </MDBox>
         </MDBox>
       </Card>
     </BasicLayout>

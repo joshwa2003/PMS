@@ -180,10 +180,10 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
     >
       <MDBox px={2} py={1}>
         <MDTypography variant="h6" fontWeight="medium">
-          {user?.fullName || `${user?.firstName} ${user?.lastName}`}
+          {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
         </MDTypography>
         <MDTypography variant="caption" color="text">
-          {getRoleDisplayName(user?.role)}
+          {getRoleDisplayName(user?.role) || 'User'}
         </MDTypography>
       </MDBox>
       <MenuItem onClick={handleProfileClick}>
