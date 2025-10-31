@@ -58,7 +58,7 @@ const placementStaffProfileSchema = new mongoose.Schema({
   department: {
     type: String,
     required: [true, 'Department is required'],
-    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER']
+    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'MCA', 'MBA', 'ADMIN', 'HR', 'OTHER']
   },
   designation: {
     type: String,

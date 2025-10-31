@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import placementStaffProfileService from '../services/placementStaffProfileService';
+import departmentService from '../services/departmentService';
 import { useAuth } from './AuthContext';
 
 // Initial state
@@ -9,6 +10,8 @@ const initialState = {
   isSaving: false,
   error: null,
   activeTab: 0,
+  departments: [],
+  isDepartmentsLoading: false,
   formData: {
     name: {
       firstName: '',
@@ -65,7 +68,9 @@ const ACTIONS = {
   SET_VALIDATION_ERRORS: 'SET_VALIDATION_ERRORS',
   CLEAR_VALIDATION_ERRORS: 'CLEAR_VALIDATION_ERRORS',
   SET_UNSAVED_CHANGES: 'SET_UNSAVED_CHANGES',
-  RESET_FORM: 'RESET_FORM'
+  RESET_FORM: 'RESET_FORM',
+  SET_DEPARTMENTS: 'SET_DEPARTMENTS',
+  SET_DEPARTMENTS_LOADING: 'SET_DEPARTMENTS_LOADING'
 };
 
 // Reducer function
@@ -167,6 +172,19 @@ const placementStaffProfileReducer = (state, action) => {
         hasUnsavedChanges: false
       };
 
+    case ACTIONS.SET_DEPARTMENTS:
+      return {
+        ...state,
+        departments: action.payload,
+        isDepartmentsLoading: false
+      };
+
+    case ACTIONS.SET_DEPARTMENTS_LOADING:
+      return {
+        ...state,
+        isDepartmentsLoading: action.payload
+      };
+
     default:
       return state;
   }
@@ -181,23 +199,76 @@ export const PlacementStaffProfileProvider = ({ children }) => {
   const { user, updateProfilePicture } = useAuth();
   const hasLoadedRef = useRef(false);
 
-  // Department mapping between backend codes and frontend display names
-  const departmentMapping = {
-    'CSE': 'Computer Science & Engineering',
-    'ECE': 'Electronics & Communication Engineering',
-    'EEE': 'Electrical & Electronics Engineering',
-    'MECH': 'Mechanical Engineering',
-    'CIVIL': 'Civil Engineering',
-    'IT': 'Information Technology',
-    'ADMIN': 'Administration',
-    'HR': 'Human Resources',
-    'OTHER': 'Other'
-  };
+  // Load departments function
+  const loadDepartments = useCallback(async (forceReload = false) => {
+    if (!forceReload && (state.isDepartmentsLoading || state.departments.length > 0)) return;
+    
+    dispatch({ type: ACTIONS.SET_DEPARTMENTS_LOADING, payload: true });
+
+    try {
+      const response = await departmentService.getAllDepartmentsNoPagination({ isActive: true });
+      
+      // Handle the response structure from the backend
+      let departments = [];
+      if (response.success && response.data?.departments) {
+        departments = response.data.departments;
+      } else if (response.departments) {
+        departments = response.departments;
+      }
+      
+      if (departments.length > 0) {
+        const formattedDepartments = departments.map(dept => ({
+          code: dept.code,
+          name: dept.name,
+          id: dept._id
+        }));
+        
+        dispatch({ type: ACTIONS.SET_DEPARTMENTS, payload: formattedDepartments });
+      } else {
+        console.error('Failed to load departments:', response);
+        // Fallback to hardcoded departments if API fails
+        const fallbackDepartments = [
+          { code: 'CSE', name: 'Computer Science & Engineering' },
+          { code: 'ECE', name: 'Electronics & Communication Engineering' },
+          { code: 'EEE', name: 'Electrical & Electronics Engineering' },
+          { code: 'MECH', name: 'Mechanical Engineering' },
+          { code: 'CIVIL', name: 'Civil Engineering' },
+          { code: 'IT', name: 'Information Technology' },
+          { code: 'ADMIN', name: 'Administration' },
+          { code: 'HR', name: 'Human Resources' },
+          { code: 'OTHER', name: 'Other' }
+        ];
+        dispatch({ type: ACTIONS.SET_DEPARTMENTS, payload: fallbackDepartments });
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error);
+      // Fallback to hardcoded departments if API fails
+      const fallbackDepartments = [
+        { code: 'CSE', name: 'Computer Science & Engineering' },
+        { code: 'ECE', name: 'Electronics & Communication Engineering' },
+        { code: 'EEE', name: 'Electrical & Electronics Engineering' },
+        { code: 'MECH', name: 'Mechanical Engineering' },
+        { code: 'CIVIL', name: 'Civil Engineering' },
+        { code: 'IT', name: 'Information Technology' },
+        { code: 'ADMIN', name: 'Administration' },
+        { code: 'HR', name: 'Human Resources' },
+        { code: 'OTHER', name: 'Other' }
+      ];
+      dispatch({ type: ACTIONS.SET_DEPARTMENTS, payload: fallbackDepartments });
+    }
+  }, [state.isDepartmentsLoading, state.departments.length]);
+
+  // Create department mapping from loaded departments
+  const departmentMapping = state.departments.reduce((acc, dept) => {
+    acc[dept.code] = dept.name;
+    return acc;
+  }, {});
 
   // Reverse mapping for saving to backend
-  const reverseDepartmentMapping = Object.fromEntries(
-    Object.entries(departmentMapping).map(([key, value]) => [value, key])
-  );
+  const reverseDepartmentMapping = state.departments.reduce((acc, dept) => {
+    acc[dept.name] = dept.code;
+    return acc;
+  }, {});
 
   // Load profile function
   const loadProfile = useCallback(async () => {
@@ -223,6 +294,11 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     }
   }, [updateProfilePicture, state.isLoading]);
 
+  // Load departments on mount
+  useEffect(() => {
+    loadDepartments(true); // Force reload
+  }, [loadDepartments]);
+
   // Load placement staff profile on mount
   useEffect(() => {
     const allowedRoles = ['placement_staff', 'staff', 'admin', 'director', 'hod'];
@@ -233,6 +309,9 @@ export const PlacementStaffProfileProvider = ({ children }) => {
 
   // Save profile function
   const saveProfile = async (sectionData = null) => {
+    console.log('🔄 saveProfile called with:', sectionData);
+    console.log('🔄 Current state.formData:', state.formData);
+    
     dispatch({ type: ACTIONS.SET_SAVING, payload: true });
     dispatch({ type: ACTIONS.CLEAR_VALIDATION_ERRORS });
 
@@ -242,25 +321,41 @@ export const PlacementStaffProfileProvider = ({ children }) => {
       // Clean the data before sending - remove empty strings and null values
       const cleanedData = cleanFormData(dataToSave);
       
-      console.log('Saving placement staff profile data:', cleanedData);
+      console.log('💾 Saving placement staff profile data:', cleanedData);
       
-      // Validate data using the service
+      // Validate data using the service (skip department validation since we have dynamic departments)
       const validationErrors = placementStaffProfileService.validateProfileData(cleanedData, true);
       
-      if (validationErrors.length > 0) {
-        dispatch({ type: ACTIONS.SET_VALIDATION_ERRORS, payload: { general: validationErrors } });
+      // Filter out department validation errors since we now have dynamic departments
+      const filteredErrors = validationErrors.filter(error => 
+        !error.includes('Please select a valid department')
+      );
+      
+      console.log('🔍 Validation errors (before filtering):', validationErrors);
+      console.log('🔍 Validation errors (after filtering):', filteredErrors);
+      
+      if (filteredErrors.length > 0) {
+        console.log('❌ Validation failed:', filteredErrors);
+        dispatch({ type: ACTIONS.SET_VALIDATION_ERRORS, payload: { general: filteredErrors } });
         dispatch({ type: ACTIONS.SET_SAVING, payload: false });
-        return { success: false, errors: validationErrors };
+        return { success: false, errors: filteredErrors };
       }
 
       // Use placementStaffProfileService to update profile
+      console.log('📡 Making API call to update profile...');
       const updatedProfile = await placementStaffProfileService.updateProfile(cleanedData);
       
+      console.log('✅ Profile updated successfully:', updatedProfile);
       dispatch({ type: ACTIONS.SET_PROFILE, payload: updatedProfile });
       
       return { success: true, profile: updatedProfile };
     } catch (error) {
-      console.error('Save placement staff profile error:', error);
+      console.error('❌ Save placement staff profile error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
       return { success: false, error: error.message };
     } finally {
@@ -507,6 +602,8 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     activeTab: state.activeTab,
     validationErrors: state.validationErrors,
     hasUnsavedChanges: state.hasUnsavedChanges,
+    departments: state.departments,
+    isDepartmentsLoading: state.isDepartmentsLoading,
 
     // Actions
     loadProfile,
@@ -518,6 +615,7 @@ export const PlacementStaffProfileProvider = ({ children }) => {
     resetForm,
     uploadProfileImage,
     updateProfileImage,
+    loadDepartments,
 
     // Helpers
     getFieldValue,

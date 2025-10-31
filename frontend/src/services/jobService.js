@@ -360,6 +360,38 @@ export const getJobAnalyticsByDepartment = async (jobId) => {
 };
 
 /**
+ * Get job analytics by batch (for placement staff flow)
+ * @param {string} jobId - Job ID
+ * @returns {Promise} API response
+ */
+export const getJobBatchAnalytics = async (jobId) => {
+  try {
+    const response = await api.get(`${API_BASE_URL}/${jobId}/analytics/batches`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching job batch analytics:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Get students from a specific batch who applied for a job
+ * @param {string} jobId - Job ID
+ * @param {string} batchId - Batch ID
+ * @param {Object} params - Query parameters (page, limit)
+ * @returns {Promise} API response
+ */
+export const getJobBatchStudents = async (jobId, batchId, params = {}) => {
+  try {
+    const response = await api.get(`${API_BASE_URL}/${jobId}/batches/${batchId}/students`, { params });
+    return response;
+  } catch (error) {
+    console.error('Error fetching job batch students:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
  * Get saved jobs for the current student
  * @returns {Promise} API response
  */

@@ -4,13 +4,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography,
-  Button,
-  TextField,
-  Box,
   Alert,
-  CircularProgress,
-  Chip
+  CircularProgress
 } from '@mui/material';
 import {
   CheckCircle as AppliedIcon,
@@ -44,19 +39,6 @@ const ApplicationResponseModal = ({
   const handleSubmit = async () => {
     if (response === null) return;
     
-    // If student clicked "No, I Didn't Apply", just close the modal without saving
-    if (response === false) {
-      console.log('🚫 Student clicked "No, I Didn\'t Apply" - closing modal without saving');
-      onSubmit({
-        applied: false,
-        notes: notes.trim(),
-        jobId: jobData?._id || 'unknown',
-        skipSave: true // Flag to indicate we should just close without saving
-      });
-      return;
-    }
-    
-    // Only save to database if they clicked "Yes, I Applied"
     setSubmitting(true);
     try {
       await onSubmit({
@@ -89,13 +71,21 @@ const ApplicationResponseModal = ({
     return null;
   }
 
+  const handleClose = (event, reason) => {
+    // Prevent closing by any means
+    if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
+      alert('⚠️ You must respond to this application confirmation to continue using the website.');
+      return false;
+    }
+  };
+
   return (
     <Dialog
       open={open}
       maxWidth="sm"
       fullWidth
       disableEscapeKeyDown
-      disableBackdropClick
+      onClose={handleClose}
       PaperProps={{
         sx: {
           borderRadius: '24px',
@@ -108,9 +98,15 @@ const ApplicationResponseModal = ({
         }
       }}
       BackdropProps={{
+        onClick: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          alert('⚠️ You must respond to this application confirmation to continue using the website.');
+        },
         sx: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          zIndex: 9998
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          zIndex: 9998,
+          cursor: 'not-allowed'
         }
       }}
       sx={{

@@ -61,6 +61,8 @@ import JobManagementNew from "pages/JobManagementNew";
 import CreateJobPageEnhanced from "pages/CreateJobPageEnhanced";
 import JobMonitoring from "pages/JobMonitoring";
 import JobAnalytics from "pages/JobAnalytics";
+import JobBatchAnalytics from "pages/JobBatchAnalytics";
+import JobBatchStudents from "pages/JobBatchStudents";
 import DepartmentApplications from "pages/DepartmentApplications";
 import AllJobApplications from "pages/AllJobApplications";
 import JobPosts from "pages/JobPosts";
@@ -246,6 +248,30 @@ const routes = [
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <JobAnalytics />
+      </ProtectedRoute>
+    ),
+  },
+  // Job Batch Analytics (hidden from sidebar - for placement staff flow)
+  {
+    type: "route",
+    name: "Job Batch Analytics",
+    key: "job-batch-analytics",
+    route: "/job-monitoring/:jobId/batches",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <JobBatchAnalytics />
+      </ProtectedRoute>
+    ),
+  },
+  // Job Batch Students (hidden from sidebar - for placement staff flow)
+  {
+    type: "route",
+    name: "Job Batch Students",
+    key: "job-batch-students",
+    route: "/job-monitoring/:jobId/batch/:batchId/students",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <JobBatchStudents />
       </ProtectedRoute>
     ),
   },

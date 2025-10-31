@@ -150,7 +150,13 @@ function JobMonitoring() {
   };
 
   const handleViewJobAnalytics = (job) => {
-    navigate(`/job-monitoring/${job._id}/analytics`);
+    // For placement staff, show batch-wise analytics
+    // For admin/director, show department-wise analytics
+    if (user?.role === 'placement_staff') {
+      navigate(`/job-monitoring/${job._id}/batches`);
+    } else {
+      navigate(`/job-monitoring/${job._id}/analytics`);
+    }
   };
 
   const handleViewApplication = (application) => {
@@ -390,6 +396,18 @@ function JobMonitoring() {
       <DashboardNavbar />
       
       <MDBox py={3}>
+        {/* Department Filter Notice for Placement Staff */}
+        {user?.role === 'placement_staff' && (
+          <MDBox mb={3}>
+            <MDAlert color="info">
+              <MDTypography variant="body2" color="white">
+                <strong>Department Filter Active:</strong> You are viewing data only for your department's students. 
+                Other departments' applications are not visible to you.
+              </MDTypography>
+            </MDAlert>
+          </MDBox>
+        )}
+
         {/* Alert */}
         {alert.show && (
           <MDBox mb={3}>

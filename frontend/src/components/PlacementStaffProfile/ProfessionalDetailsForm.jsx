@@ -20,8 +20,17 @@ function ProfessionalDetailsForm() {
     goToPreviousTab,
     addArrayItem,
     removeArrayItem,
-    departmentMapping
+    departments,
+    isDepartmentsLoading
   } = usePlacementStaffProfile();
+
+  // Expose save function to window for testing
+  React.useEffect(() => {
+    window.testSaveProfile = handleSave;
+    return () => {
+      delete window.testSaveProfile;
+    };
+  }, []);
 
   const [newQualification, setNewQualification] = useState('');
   const [newTrainingProgram, setNewTrainingProgram] = useState('');
@@ -77,6 +86,9 @@ function ProfessionalDetailsForm() {
   };
 
   const handleSave = async () => {
+    console.log('🔘 Professional Details Save button clicked');
+    console.log('🔘 Current formData:', formData);
+    
     const professionalData = {
       role: formData.role,
       department: formData.department,
@@ -92,12 +104,23 @@ function ProfessionalDetailsForm() {
       availabilityTimeSlots: formData.availabilityTimeSlots
     };
 
-    const result = await saveProfile(professionalData);
-    if (result.success) {
-      // Automatically move to the next tab (Contact Details) after successful save
-      setTimeout(() => {
-        setActiveTab(2); // Contact Details tab
-      }, 1000); // Wait 1 second to show success message
+    console.log('🔘 Professional data to save:', professionalData);
+    
+    try {
+      const result = await saveProfile(professionalData);
+      console.log('🔘 Save result:', result);
+      
+      if (result.success) {
+        console.log('✅ Professional details saved successfully');
+        // Automatically move to the next tab (Contact Details) after successful save
+        setTimeout(() => {
+          setActiveTab(2); // Contact Details tab
+        }, 1000); // Wait 1 second to show success message
+      } else {
+        console.error('❌ Failed to save professional details:', result.error || result.errors);
+      }
+    } catch (error) {
+      console.error('❌ Error during save:', error);
     }
   };
 
@@ -141,10 +164,15 @@ function ProfessionalDetailsForm() {
                 required
                 error={hasFieldError('department')}
                 helperText={getFieldError('department')}
+                disabled={isDepartmentsLoading}
               >
-                <MenuItem value="">Select Department</MenuItem>
-                {Object.entries(departmentMapping).map(([code, name]) => (
-                  <MenuItem key={code} value={code}>{name}</MenuItem>
+                <MenuItem value="">
+                  {isDepartmentsLoading ? 'Loading departments...' : 'Select Department'}
+                </MenuItem>
+                {departments.map((dept) => (
+                  <MenuItem key={dept.code} value={dept.code}>
+                    {dept.name}
+                  </MenuItem>
                 ))}
               </MDInput>
             </Grid>

@@ -11,30 +11,15 @@ const {
 } = require('../controllers/departmentController');
 const { protect, authorize } = require('../middleware/auth');
 
-// Protect all routes
-router.use(protect);
+// Public route for all authenticated users
+router.get('/', protect, getAllDepartments);
+router.get('/placement-staff-options', protect, getPlacementStaffOptions);
 
-// Admin and Placement Director only routes
-router.use(authorize('admin', 'placement_director'));
-
-// Routes
-router
-  .route('/')
-  .get(getAllDepartments)
-  .post(createDepartment);
-
-router
-  .route('/placement-staff-options')
-  .get(getPlacementStaffOptions);
-
-router
-  .route('/:id')
-  .get(getDepartment)
-  .put(updateDepartment)
-  .delete(deleteDepartment);
-
-router
-  .route('/:id/toggle-status')
-  .patch(toggleDepartmentStatus);
+// Admin and Placement Director only routes for management
+router.post('/', protect, authorize('admin', 'placement_director'), createDepartment);
+router.get('/:id', protect, authorize('admin', 'placement_director'), getDepartment);
+router.put('/:id', protect, authorize('admin', 'placement_director'), updateDepartment);
+router.delete('/:id', protect, authorize('admin', 'placement_director'), deleteDepartment);
+router.patch('/:id/toggle-status', protect, authorize('admin', 'placement_director'), toggleDepartmentStatus);
 
 module.exports = router;

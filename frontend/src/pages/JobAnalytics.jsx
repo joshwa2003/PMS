@@ -287,6 +287,18 @@ function JobAnalytics() {
       />
       
       <MDBox py={3}>
+        {/* Department Filter Notice for Placement Staff */}
+        {user?.role === 'placement_staff' && (
+          <MDBox mb={3}>
+            <MDAlert color="info">
+              <MDTypography variant="body2" color="white">
+                <strong>Department Filter Active:</strong> You are viewing analytics only for your department's students. 
+                Other departments' data is not visible to you.
+              </MDTypography>
+            </MDAlert>
+          </MDBox>
+        )}
+
         {/* Header */}
         <MDBox mb={3}>
           <Grid container spacing={3} alignItems="center">

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const ApplicationResponseContext = createContext();
@@ -17,70 +17,20 @@ export const ApplicationResponseProvider = ({ children }) => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const waitingForReturn = useRef(false); // Track if we're waiting for student to return from external site
-  
-  // Track jobs that were recently responded to with localStorage persistence
-  const getRecentlyRespondedJobs = () => {
-    try {
-      const stored = localStorage.getItem('recently_responded_jobs');
-      if (!stored) return new Map();
-      const parsed = JSON.parse(stored);
-      // Filter out expired entries (older than 10 seconds)
-      const now = Date.now();
-      const filtered = Object.entries(parsed).filter(([_, timestamp]) => now - timestamp < 10000);
-      return new Map(filtered);
-    } catch {
-      return new Map();
-    }
-  };
-  
-  const setRecentlyRespondedJob = (jobId) => {
-    try {
-      const current = getRecentlyRespondedJobs();
-      current.set(jobId, Date.now());
-      localStorage.setItem('recently_responded_jobs', JSON.stringify(Object.fromEntries(current)));
-    } catch (err) {
-      console.error('Error saving recently responded job:', err);
-    }
-  };
-
-  // Listen for window focus ONLY when waiting for student to return from external site
-  useEffect(() => {
-    const handleWindowFocus = () => {
-      if (waitingForReturn.current && isAuthenticated && user?.role === 'student') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Student returned from external site, checking for pending responses...');
-        }
-        waitingForReturn.current = false; // Reset flag
-        setTimeout(() => {
-          checkForPendingResponses();
-        }, 1000); // Delay to ensure they actually returned
-      }
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user]);
+  const [isCheckingPending, setIsCheckingPending] = useState(false);
+  const hasCheckedOnMount = useRef(false);
 
   // Check server for pending responses (MongoDB only)
-  const checkForPendingResponses = async () => {
-    // ONLY check if we're explicitly waiting for the student to return
-    if (!waitingForReturn.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Not waiting for student return, skipping check');
-      }
+  const checkForPendingResponses = useCallback(async () => {
+    if (isCheckingPending) {
+      console.log('⚠️ Already checking for pending responses, skipping...');
       return;
     }
     
+    setIsCheckingPending(true);
+    
     try {
-      // Only log in development mode to reduce console spam
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Checking for pending responses...');
-      }
+      console.log('🔍 Checking database for pending responses...');
       
       // Check server for any pending responses
       const response = await fetch('http://localhost:5001/api/v1/jobs/pending-responses', {
@@ -93,23 +43,19 @@ export const ApplicationResponseProvider = ({ children }) => {
         const data = await response.json();
         
         if (data.success && data.data.pendingResponses.length > 0) {
-          // Filter out jobs that were recently responded to and validate job data
-          const recentlyResponded = getRecentlyRespondedJobs();
+          // Validate job data
           const validPendingResponses = data.data.pendingResponses.filter(
             pending => {
               // Check if job data exists and has valid ID
-              const hasValidJob = pending.job && pending.job._id && pending.job.title;
-              const notRecentlyResponded = !recentlyResponded.has(pending.job?._id);
-              return hasValidJob && notRecentlyResponded;
+              return pending.job && pending.job._id && pending.job.title;
             }
           );
           
           if (validPendingResponses.length > 0) {
             // Show modal for the most recent pending response
             const mostRecent = validPendingResponses[0];
-            if (process.env.NODE_ENV === 'development') {
-              console.log('✅ Found pending response, showing modal for job:', mostRecent.job._id);
-            }
+            console.log('✅ Found pending response in database, showing modal for job:', mostRecent.job._id);
+            
             setPendingResponse({
               jobId: mostRecent.job._id,
               jobData: mostRecent.job,
@@ -117,25 +63,51 @@ export const ApplicationResponseProvider = ({ children }) => {
             });
             setShowModal(true);
           } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('⚠️ No valid pending responses found (filtered out invalid or recently responded)');
-            }
+            console.log('⚠️ No valid pending responses found');
             setPendingResponse(null);
             setShowModal(false);
           }
         } else {
+          console.log('✅ No pending responses in database');
           setPendingResponse(null);
           setShowModal(false);
         }
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('❌ Server pending responses check failed:', response.status);
-        }
+        console.log('❌ Server pending responses check failed:', response.status);
       }
     } catch (err) {
       console.error('❌ Error checking for pending responses:', err);
+    } finally {
+      setIsCheckingPending(false);
     }
-  };
+  }, [isCheckingPending]);
+
+  // Check for pending responses on mount and when user authenticates
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'student' && !hasCheckedOnMount.current) {
+      hasCheckedOnMount.current = true;
+      console.log('🔍 Checking for pending responses on mount...');
+      checkForPendingResponses();
+    }
+  }, [isAuthenticated, user, checkForPendingResponses]);
+
+  // Listen for window focus to check for pending responses
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      if (isAuthenticated && user?.role === 'student') {
+        console.log('🔍 Window focused - checking for pending responses...');
+        setTimeout(() => {
+          checkForPendingResponses();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [isAuthenticated, user, checkForPendingResponses]);
 
   // Record apply click (called when user clicks Apply Now)
   const recordApplyClick = async (jobId, jobData) => {
@@ -156,6 +128,7 @@ export const ApplicationResponseProvider = ({ children }) => {
         
         // Show modal immediately after recording the click
         setPendingResponse({
+          jobId: jobId,
           jobData: jobData,
           clickedAt: new Date()
         });
@@ -178,24 +151,9 @@ export const ApplicationResponseProvider = ({ children }) => {
     setError(null);
 
     try {
-      // If skipSave is true (student clicked "No"), just close modal without saving
-      if (responseData.skipSave) {
-        console.log('🚫 Skipping save - student clicked "No, I Didn\'t Apply"');
-        
-        // Add to cooldown for 10 seconds to prevent immediate re-showing (persisted in localStorage)
-        setRecentlyRespondedJob(responseData.jobId);
-        
-        // Clear pending response and close modal
-        setPendingResponse(null);
-        setShowModal(false);
-        setLoading(false);
-        
-        return { success: true, skipped: true };
-      }
+      console.log('📤 Submitting response to database:', responseData);
       
-      console.log('📤 Submitting response:', responseData);
-      
-      // Submit to server (MongoDB) - only for "Yes, I Applied"
+      // Submit to server (MongoDB) - for both "Yes" and "No"
       const response = await fetch(`http://localhost:5001/api/v1/jobs/${responseData.jobId}/response`, {
         method: 'POST',
         headers: {
@@ -212,10 +170,7 @@ export const ApplicationResponseProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Add job to recently responded list (persisted in localStorage)
-        setRecentlyRespondedJob(responseData.jobId);
-        
-        // Clear pending response
+        // Clear pending response and close modal
         setPendingResponse(null);
         setShowModal(false);
         

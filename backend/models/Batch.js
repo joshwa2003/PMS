@@ -5,7 +5,6 @@ const batchSchema = new mongoose.Schema({
   batchCode: {
     type: String,
     required: [true, 'Batch code is required'],
-    unique: true,
     trim: true,
     // Format: "2024-2026", "2024-2028"
     match: [/^\d{4}-\d{4}$/, 'Batch code must be in format YYYY-YYYY']
@@ -107,6 +106,10 @@ batchSchema.index({ startYear: 1, endYear: 1 });
 batchSchema.index({ courseType: 1 });
 batchSchema.index({ isActive: 1 });
 batchSchema.index({ isGraduated: 1 });
+
+// Compound unique index: batchCode must be unique per department
+// This allows different departments to have the same batch code (e.g., "2025-2029")
+batchSchema.index({ batchCode: 1, department: 1 }, { unique: true });
 
 // Validation: End year should be greater than start year
 batchSchema.pre('validate', function(next) {

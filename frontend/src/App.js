@@ -16,7 +16,7 @@ Coded by www.creative-tim.com
 import { useState, useEffect, useMemo } from "react";
 
 // react-router components
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 // @mui material components
 import { ThemeProvider } from "@mui/material/styles";
@@ -195,7 +195,9 @@ function AppContent({
   configsButton, 
   getRoutes 
 }) {
-  const { pendingResponse, showModal, submitResponse, loading, error } = useApplicationResponse();
+  const { pendingResponse, showModal, submitResponse, loading, error, checkForPendingResponses } = useApplicationResponse();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Debug logging for App.js - only in development
   if (process.env.NODE_ENV === 'development') {
@@ -209,7 +211,16 @@ function AppContent({
     }
   };
 
-  // No automatic checking - modal only appears after clicking "Apply Now"
+  // Periodic check for pending responses every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!showModal) {
+        checkForPendingResponses();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [showModal, checkForPendingResponses]);
 
   // Block navigation when modal is shown
   useEffect(() => {
@@ -218,6 +229,7 @@ function AppContent({
       const handlePopState = (e) => {
         e.preventDefault();
         window.history.pushState(null, '', window.location.href);
+        alert('You must respond to the application confirmation before navigating.');
       };
       
       // Add state to history to prevent back navigation
@@ -238,7 +250,7 @@ function AppContent({
         window.removeEventListener('beforeunload', handleBeforeUnload);
       };
     }
-  }, [showModal]);
+  }, [showModal, navigate, location]);
 
   return (
     <>

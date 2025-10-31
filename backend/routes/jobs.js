@@ -327,6 +327,20 @@ router.get('/:jobId/analytics', auth, jobApplicationController.getJobAnalytics);
 router.get('/:jobId/analytics/departments', auth, jobApplicationController.getJobAnalyticsByDepartment);
 
 /**
+ * @route   GET /api/v1/jobs/:jobId/analytics/batches
+ * @desc    Get job analytics by batch (for placement staff flow)
+ * @access  Private (Admin, Placement Director, Placement Staff)
+ */
+router.get('/:jobId/analytics/batches', auth, jobApplicationController.getJobBatchAnalytics);
+
+/**
+ * @route   GET /api/v1/jobs/:jobId/batches/:batchId/students
+ * @desc    Get students from a specific batch who applied for a job
+ * @access  Private (Admin, Placement Director, Placement Staff)
+ */
+router.get('/:jobId/batches/:batchId/students', auth, jobApplicationController.getJobBatchStudents);
+
+/**
  * @route   GET /api/v1/jobs/:jobId/departments/:departmentId/applications
  * @desc    Get job applications for specific department
  * @access  Private (Admin, Placement Director, Placement Staff)

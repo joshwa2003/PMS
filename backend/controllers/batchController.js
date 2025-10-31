@@ -167,6 +167,13 @@ const createBatch = async (req, res) => {
     console.error('Error creating batch:', error);
     
     if (error.code === 11000) {
+      // Check if it's a duplicate batchCode + department combination
+      if (error.message.includes('batchCode_1_department_1')) {
+        return res.status(400).json({
+          success: false,
+          message: 'A batch with this batch code already exists in this department'
+        });
+      }
       return res.status(400).json({
         success: false,
         message: 'Batch code already exists'
