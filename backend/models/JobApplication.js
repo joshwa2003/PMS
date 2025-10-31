@@ -319,22 +319,22 @@ jobApplicationSchema.statics.getApplicationsForStudent = function(studentId, opt
 };
 
 // Static method to get department-wise statistics for a job
+// Only shows students who actually applied (status = 'Applied')
 jobApplicationSchema.statics.getDepartmentStatsForJob = function(jobId) {
   return this.aggregate([
-    { $match: { job: new mongoose.Types.ObjectId(jobId) } },
+    { 
+      $match: { 
+        job: new mongoose.Types.ObjectId(jobId),
+        status: 'Applied' // Only count students who actually applied
+      } 
+    },
     {
       $group: {
         _id: '$department',
-        totalStudents: { $sum: 1 },
-        appliedCount: {
-          $sum: { $cond: [{ $eq: ['$status', 'Applied'] }, 1, 0] }
-        },
-        notAppliedCount: {
-          $sum: { $cond: [{ $eq: ['$status', 'Not Applied'] }, 1, 0] }
-        },
-        pendingCount: {
-          $sum: { $cond: [{ $eq: ['$status', 'Pending Response'] }, 1, 0] }
-        },
+        totalStudents: { $sum: 1 }, // This now represents only applied students
+        appliedCount: { $sum: 1 }, // Same as totalStudents since we filtered by Applied
+        notAppliedCount: { $sum: 0 }, // Always 0 since we filtered
+        pendingCount: { $sum: 0 }, // Always 0 since we filtered
         avgResponseTime: { $avg: '$responseTime' }
       }
     },
@@ -351,16 +351,11 @@ jobApplicationSchema.statics.getDepartmentStatsForJob = function(jobId) {
       $project: {
         departmentName: '$department.name',
         departmentCode: '$department.code',
-        totalStudents: 1,
+        totalStudents: 1, // Now represents only applied students
         appliedCount: 1,
         notAppliedCount: 1,
         pendingCount: 1,
-        applicationRate: {
-          $multiply: [
-            { $divide: ['$appliedCount', '$totalStudents'] },
-            100
-          ]
-        },
+        applicationRate: { $literal: 100 }, // Always 100% since all are applied
         avgResponseTimeHours: {
           $divide: ['$avgResponseTime', 3600000] // Convert ms to hours
         }

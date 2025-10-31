@@ -1091,10 +1091,11 @@ const getJobApplicationsByDepartment = async (req, res) => {
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get applications for specific department
+    // Get applications for specific department - ONLY students who actually applied
     const applications = await JobApplication.find({ 
       job: jobId, 
-      department: departmentId 
+      department: departmentId,
+      status: 'Applied' // Only show students who actually applied
     })
       .populate({
         path: 'student',
@@ -1110,29 +1111,30 @@ const getJobApplicationsByDepartment = async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    // Get total count
+    // Get total count - ONLY students who actually applied
     const totalApplications = await JobApplication.countDocuments({ 
       job: jobId, 
-      department: departmentId 
+      department: departmentId,
+      status: 'Applied' // Only count students who actually applied
     });
     const totalPages = Math.ceil(totalApplications / parseInt(limit));
 
-    // Get department statistics
+    // Get department statistics - ONLY for applied students
     const departmentStats = await JobApplication.aggregate([
-      { $match: { job: new mongoose.Types.ObjectId(jobId), department: new mongoose.Types.ObjectId(departmentId) } },
+      { 
+        $match: { 
+          job: new mongoose.Types.ObjectId(jobId), 
+          department: new mongoose.Types.ObjectId(departmentId),
+          status: 'Applied' // Only count students who actually applied
+        } 
+      },
       {
         $group: {
           _id: '$department',
-          totalStudents: { $sum: 1 },
-          appliedCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'Applied'] }, 1, 0] }
-          },
-          notAppliedCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'Not Applied'] }, 1, 0] }
-          },
-          pendingCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'Pending Response'] }, 1, 0] }
-          }
+          totalStudents: { $sum: 1 }, // Now represents only applied students
+          appliedCount: { $sum: 1 }, // Same as totalStudents
+          notAppliedCount: { $sum: 0 }, // Always 0
+          pendingCount: { $sum: 0 } // Always 0
         }
       }
     ]);

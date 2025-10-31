@@ -111,86 +111,15 @@ function JobAnalytics() {
       ),
     },
     {
-      Header: 'Total Students',
+      Header: 'Applied Students',
       accessor: 'totalStudents',
       Cell: ({ value }) => (
         <MDBox textAlign="center">
-          <MDTypography variant="button" fontWeight="medium" color="info">
+          <MDTypography variant="button" fontWeight="medium" color="success">
             {value}
           </MDTypography>
-        </MDBox>
-      ),
-    },
-    {
-      Header: 'Applied',
-      accessor: 'appliedCount',
-      Cell: ({ value, row }) => {
-        const total = row.original.totalStudents;
-        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-        
-        return (
-          <MDBox textAlign="center">
-            <MDTypography variant="button" fontWeight="medium" color="success">
-              {value}
-            </MDTypography>
-            <MDTypography variant="caption" color="text" display="block">
-              {percentage}%
-            </MDTypography>
-          </MDBox>
-        );
-      },
-    },
-    {
-      Header: 'Not Applied',
-      accessor: 'notAppliedCount',
-      Cell: ({ value, row }) => {
-        const total = row.original.totalStudents;
-        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-        
-        return (
-          <MDBox textAlign="center">
-            <MDTypography variant="button" fontWeight="medium" color="error">
-              {value}
-            </MDTypography>
-            <MDTypography variant="caption" color="text" display="block">
-              {percentage}%
-            </MDTypography>
-          </MDBox>
-        );
-      },
-    },
-    {
-      Header: 'Pending',
-      accessor: 'pendingCount',
-      Cell: ({ value, row }) => {
-        const total = row.original.totalStudents;
-        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-        
-        return (
-          <MDBox textAlign="center">
-            <MDTypography variant="button" fontWeight="medium" color="warning">
-              {value}
-            </MDTypography>
-            <MDTypography variant="caption" color="text" display="block">
-              {percentage}%
-            </MDTypography>
-          </MDBox>
-        );
-      },
-    },
-    {
-      Header: 'Application Rate',
-      accessor: 'applicationRate',
-      Cell: ({ value }) => (
-        <MDBox>
-          <LinearProgress 
-            variant="determinate" 
-            value={value} 
-            color="success"
-            sx={{ mb: 1, height: 8, borderRadius: 4 }}
-          />
-          <MDTypography variant="caption" color="text">
-            {value.toFixed(1)}%
+          <MDTypography variant="caption" color="text" display="block">
+            Students who applied
           </MDTypography>
         </MDBox>
       ),
@@ -200,7 +129,7 @@ function JobAnalytics() {
       accessor: 'actions',
       Cell: ({ row }) => (
         <MDBox display="flex" alignItems="center">
-          <Tooltip title="View Department Applications">
+          <Tooltip title="View Applied Students">
             <IconButton 
               size="small" 
               onClick={() => handleDepartmentClick(row.original._id)}
@@ -421,7 +350,7 @@ function JobAnalytics() {
                   Department-wise Analytics
                 </MDTypography>
                 <MDTypography variant="body2" color="text">
-                  Click on a department to view detailed applications
+                  Showing only students who actually applied for this job. Click on a department to view details.
                 </MDTypography>
               </MDBox>
               <ExportMenu 
