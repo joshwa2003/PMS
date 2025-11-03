@@ -350,6 +350,63 @@ const recordApplicationClick = async (req, res) => {
       console.log('✅ Created new job application record:', jobApplication._id);
     }
 
+    // IMPORTANT: Ensure a view is recorded before clicking apply
+    // If student clicks apply, they must have viewed the job
+    const existingView = await JobView.findOne({
+      job: jobId,
+      student: student._id
+    });
+
+    if (!existingView) {
+      console.log('⚠️ No view record found for student clicking apply - creating view record now');
+      
+      // Get department ID
+      let departmentId = null;
+      if (student.batchId) {
+        const Batch = require('../models/Batch');
+        const batch = await Batch.findById(student.batchId).populate('department');
+        if (batch && batch.department) {
+          departmentId = batch.department._id;
+        }
+      }
+      
+      if (!departmentId && student.academic?.department) {
+        const Department = require('../models/Department');
+        const dept = await Department.findOne({ code: student.academic.department });
+        if (dept) {
+          departmentId = dept._id;
+        }
+      }
+      
+      // Create view record
+      const newView = new JobView({
+        job: jobId,
+        student: student._id,
+        user: req.user._id,
+        department: departmentId,
+        batch: student.batchId,
+        viewType: 'Detail View',
+        duration: 0,
+        interactions: {},
+        device: {},
+        referrer: {},
+        context: { source: 'application_link_click' },
+        sessionId: req.sessionID || req.headers['x-session-id'],
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+      
+      await newView.save();
+      
+      // Increment view count in job
+      const job = await Job.findById(jobId);
+      await job.incrementViewCount(departmentId);
+      
+      console.log('✅ View record created and count incremented');
+    } else {
+      console.log('✅ View record already exists for this student');
+    }
+    
     // Record the click
     await jobApplication.recordLinkClick({
       ipAddress: req.ip,
@@ -471,6 +528,48 @@ const submitStudentResponse = async (req, res) => {
 
     // Only save to database if they clicked "Yes, I Applied"
     console.log('✅ Student confirmed they applied - saving to database');
+    
+    // IMPORTANT: Ensure a view is recorded before applying
+    // If student applies, they must have viewed the job
+    const existingView = await JobView.findOne({
+      job: jobId,
+      student: student._id
+    });
+
+    if (!existingView) {
+      console.log('⚠️ No view record found for student who is applying - creating view record now');
+      
+      // Get department ID
+      const departmentId = student.userId?.department?._id || student.userId?.department || null;
+      
+      // Create view record
+      const newView = new JobView({
+        job: jobId,
+        student: student._id,
+        user: req.user._id,
+        department: departmentId,
+        batch: student.batchId,
+        viewType: 'Detail View',
+        duration: 0,
+        interactions: {},
+        device: {},
+        referrer: {},
+        context: { source: 'application_submission' },
+        sessionId: req.sessionID || req.headers['x-session-id'],
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+      
+      await newView.save();
+      
+      // Increment view count in job
+      const job = await Job.findById(jobId);
+      await job.incrementViewCount(departmentId);
+      
+      console.log('✅ View record created and count incremented');
+    } else {
+      console.log('✅ View record already exists for this student');
+    }
     
     // Record the response
     await jobApplication.recordStudentResponse(applied, notes, {
@@ -1011,9 +1110,9 @@ const getJobAnalyticsByDepartment = async (req, res) => {
 const getJobApplicationsByDepartment = async (req, res) => {
   try {
     const { jobId, departmentId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, batchId } = req.query;
 
-    console.log('📊 Fetching applications for job:', jobId, 'department:', departmentId);
+    console.log('📊 Fetching applications for job:', jobId, 'department:', departmentId, 'batch:', batchId || 'all');
     console.log('👤 User role:', req.user.role);
 
     // Check permissions
@@ -1091,12 +1190,20 @@ const getJobApplicationsByDepartment = async (req, res) => {
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get applications for specific department - ONLY students who actually applied
-    const applications = await JobApplication.find({ 
+    // Build query for applications - ONLY students who actually applied
+    const applicationQuery = { 
       job: jobId, 
       department: departmentId,
       status: 'Applied' // Only show students who actually applied
-    })
+    };
+    
+    // Add batch filter if provided
+    if (batchId) {
+      applicationQuery.batch = batchId;
+    }
+
+    // Get applications for specific department
+    const applications = await JobApplication.find(applicationQuery)
       .populate({
         path: 'student',
         select: 'personalInfo.fullName studentId academic.cgpa academic.backlogs'
@@ -1106,27 +1213,73 @@ const getJobApplicationsByDepartment = async (req, res) => {
         select: 'firstName lastName email'
       })
       .populate('department', 'name code')
+      .populate('batch', 'batchCode startYear endYear courseType')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .lean();
 
-    // Get total count - ONLY students who actually applied
-    const totalApplications = await JobApplication.countDocuments({ 
-      job: jobId, 
-      department: departmentId,
-      status: 'Applied' // Only count students who actually applied
-    });
+    // Get total count - ONLY students who actually applied (with batch filter if provided)
+    const totalApplications = await JobApplication.countDocuments(applicationQuery);
     const totalPages = Math.ceil(totalApplications / parseInt(limit));
 
-    // Get department statistics - ONLY for applied students
+    // Get available batches for this department with application counts
+    const Batch = require('../models/Batch');
+    const batchesWithCounts = await JobApplication.aggregate([
+      {
+        $match: {
+          job: new mongoose.Types.ObjectId(jobId),
+          department: new mongoose.Types.ObjectId(departmentId),
+          status: 'Applied',
+          batch: { $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: '$batch',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'batches',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'batchInfo'
+        }
+      },
+      {
+        $unwind: '$batchInfo'
+      },
+      {
+        $project: {
+          _id: 1,
+          count: 1,
+          batchCode: '$batchInfo.batchCode',
+          startYear: '$batchInfo.startYear',
+          endYear: '$batchInfo.endYear',
+          courseType: '$batchInfo.courseType'
+        }
+      },
+      {
+        $sort: { startYear: -1 }
+      }
+    ]);
+
+    // Get department statistics - ONLY for applied students (with batch filter if provided)
+    const departmentStatsQuery = { 
+      job: new mongoose.Types.ObjectId(jobId), 
+      department: new mongoose.Types.ObjectId(departmentId),
+      status: 'Applied' // Only count students who actually applied
+    };
+    
+    if (batchId) {
+      departmentStatsQuery.batch = new mongoose.Types.ObjectId(batchId);
+    }
+    
     const departmentStats = await JobApplication.aggregate([
       { 
-        $match: { 
-          job: new mongoose.Types.ObjectId(jobId), 
-          department: new mongoose.Types.ObjectId(departmentId),
-          status: 'Applied' // Only count students who actually applied
-        } 
+        $match: departmentStatsQuery
       },
       {
         $group: {
@@ -1140,6 +1293,7 @@ const getJobApplicationsByDepartment = async (req, res) => {
     ]);
 
     console.log('✅ Department applications fetched successfully');
+    console.log('📊 Found', batchesWithCounts.length, 'batches with applications');
 
     res.status(200).json({
       success: true,
@@ -1157,6 +1311,8 @@ const getJobApplicationsByDepartment = async (req, res) => {
           code: department.code
         },
         applications,
+        batches: batchesWithCounts, // Available batches with student counts
+        selectedBatch: batchId || null, // Currently selected batch filter
         departmentStats: departmentStats[0] || {
           totalStudents: 0,
           appliedCount: 0,

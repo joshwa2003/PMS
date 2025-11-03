@@ -140,6 +140,24 @@ const getAllJobs = async (req, res) => {
 
     console.log('✅ Jobs found:', jobs.length);
 
+    // Calculate actual application counts for each job
+    const jobsWithRealCounts = await Promise.all(jobs.map(async (job) => {
+      // Count actual applications with status 'Applied'
+      const actualApplicationCount = await JobApplication.countDocuments({
+        job: job._id,
+        status: 'Applied'
+      });
+      
+      // Update the stats with real count
+      return {
+        ...job,
+        stats: {
+          ...job.stats,
+          totalApplications: actualApplicationCount
+        }
+      };
+    }));
+
     // Get total count for pagination
     const totalJobs = await Job.countDocuments(filter);
     const totalPages = all === 'true' || all === true ? 1 : Math.ceil(totalJobs / parseInt(limit));
@@ -149,7 +167,7 @@ const getAllJobs = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        jobs,
+        jobs: jobsWithRealCounts,
         pagination: {
           currentPage: parseInt(page),
           totalPages,

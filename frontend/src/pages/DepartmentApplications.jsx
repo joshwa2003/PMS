@@ -7,7 +7,11 @@ import {
   IconButton, 
   Tooltip, 
   Box,
-  Chip
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon,
@@ -52,6 +56,8 @@ function DepartmentApplications() {
   const [departmentData, setDepartmentData] = useState(null);
   const [applications, setApplications] = useState([]);
   const [departmentStats, setDepartmentStats] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState('');
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -69,13 +75,13 @@ function DepartmentApplications() {
     }
   }, [jobId, departmentId, canViewApplications]);
 
-  const fetchDepartmentApplications = async (page = 1) => {
+  const fetchDepartmentApplications = async (page = 1, batchId = selectedBatch) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching department applications:', { jobId, departmentId, page });
-      const response = await jobApi.getJobApplicationsByDepartment(jobId, departmentId, page);
+      console.log('🔍 Fetching department applications:', { jobId, departmentId, page, batchId });
+      const response = await jobApi.getJobApplicationsByDepartment(jobId, departmentId, page, batchId || null);
       console.log('📦 Response received:', response);
       
       // API interceptor returns response.data, which contains { success, data }
@@ -85,6 +91,7 @@ function DepartmentApplications() {
         setDepartmentData(response.data.department);
         setApplications(response.data.applications);
         setDepartmentStats(response.data.departmentStats);
+        setBatches(response.data.batches || []);
         setPagination(response.data.pagination);
       } else {
         console.error('❌ Response missing success flag:', response);
@@ -109,7 +116,13 @@ function DepartmentApplications() {
   };
 
   const handlePageChange = (newPage) => {
-    fetchDepartmentApplications(newPage);
+    fetchDepartmentApplications(newPage, selectedBatch);
+  };
+
+  const handleBatchChange = (event) => {
+    const batchId = event.target.value;
+    setSelectedBatch(batchId);
+    fetchDepartmentApplications(1, batchId); // Reset to page 1 when filter changes
   };
 
   // Prepare applications table columns
@@ -176,31 +189,6 @@ function DepartmentApplications() {
         </MDTypography>
       ),
     },
-    {
-      Header: 'Response Date',
-      accessor: 'responseAt',
-      Cell: ({ value }) => (
-        <MDTypography variant="caption" color="text">
-          {value ? new Date(value).toLocaleDateString() : 'No Response'}
-        </MDTypography>
-      ),
-    },
-    {
-      Header: 'Actions',
-      accessor: 'actions',
-      Cell: ({ row }) => (
-        <MDBox display="flex" alignItems="center">
-          <Tooltip title="View Application Details">
-            <IconButton 
-              size="small" 
-              onClick={() => handleViewApplication(row.original)}
-            >
-              <PersonIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </MDBox>
-      ),
-    },
   ];
 
   // Prepare table data
@@ -218,7 +206,6 @@ function DepartmentApplications() {
     { field: 'backlogs', headerName: 'Backlogs' },
     { field: 'status', headerName: 'Status' },
     { field: 'appliedDate', headerName: 'Applied Date' },
-    { field: 'responseDate', headerName: 'Response Date' },
   ];
   const exportRows = (applications || []).map((a) => ({
     student: a.student?.personalInfo?.fullName || 'N/A',
@@ -228,7 +215,6 @@ function DepartmentApplications() {
     backlogs: a.student?.academic?.backlogs ?? 'N/A',
     status: a.status || 'N/A',
     appliedDate: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Not Applied',
-    responseDate: a.responseAt ? new Date(a.responseAt).toLocaleDateString() : 'No Response',
   }));
 
   if (!canViewApplications) {
@@ -417,6 +403,31 @@ function DepartmentApplications() {
                 headerLines={[`Department: ${departmentData?.name} (${departmentData?.code})`, `Job: ${jobData?.title || '-'}`]}
               />
             </MDBox>
+
+            {/* Batch Filter */}
+            {batches.length > 0 && (
+              <MDBox mb={3}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel id="batch-filter-label">Filter by Batch Year</InputLabel>
+                  <Select
+                    labelId="batch-filter-label"
+                    id="batch-filter"
+                    value={selectedBatch}
+                    onChange={handleBatchChange}
+                    label="Filter by Batch Year"
+                  >
+                    <MenuItem value="">
+                      <em>All Batches ({batches.reduce((sum, b) => sum + b.count, 0)} students)</em>
+                    </MenuItem>
+                    {batches.map((batch) => (
+                      <MenuItem key={batch._id} value={batch._id}>
+                        {batch.batchCode} - {batch.courseType} ({batch.count} students)
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </MDBox>
+            )}
             
             <DataTable
               table={applicationTableData}

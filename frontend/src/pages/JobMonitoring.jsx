@@ -274,16 +274,6 @@ function JobMonitoring() {
               <AssessmentIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="View Applications">
-            <IconButton size="small" onClick={() => handleViewApplications(row.original)}>
-              <ViewIcon fontSize="small" color="info" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Export Data">
-            <IconButton size="small" onClick={() => handleExportData(row.original)}>
-              <ExportIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
         </MDBox>
       ),
     },
@@ -471,18 +461,9 @@ function JobMonitoring() {
           />
         </MDBox>
 
-        {/* Tabs */}
+        {/* Jobs Table */}
         <Card>
           <CardContent>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs value={currentTab} onChange={handleTabChange} aria-label="job monitoring tabs">
-                <Tab label="All Jobs" />
-                <Tab label="Applications" disabled={!selectedJob} />
-              </Tabs>
-            </Box>
-
-            {/* Jobs Tab */}
-            <TabPanel value={currentTab} index={0}>
               <MDBox mb={2} display="flex" justifyContent="flex-end">
                 <ExportMenu 
                   rows={(jobs || []).map(j => ({
@@ -547,62 +528,6 @@ function JobMonitoring() {
                   </MDButton>
                 </MDBox>
               )}
-            </TabPanel>
-
-            {/* Applications Tab */}
-            <TabPanel value={currentTab} index={1}>
-              {selectedJob && (
-                <MDBox mb={3}>
-                  <MDTypography variant="h6" fontWeight="medium">
-                    Applications for: {selectedJob.title}
-                  </MDTypography>
-                  <MDTypography variant="body2" color="text">
-                    {selectedJob.company?.name} • {selectedJob.location}
-                  </MDTypography>
-                </MDBox>
-              )}
-              
-              <MDBox mb={2} display="flex" justifyContent="flex-end">
-                <ExportMenu 
-                  rows={(applications || []).map(a => ({
-                    student: a.student?.personalInfo?.fullName || 'N/A',
-                    studentId: a.student?.studentId || 'N/A',
-                    department: a.department?.name || 'N/A',
-                    email: a.user?.email || 'N/A',
-                    cgpa: a.student?.academic?.cgpa ?? 'N/A',
-                    status: a.status || 'N/A',
-                    appliedDate: a.appliedAt ? new Date(a.appliedAt).toLocaleDateString() : 'Not Applied',
-                    responseDate: a.responseAt ? new Date(a.responseAt).toLocaleDateString() : 'No Response',
-                  }))}
-                  columns={[
-                    { field: 'student', headerName: 'Student' },
-                    { field: 'studentId', headerName: 'Student ID' },
-                    { field: 'department', headerName: 'Department' },
-                    { field: 'email', headerName: 'Email' },
-                    { field: 'cgpa', headerName: 'CGPA' },
-                    { field: 'status', headerName: 'Status' },
-                    { field: 'appliedDate', headerName: 'Applied Date' },
-                    { field: 'responseDate', headerName: 'Response Date' },
-                  ]}
-                  filename={`applications-${selectedJob?.title || 'job'}`}
-                  title={`Applications`}
-                  headerLines={selectedJob ? [
-                    `Job: ${selectedJob.title}`,
-                    `Company: ${selectedJob.company?.name || '-'}`
-                  ] : undefined}
-                />
-              </MDBox>
-
-              <DataTable
-                table={applicationTableData}
-                showTotalEntries={true}
-                isSorted={true}
-                noEndBorder={true}
-                entriesPerPage={false}
-                canSearch={false}
-                loading={applicationsLoading}
-              />
-            </TabPanel>
           </CardContent>
         </Card>
       </MDBox>

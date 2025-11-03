@@ -369,8 +369,9 @@ const createBulkStudents = async (req, res) => {
     };
 
     // Pre-calculate starting student ID to avoid race conditions
-    const currentYear = new Date().getFullYear();
-    const studentIdPrefix = `${currentYear}STU`;
+    // Use batch start year if batch exists, otherwise use current year
+    const yearForStudentId = batch ? batch.startYear : new Date().getFullYear();
+    const studentIdPrefix = `${yearForStudentId}STU`;
     
     // Get the last student ID once at the beginning
     // Check both User and Student collections to get the highest student ID

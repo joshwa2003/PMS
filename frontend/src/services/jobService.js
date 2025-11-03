@@ -461,12 +461,17 @@ export const getApplicationDetails = async (applicationId) => {
  * @param {string} jobId - Job ID
  * @param {string} departmentId - Department ID
  * @param {number} page - Page number
+ * @param {string} batchId - Optional batch ID for filtering
  * @returns {Promise} API response
  */
-export const getJobApplicationsByDepartment = async (jobId, departmentId, page = 1) => {
+export const getJobApplicationsByDepartment = async (jobId, departmentId, page = 1, batchId = null) => {
   try {
+    const params = { page };
+    if (batchId) {
+      params.batchId = batchId;
+    }
     const response = await api.get(`${API_BASE_URL}/${jobId}/departments/${departmentId}/applications`, {
-      params: { page }
+      params
     });
     return response;
   } catch (error) {
