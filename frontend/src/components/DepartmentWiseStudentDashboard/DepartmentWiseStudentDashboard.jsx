@@ -43,7 +43,6 @@ function DepartmentWiseStudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
   // Check permissions
@@ -61,7 +60,7 @@ function DepartmentWiseStudentDashboard() {
 
     try {
       const response = await departmentWiseStudentService.getDepartmentWiseStudents();
-      
+
       if (response.success) {
         setDepartments(response.data.departments || []);
         setOverallStats(response.data.overallStatistics || null);
@@ -91,18 +90,12 @@ function DepartmentWiseStudentDashboard() {
     // Search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         dept.name.toLowerCase().includes(searchLower) ||
         dept.code.toLowerCase().includes(searchLower) ||
         (dept.placementStaff?.name.toLowerCase().includes(searchLower));
-      
-      if (!matchesSearch) return false;
-    }
 
-    // Department filter (could be used for categories in future)
-    if (departmentFilter !== 'all') {
-      // This can be extended based on department categories
-      return true;
+      if (!matchesSearch) return false;
     }
 
     return true;
@@ -137,7 +130,7 @@ function DepartmentWiseStudentDashboard() {
               {overallStats && departmentWiseStudentService.getSummaryText(overallStats)}
             </MDTypography>
           </MDBox>
-          
+
           <Tooltip title="Refresh Data">
             <IconButton onClick={handleRefresh} disabled={refreshing}>
               <Icon>{refreshing ? 'hourglass_empty' : 'refresh'}</Icon>
@@ -158,19 +151,6 @@ function DepartmentWiseStudentDashboard() {
               startAdornment: <Icon sx={{ mr: 1 }}>search</Icon>
             }}
           />
-          
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Filter</InputLabel>
-            <Select
-              value={departmentFilter}
-              label="Filter"
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Departments</MenuItem>
-              <MenuItem value="with-staff">With Staff</MenuItem>
-              <MenuItem value="without-staff">Without Staff</MenuItem>
-            </Select>
-          </FormControl>
         </MDBox>
       </MDBox>
 
@@ -191,7 +171,7 @@ function DepartmentWiseStudentDashboard() {
                 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6} lg={3}>
               <ComplexStatisticsCard
                 color="info"
@@ -205,7 +185,7 @@ function DepartmentWiseStudentDashboard() {
                 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6} lg={3}>
               <ComplexStatisticsCard
                 color="success"
@@ -219,7 +199,7 @@ function DepartmentWiseStudentDashboard() {
                 }}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6} lg={3}>
               <ComplexStatisticsCard
                 color="warning"
@@ -251,10 +231,10 @@ function DepartmentWiseStudentDashboard() {
             <MDTypography variant="body2">
               {error}
             </MDTypography>
-            <MDButton 
-              variant="outlined" 
-              color="error" 
-              size="small" 
+            <MDButton
+              variant="outlined"
+              color="error"
+              size="small"
               onClick={handleRefresh}
               sx={{ mt: 1 }}
             >
@@ -289,16 +269,16 @@ function DepartmentWiseStudentDashboard() {
                   No Departments Found
                 </MDTypography>
                 <MDTypography variant="body2" color="text">
-                  {searchTerm 
+                  {searchTerm
                     ? `No departments match your search "${searchTerm}"`
                     : 'No departments are available at the moment'
                   }
                 </MDTypography>
                 {searchTerm && (
-                  <MDButton 
-                    variant="outlined" 
-                    color="info" 
-                    size="small" 
+                  <MDButton
+                    variant="outlined"
+                    color="info"
+                    size="small"
                     onClick={() => setSearchTerm('')}
                     sx={{ mt: 2 }}
                   >

@@ -27,7 +27,7 @@ import departmentWiseStudentService from 'services/departmentWiseStudentService'
 const DepartmentBatches = () => {
   const { departmentId } = useParams();
   const navigate = useNavigate();
-  
+
   const [department, setDepartment] = useState(null);
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,9 +38,9 @@ const DepartmentBatches = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await departmentWiseStudentService.getDepartmentBatches(departmentId);
-      
+
       if (response.success) {
         setDepartment(response.data.department);
         setBatches(response.data.batches);
@@ -108,15 +108,18 @@ const DepartmentBatches = () => {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar
+        customTitle={department ? department.name : "Loading..."}
+        customRoute={['department-wise-student-dashboard', department ? department.name : "Loading..."]}
+      />
       <MDBox py={3}>
         {/* Header */}
         <MDBox mb={3}>
           <Grid container spacing={3} alignItems="center">
             <Grid item>
-              <IconButton 
+              <IconButton
                 onClick={() => navigate('/department-wise-student-dashboard')}
-                sx={{ 
+                sx={{
                   mr: 1,
                   backgroundColor: 'rgba(0,0,0,0.04)',
                   '&:hover': {
@@ -132,8 +135,8 @@ const DepartmentBatches = () => {
                 Batches in {department?.name}
               </MDTypography>
               <MDTypography variant="body2" color="text" mt={1}>
-                {department?.placementStaff ? 
-                  `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` : 
+                {department?.placementStaff ?
+                  `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` :
                   'No Staff Assigned'
                 }
               </MDTypography>

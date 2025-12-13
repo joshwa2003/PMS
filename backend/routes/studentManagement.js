@@ -12,7 +12,8 @@ const {
   sendTestEmail,
   resendWelcomeEmail,
   getBatchesForPlacementStaff,
-  getStudentsForBatch
+  getStudentsForBatch,
+  updateStudent
 } = require('../controllers/studentManagementController');
 
 // Middleware
@@ -63,6 +64,11 @@ router.put('/students/:id/status', auth, requirePlacementStaff, updateStudentSta
 // @route   DELETE /api/student-management/students/:id
 // @access  Private (Placement Staff only)
 router.delete('/students/:id', auth, requirePlacementStaff, deleteStudent);
+
+// @desc    Update student details
+// @route   PUT /api/student-management/students/:id
+// @access  Private (Placement Staff only)
+router.put('/students/:id', auth, requirePlacementStaff, updateStudent);
 
 // @desc    Test email configuration
 // @route   GET /api/student-management/test-email-config

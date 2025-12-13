@@ -8,17 +8,17 @@ const getAllDepartments = async (req, res) => {
     console.log('📋 Fetching departments - Request params:', req.query);
     console.log('👤 User making request:', req.user ? { id: req.user._id, role: req.user.role } : 'No user');
 
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = '', 
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
       isActive = '',
-      all = false 
+      all = false
     } = req.query;
 
     // Build filter object
     const filter = {};
-    
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -26,7 +26,7 @@ const getAllDepartments = async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (isActive !== '') {
       filter.isActive = isActive === 'true';
     }
@@ -75,7 +75,7 @@ const getAllDepartments = async (req, res) => {
         .lean(); // Use lean() for better performance
 
       console.log('✅ Departments found:', departments.length);
-      
+
       // For each department, find the placement staff assigned to it
       for (let dept of departments) {
         if (!dept.placementStaff) {
@@ -85,7 +85,7 @@ const getAllDepartments = async (req, res) => {
             role: 'placement_staff',
             isActive: true
           }).select('firstName lastName email role').lean();
-          
+
           if (staff) {
             dept.placementStaff = staff;
             console.log(`✅ Found placement staff for ${dept.code}:`, staff.firstName, staff.lastName);
@@ -94,22 +94,22 @@ const getAllDepartments = async (req, res) => {
       }
     } catch (populateError) {
       console.error('❌ Error during populate operations:', populateError);
-      
+
       // Fallback: Get departments without populate
       departments = await Department.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(actualLimit || undefined) // Use actualLimit, undefined means no limit
         .lean();
-      
+
       console.log('⚠️ Fallback: Retrieved departments without populate:', departments.length);
-      
+
       // Manually populate course category and placement staff for each department
       const CourseCategory = require('../models/CourseCategory');
-      
+
       for (let dept of departments) {
         console.log(`🔍 Processing ${dept.code} - courseCategory value:`, dept.courseCategory, 'Type:', typeof dept.courseCategory);
-        
+
         // Try to populate course category if it's an ObjectId
         if (dept.courseCategory && mongoose.Types.ObjectId.isValid(dept.courseCategory)) {
           try {
@@ -126,14 +126,14 @@ const getAllDepartments = async (req, res) => {
         } else {
           console.log(`⚠️ Invalid or missing courseCategory for ${dept.code}:`, dept.courseCategory);
         }
-        
+
         // Find placement staff assigned to this department
         const staff = await User.findOne({
           department: dept._id,
           role: 'placement_staff',
           isActive: true
         }).select('firstName lastName email role').lean();
-        
+
         if (staff) {
           dept.placementStaff = staff;
           console.log(`✅ Found placement staff for ${dept.code}:`, staff.firstName, staff.lastName);
@@ -163,7 +163,7 @@ const getAllDepartments = async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching departments:', error);
     console.error('❌ Error stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'Error fetching departments',
@@ -180,7 +180,7 @@ const getAllDepartments = async (req, res) => {
 const getDepartment = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     console.log('🔍 Fetching single department with ID:', id);
 
     let department;
@@ -209,12 +209,12 @@ const getDepartment = async (req, res) => {
         .lean();
     } catch (populateError) {
       console.error('❌ Error during populate operations for single department:', populateError);
-      
+
       // Fallback: Get department without populate
       department = await Department.findById(id).lean();
       console.log('⚠️ Fallback: Retrieved department without populate');
     }
-    
+
     if (!department) {
       return res.status(404).json({
         success: false,
@@ -231,7 +231,7 @@ const getDepartment = async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching department:', error);
     console.error('❌ Error stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'Error fetching department',
@@ -285,12 +285,12 @@ const createDepartment = async (req, res) => {
     }
 
     console.log('🔍 Checking for existing departments...');
-    
+
     // Check if department name already exists
-    const existingDepartmentName = await Department.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingDepartmentName = await Department.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingDepartmentName) {
       console.log('❌ Department name already exists:', name);
       return res.status(400).json({
@@ -300,10 +300,10 @@ const createDepartment = async (req, res) => {
     }
 
     // Check if department code already exists
-    const existingDepartmentCode = await Department.findOne({ 
-      code: { $regex: new RegExp(`^${code}$`, 'i') } 
+    const existingDepartmentCode = await Department.findOne({
+      code: { $regex: new RegExp(`^${code}$`, 'i') }
     });
-    
+
     if (existingDepartmentCode) {
       console.log('❌ Department code already exists:', code);
       return res.status(400).json({
@@ -413,7 +413,7 @@ const createDepartment = async (req, res) => {
       code: error.code,
       keyPattern: error.keyPattern
     });
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       console.log('❌ Duplicate key error for field:', field);
@@ -422,7 +422,7 @@ const createDepartment = async (req, res) => {
         message: `Department with this ${field} already exists`
       });
     }
-    
+
     // Handle validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
@@ -433,7 +433,7 @@ const createDepartment = async (req, res) => {
         errors: validationErrors
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Error creating department',
@@ -459,7 +459,7 @@ const updateDepartment = async (req, res) => {
 
     // Find the department
     const department = await Department.findById(id);
-    
+
     if (!department) {
       console.log('❌ Department not found:', id);
       return res.status(404).json({
@@ -472,11 +472,11 @@ const updateDepartment = async (req, res) => {
 
     // Check if name is being changed and if it already exists
     if (name && name !== department.name) {
-      const existingDepartmentName = await Department.findOne({ 
+      const existingDepartmentName = await Department.findOne({
         name: { $regex: new RegExp(`^${name}$`, 'i') },
         _id: { $ne: id }
       });
-      
+
       if (existingDepartmentName) {
         console.log('❌ Department name already exists:', name);
         return res.status(400).json({
@@ -488,11 +488,11 @@ const updateDepartment = async (req, res) => {
 
     // Check if code is being changed and if it already exists
     if (code && code !== department.code) {
-      const existingDepartmentCode = await Department.findOne({ 
+      const existingDepartmentCode = await Department.findOne({
         code: { $regex: new RegExp(`^${code}$`, 'i') },
         _id: { $ne: id }
       });
-      
+
       if (existingDepartmentCode) {
         console.log('❌ Department code already exists:', code);
         return res.status(400).json({
@@ -584,7 +584,7 @@ const updateDepartment = async (req, res) => {
   } catch (error) {
     console.error('❌ Error updating department:', error);
     console.error('❌ Error stack:', error.stack);
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       return res.status(400).json({
@@ -592,7 +592,7 @@ const updateDepartment = async (req, res) => {
         message: `Department with this ${field} already exists`
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Error updating department',
@@ -609,9 +609,9 @@ const updateDepartment = async (req, res) => {
 const deleteDepartment = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const department = await Department.findById(id);
-    
+
     if (!department) {
       return res.status(404).json({
         success: false,
@@ -640,9 +640,9 @@ const toggleDepartmentStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id; // Fixed: Use _id instead of id
-    
+
     const department = await Department.findById(id);
-    
+
     if (!department) {
       return res.status(404).json({
         success: false,
@@ -652,7 +652,7 @@ const toggleDepartmentStatus = async (req, res) => {
 
     department.isActive = !department.isActive;
     department.updatedBy = userId;
-    
+
     await department.save();
 
     // Skip populate operations entirely to avoid 500 errors

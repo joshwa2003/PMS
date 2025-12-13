@@ -33,7 +33,7 @@ const createStudent = async (req, res) => {
 
     // Enhanced department retrieval logic to handle both ObjectId and string formats
     let staffDepartment = 'CSE'; // Default fallback
-    
+
     if (placementStaffUser.department) {
       // If department is populated (ObjectId reference)
       if (typeof placementStaffUser.department === 'object' && placementStaffUser.department.code) {
@@ -60,7 +60,7 @@ const createStudent = async (req, res) => {
     // Generate student ID (format: YEAR + DEPT + sequential number)
     const currentYear = new Date().getFullYear();
     const studentIdPrefix = `${currentYear}STU`;
-    
+
     // Find the last student ID to generate next sequential number
     // Check both User and Student collections to get the highest student ID
     const lastUserStudent = await User.findOne(
@@ -68,13 +68,13 @@ const createStudent = async (req, res) => {
       {},
       { sort: { studentId: -1 } }
     );
-    
+
     const lastStudentProfile = await Student.findOne(
       { studentId: { $regex: `^${studentIdPrefix}` } },
       {},
       { sort: { studentId: -1 } }
     );
-    
+
     // Get the highest student ID from both collections
     let lastStudent = null;
     if (lastUserStudent && lastStudentProfile) {
@@ -86,18 +86,18 @@ const createStudent = async (req, res) => {
     } else if (lastStudentProfile) {
       lastStudent = lastStudentProfile;
     }
-    
+
     let nextNumber = 1;
     if (lastStudent && lastStudent.studentId) {
       const lastNumber = parseInt(lastStudent.studentId.replace(studentIdPrefix, ''));
       nextNumber = lastNumber + 1;
     }
-    
+
     const studentId = `${studentIdPrefix}${nextNumber.toString().padStart(3, '0')}`;
 
     // Generate a temporary password
     const tempPassword = `Student@${Math.floor(Math.random() * 9000) + 1000}`;
-    
+
     // Create user account (password will be hashed by User model pre-save middleware)
     const newUser = new User({
       firstName: firstName.trim(),
@@ -152,7 +152,7 @@ const createStudent = async (req, res) => {
     try {
       const emailResult = await emailService.sendStudentWelcomeEmail(studentData, tempPassword);
       console.log(`Welcome email result for student ${email}:`, emailResult);
-      
+
       if (!emailResult.success) {
         console.error(`Failed to send welcome email to ${email}:`, emailResult.error);
       }
@@ -179,7 +179,7 @@ const createStudent = async (req, res) => {
 
   } catch (error) {
     console.error('Error creating student:', error);
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       return res.status(400).json({
@@ -207,9 +207,9 @@ const createBulkStudents = async (req, res) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
 
     let studentData;
-    
+
     let batchInfo = null;
-    
+
     // Handle different request body formats
     if (req.body.studentData && Array.isArray(req.body.studentData)) {
       // Format: { studentData: [...], batchInfo: {...} }
@@ -261,7 +261,7 @@ const createBulkStudents = async (req, res) => {
 
     // Enhanced department retrieval logic to handle both ObjectId and string formats
     let staffDepartment = 'CSE'; // Default fallback
-    
+
     if (placementStaffUser.department) {
       // If department is populated (ObjectId reference)
       if (typeof placementStaffUser.department === 'object' && placementStaffUser.department.code) {
@@ -281,7 +281,7 @@ const createBulkStudents = async (req, res) => {
     if (batchInfo && batchInfo.joiningYear && batchInfo.courseType && batchInfo.batchCode) {
       try {
         console.log('🎓 Creating/finding batch:', batchInfo);
-        
+
         // Calculate course duration based on course type
         const courseDurations = {
           'UG': 4,
@@ -289,13 +289,13 @@ const createBulkStudents = async (req, res) => {
           'Diploma': 3,
           'Certificate': 1
         };
-        
+
         const courseDuration = courseDurations[batchInfo.courseType] || 4;
         const endYear = batchInfo.joiningYear + courseDuration;
-        
+
         // Resolve department ObjectId properly
         let departmentObjectId = null;
-        
+
         if (placementStaffUser.department) {
           // If department is already populated as ObjectId
           if (typeof placementStaffUser.department === 'object' && placementStaffUser.department._id) {
@@ -307,15 +307,15 @@ const createBulkStudents = async (req, res) => {
             console.log('✅ Using department ObjectId from string:', departmentObjectId);
           }
         }
-        
+
         // If we still don't have a department ObjectId, try to find by code
         if (!departmentObjectId && staffDepartment) {
           console.log('🔍 Looking up department by code:', staffDepartment);
-          const departmentDoc = await Department.findOne({ 
+          const departmentDoc = await Department.findOne({
             code: staffDepartment.toUpperCase(),
-            isActive: true 
+            isActive: true
           });
-          
+
           if (departmentDoc) {
             departmentObjectId = departmentDoc._id;
             console.log('✅ Found department by code:', staffDepartment, '-> ObjectId:', departmentObjectId);
@@ -323,14 +323,14 @@ const createBulkStudents = async (req, res) => {
             console.log('❌ Department not found by code:', staffDepartment);
           }
         }
-        
+
         // Validate that we have a department ObjectId
         if (!departmentObjectId) {
           throw new Error(`Department is required for batch creation. Staff department: ${staffDepartment}, User department: ${placementStaffUser.department}`);
         }
-        
+
         console.log('🎓 Creating batch with department ObjectId:', departmentObjectId);
-        
+
         // Find or create batch with all required fields
         batch = await Batch.findOrCreateBatch({
           batchCode: batchInfo.batchCode,
@@ -343,7 +343,7 @@ const createBulkStudents = async (req, res) => {
           academicYearEnd: endYear,
           createdBy: req.user.id
         });
-        
+
         console.log('✅ Batch created/found:', batch.batchCode, batch._id);
       } catch (batchError) {
         console.error('❌ Error creating batch:', batchError);
@@ -372,7 +372,7 @@ const createBulkStudents = async (req, res) => {
     // Use batch start year if batch exists, otherwise use current year
     const yearForStudentId = batch ? batch.startYear : new Date().getFullYear();
     const studentIdPrefix = `${yearForStudentId}STU`;
-    
+
     // Get the last student ID once at the beginning
     // Check both User and Student collections to get the highest student ID
     const lastUserStudent = await User.findOne(
@@ -380,13 +380,13 @@ const createBulkStudents = async (req, res) => {
       {},
       { sort: { studentId: -1 } }
     );
-    
+
     const lastStudentProfile = await Student.findOne(
       { studentId: { $regex: `^${studentIdPrefix}` } },
       {},
       { sort: { studentId: -1 } }
     );
-    
+
     // Get the highest student ID from both collections
     let lastStudent = null;
     if (lastUserStudent && lastStudentProfile) {
@@ -398,7 +398,7 @@ const createBulkStudents = async (req, res) => {
     } else if (lastStudentProfile) {
       lastStudent = lastStudentProfile;
     }
-    
+
     let startingNumber = 1;
     if (lastStudent && lastStudent.studentId) {
       const lastNumber = parseInt(lastStudent.studentId.replace(studentIdPrefix, ''));
@@ -411,7 +411,7 @@ const createBulkStudents = async (req, res) => {
     for (let i = 0; i < studentData.length; i++) {
       const student = studentData[i];
       console.log(`🔍 Processing student ${i + 1}/${studentData.length}:`, student);
-      
+
       try {
         const { firstName, lastName, email } = student;
         console.log(`🔍 Extracted data: firstName="${firstName}", lastName="${lastName}", email="${email}"`);
@@ -458,7 +458,7 @@ const createBulkStudents = async (req, res) => {
 
         // Set default password for students
         const tempPassword = "Student@123";
-        
+
         // Create user account (password will be hashed by User model pre-save middleware)
         console.log(`🔍 Creating User object for: ${firstName.trim()} ${lastName.trim()}`);
         console.log(`🔍 User data:`, {
@@ -468,7 +468,7 @@ const createBulkStudents = async (req, res) => {
           role: 'student',
           studentId: studentId
         });
-        
+
         const newUser = new User({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -495,7 +495,7 @@ const createBulkStudents = async (req, res) => {
           fullName: `${firstName.trim()} ${lastName.trim()}`,
           department: staffDepartment
         });
-        
+
         const newStudent = new Student({
           userId: savedUser._id,
           studentId: studentId,
@@ -547,7 +547,7 @@ const createBulkStudents = async (req, res) => {
           errors: error.errors,
           stack: error.stack
         });
-        
+
         // Provide more specific error messages
         let errorMessage = 'Unknown error occurred';
         if (error.code === 11000) {
@@ -589,7 +589,7 @@ const createBulkStudents = async (req, res) => {
           console.log(`🚀 Starting background email sending to ${results.successful.length} students...`);
           const emailResults = await emailService.sendBulkStudentWelcomeEmailsParallel(results.successful);
           console.log(`📧 Background bulk emails completed. Success: ${emailResults.totalSent}, Failed: ${emailResults.totalFailed}`);
-          
+
           if (emailResults.totalFailed > 0) {
             console.warn(`⚠️ Some emails failed to send:`, emailResults.failed);
           }
@@ -597,12 +597,12 @@ const createBulkStudents = async (req, res) => {
           console.error('❌ Error in background email sending:', emailError);
         }
       });
-      
+
       console.log(`✅ Student creation completed. Email sending started in background for ${results.successful.length} students.`);
     }
 
     const statusCode = results.totalSuccessful > 0 ? 201 : 400;
-    
+
     res.status(statusCode).json({
       success: results.totalSuccessful > 0,
       message: `Bulk student creation completed. ${results.totalSuccessful} successful, ${results.totalFailed} failed.`,
@@ -977,12 +977,12 @@ const deleteStudent = async (req, res) => {
       _id: id,
       role: 'student'
     };
-    
+
     // If user is placement staff (not admin), restrict to their own students
     if (req.user.role === 'placement_staff') {
       query.createdBy = req.user.id;
     }
-    
+
     const student = await User.findOne(query);
 
     if (!student) {
@@ -1065,26 +1065,26 @@ const deleteBulkStudents = async (req, res) => {
     // First, try to find Student Profiles (these IDs might be profile IDs, not user IDs)
     console.log('🔍 Searching for student profiles with IDs:', objectIds);
     const studentProfiles = await Student.find({ _id: { $in: objectIds } }).populate('userId');
-    
+
     console.log(`✅ Found ${studentProfiles.length} student profiles out of ${studentIds.length} requested`);
-    
+
     // If we found profiles, get the associated user IDs
     let students = [];
     if (studentProfiles.length > 0) {
       const userIds = studentProfiles.map(profile => profile.userId).filter(Boolean);
       console.log('🔍 Found user IDs from profiles:', userIds);
-      
+
       // Build query for users
       const userQuery = {
         _id: { $in: userIds },
         role: 'student'
       };
-      
+
       // If user is placement staff (not admin), restrict to their own students
       if (req.user.role === 'placement_staff') {
         userQuery.createdBy = req.user.id;
       }
-      
+
       students = await User.find(userQuery);
       console.log(`✅ Found ${students.length} users from profiles`);
     } else {
@@ -1094,12 +1094,12 @@ const deleteBulkStudents = async (req, res) => {
         _id: { $in: objectIds },
         role: 'student'
       };
-      
+
       // If user is placement staff (not admin), restrict to their own students
       if (req.user.role === 'placement_staff') {
         query.createdBy = req.user.id;
       }
-      
+
       students = await User.find(query);
       console.log(`✅ Found ${students.length} users directly`);
     }
@@ -1129,16 +1129,16 @@ const deleteBulkStudents = async (req, res) => {
 
     // Create a map of profile IDs to profiles for easy lookup
     const profileMap = new Map(studentProfiles.map(p => [p.userId?.toString(), p]));
-    
+
     // Process each student deletion
     for (const student of students) {
       try {
         console.log(`🗑️ Deleting student: ${student.firstName} ${student.lastName} (${student.email})`);
 
         // Find and delete the student profile
-        const profile = profileMap.get(student._id.toString()) || 
-                       studentProfiles.find(p => p.userId?.toString() === student._id.toString());
-        
+        const profile = profileMap.get(student._id.toString()) ||
+          studentProfiles.find(p => p.userId?.toString() === student._id.toString());
+
         if (profile) {
           const deletedProfile = await Student.findByIdAndDelete(profile._id);
           console.log(`✅ Deleted student profile for: ${student.email}`, deletedProfile ? 'Success' : 'Profile not found');
@@ -1175,11 +1175,11 @@ const deleteBulkStudents = async (req, res) => {
     // Check for students that were not found (don't have permission or don't exist)
     const foundIds = students.map(s => s._id.toString());
     const notFoundIds = studentIds.filter(id => !foundIds.includes(id));
-    
+
     if (notFoundIds.length > 0) {
       console.log('⚠️ Some students were not found or no permission:', notFoundIds);
     }
-    
+
     notFoundIds.forEach(id => {
       results.failed.push({
         id: id,
@@ -1193,7 +1193,7 @@ const deleteBulkStudents = async (req, res) => {
     console.log(`✅ Bulk deletion completed. Successful: ${results.totalSuccessful}, Failed: ${results.totalFailed}`);
 
     const statusCode = results.totalSuccessful > 0 ? 200 : 400;
-    
+
     res.status(statusCode).json({
       success: results.totalSuccessful > 0,
       message: `Bulk student deletion completed. ${results.totalSuccessful} successful, ${results.totalFailed} failed.`,
@@ -1203,7 +1203,7 @@ const deleteBulkStudents = async (req, res) => {
   } catch (error) {
     console.error('❌ Critical error in bulk student deletion:', error);
     console.error('Error stack:', error.stack);
-    
+
     // Provide detailed error information for debugging
     const errorResponse = {
       success: false,
@@ -1232,13 +1232,13 @@ const deleteBulkStudents = async (req, res) => {
 const testEmailConfiguration = async (req, res) => {
   try {
     console.log('🧪 Testing email configuration...');
-    
+
     // Test SMTP connection
     const connectionTest = await emailService.testSMTPConnection();
-    
+
     // Get email service status
     const serviceStatus = emailService.getEmailServiceStatus();
-    
+
     res.json({
       success: true,
       message: 'Email configuration test completed',
@@ -1277,9 +1277,9 @@ const sendTestEmail = async (req, res) => {
     }
 
     console.log(`🧪 Sending test email to: ${email}`);
-    
+
     const result = await emailService.sendTestEmail(email);
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -1342,10 +1342,10 @@ const resendWelcomeEmail = async (req, res) => {
     };
 
     console.log(`📧 Resending welcome email to student: ${student.email}`);
-    
+
     // Send welcome email
     const emailResult = await emailService.sendStudentWelcomeEmail(studentData, tempPassword);
-    
+
     if (emailResult.success) {
       res.json({
         success: true,
@@ -1399,7 +1399,7 @@ const getBatchesForPlacementStaff = async (req, res) => {
     // Enhanced department retrieval logic with better error handling
     let staffDepartment = 'CSE'; // Default fallback
     let departmentObjectId = null;
-    
+
     try {
       if (placementStaffUser.department) {
         // If department is populated (ObjectId reference)
@@ -1410,13 +1410,13 @@ const getBatchesForPlacementStaff = async (req, res) => {
         } else if (typeof placementStaffUser.department === 'string') {
           staffDepartment = placementStaffUser.department;
           console.log(`🔍 Looking up department by code: ${staffDepartment}`);
-          
+
           // Try to find department by code
-          const departmentDoc = await Department.findOne({ 
+          const departmentDoc = await Department.findOne({
             code: staffDepartment.toUpperCase(),
-            isActive: true 
+            isActive: true
           });
-          
+
           if (departmentDoc) {
             departmentObjectId = departmentDoc._id;
             console.log(`✅ Found department by code: ${staffDepartment} -> ${departmentObjectId}`);
@@ -1428,12 +1428,12 @@ const getBatchesForPlacementStaff = async (req, res) => {
         // Fallback to legacy departmentCode field
         staffDepartment = placementStaffUser.departmentCode;
         console.log(`🔍 Using legacy departmentCode: ${staffDepartment}`);
-        
-        const departmentDoc = await Department.findOne({ 
+
+        const departmentDoc = await Department.findOne({
           code: staffDepartment.toUpperCase(),
-          isActive: true 
+          isActive: true
         });
-        
+
         if (departmentDoc) {
           departmentObjectId = departmentDoc._id;
           console.log(`✅ Found department by legacy code: ${staffDepartment} -> ${departmentObjectId}`);
@@ -1453,23 +1453,23 @@ const getBatchesForPlacementStaff = async (req, res) => {
     try {
       if (departmentObjectId) {
         console.log(`🔍 Fetching batches for department ObjectId: ${departmentObjectId}`);
-        batches = await Batch.find({ 
+        batches = await Batch.find({
           department: departmentObjectId,
-          isActive: true 
+          isActive: true
         })
-        .populate('department', 'name code')
-        .sort({ startYear: -1 }) // Most recent first
-        .lean(); // Use lean for better performance
+          .populate('department', 'name code')
+          .sort({ startYear: -1 }) // Most recent first
+          .lean(); // Use lean for better performance
       } else {
         console.log(`🔍 No department ObjectId found, fetching all active batches`);
-        batches = await Batch.find({ 
-          isActive: true 
+        batches = await Batch.find({
+          isActive: true
         })
-        .populate('department', 'name code')
-        .sort({ startYear: -1 })
-        .lean();
+          .populate('department', 'name code')
+          .sort({ startYear: -1 })
+          .lean();
       }
-      
+
       console.log(`✅ Found ${batches.length} batches`);
     } catch (batchError) {
       console.error('❌ Error fetching batches:', batchError);
@@ -1512,12 +1512,12 @@ const getBatchesForPlacementStaff = async (req, res) => {
             createdBy: req.user.id,
             studentProfile: { $exists: true }
           })
-          .populate({
-            path: 'studentProfile',
-            match: { batchId: batch._id },
-            select: 'placement.placementStatus'
-          })
-          .lean();
+            .populate({
+              path: 'studentProfile',
+              match: { batchId: batch._id },
+              select: 'placement.placementStatus'
+            })
+            .lean();
 
           // Filter out users where studentProfile didn't match (populate returned null)
           const validStudents = studentsInBatch.filter(student => student.studentProfile);
@@ -1562,7 +1562,7 @@ const getBatchesForPlacementStaff = async (req, res) => {
           stats: {
             totalStudents: batchStudentCount,
             placement: placementSummary,
-            placementRate: batchStudentCount > 0 ? 
+            placementRate: batchStudentCount > 0 ?
               Math.round(((placementSummary.placed + placementSummary.multipleOffers) / batchStudentCount) * 100) : 0
           }
         };
@@ -1608,7 +1608,7 @@ const getBatchesForPlacementStaff = async (req, res) => {
   } catch (error) {
     console.error('❌ Critical error in getBatchesForPlacementStaff:', error);
     console.error('Error stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'Error fetching batches',
@@ -1741,7 +1741,7 @@ const getStudentsForBatch = async (req, res) => {
           console.log(`⚠️ Student ${student.email} has no profile`);
           return false;
         }
-        
+
         const studentBatchId = student.studentProfile.batchId;
         if (!studentBatchId) {
           console.log(`⚠️ Student ${student.email} has no batchId in profile`);
@@ -1868,7 +1868,7 @@ const getStudentsForBatch = async (req, res) => {
   } catch (error) {
     console.error('❌ Critical error in getStudentsForBatch:', error);
     console.error('Error stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'Error fetching students for batch',
@@ -1879,6 +1879,126 @@ const getStudentsForBatch = async (req, res) => {
         timestamp: new Date().toISOString(),
         stack: error.stack
       } : undefined
+    });
+  }
+};
+
+// @desc    Update student details
+// @route   PUT /api/student-management/students/:id
+// @access  Private (Placement Staff only)
+const updateStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      firstName,
+      lastName,
+      email,
+      studentId,
+      program,
+      cgpa,
+      placementStatus,
+      isActive,
+      department
+    } = req.body;
+
+    // Find the user first
+    let user = await User.findById(id);
+
+    // If not found, check if the ID is actually a Student Profile ID
+    if (!user) {
+      const studentProfile = await Student.findById(id);
+      if (studentProfile && studentProfile.userId) {
+        user = await User.findById(studentProfile.userId);
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Update User model fields
+    if (firstName) user.firstName = firstName.trim();
+    if (lastName) user.lastName = lastName.trim();
+    if (email) user.email = email.toLowerCase().trim();
+    if (studentId) user.studentId = studentId.trim();
+    if (isActive !== undefined) user.isActive = isActive;
+
+    await user.save();
+
+    // Update Student Profile fields
+    if (user.studentProfile) {
+      const studentProfile = await Student.findById(user.studentProfile);
+
+      if (studentProfile) {
+        if (firstName || lastName) {
+          studentProfile.personalInfo = {
+            ...studentProfile.personalInfo,
+            fullName: `${user.firstName} ${user.lastName}`
+          };
+        }
+
+        if (email) {
+          studentProfile.contact = {
+            ...studentProfile.contact,
+            email: user.email
+          };
+        }
+
+        if (studentId) {
+          studentProfile.studentId = user.studentId;
+          studentProfile.registrationNumber = user.studentId;
+        }
+
+        // Update academic details
+        if (program || department || cgpa) {
+          studentProfile.academic = {
+            ...studentProfile.academic,
+            ...(program && { program }),
+            ...(department && { department }),
+            ...(cgpa && { cgpa })
+          };
+        }
+
+        // Update placement status
+        if (placementStatus) {
+          studentProfile.placement = {
+            ...studentProfile.placement,
+            placementStatus
+          };
+        }
+
+        await studentProfile.save();
+      }
+    }
+
+    // Return updated student data
+    res.json({
+      success: true,
+      message: 'Student updated successfully',
+      student: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        studentId: user.studentId,
+        isActive: user.isActive,
+        profile: user.studentProfile ? {
+          department: program || 'Not Specified', // Note: simplistic mapping, should be actual dept
+          program: program || 'Not Specified',
+          placementStatus: placementStatus || 'Unplaced',
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating student',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
@@ -1895,5 +2015,7 @@ module.exports = {
   sendTestEmail,
   resendWelcomeEmail,
   getBatchesForPlacementStaff,
-  getStudentsForBatch
+  getBatchesForPlacementStaff,
+  getStudentsForBatch,
+  updateStudent
 };

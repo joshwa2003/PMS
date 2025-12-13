@@ -35,7 +35,7 @@ import defaultLineChartData, { formatJobApplicationData, formatActiveStudentsDat
 
 // Dashboard components
 import Projects from "layouts/dashboard/components/Projects";
-import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
+
 
 // Services
 import dashboardService from "services/dashboardService";
@@ -80,7 +80,7 @@ function Dashboard() {
             activeDepartments: departments.active,
             loading: false
           });
-          
+
           // Set job stats from dashboard summary
           setJobStats({
             totalJobs: jobs?.total || 0,
@@ -95,7 +95,7 @@ function Dashboard() {
         if (jobsResponse.success) {
           setRecentJobs(jobsResponse.data.jobs);
         }
-        
+
         // Fetch job application stats specifically
         const appStatsResponse = await dashboardService.getJobApplicationStats();
         if (appStatsResponse.success) {
@@ -105,12 +105,12 @@ function Dashboard() {
             totalApplications: appStatsResponse.data.totalApplications || 0,
             applicationRate: appStatsResponse.data.applicationRate || 0
           }));
-          
+
           // Create mock data for job postings chart based on actual jobs
           const mockJobPostingData = {
             labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            datasets: { 
-              label: "Job Postings", 
+            datasets: {
+              label: "Job Postings",
               data: [
                 jobsResponse.data.jobs.length > 0 ? jobsResponse.data.jobs.length : 0,
                 0,
@@ -119,28 +119,28 @@ function Dashboard() {
                 0,
                 0,
                 0
-              ] 
+              ]
             },
           };
           setJobPostingChartData(mockJobPostingData);
-          
+
           // Use real monthly job application data from the backend
           const jobApplicationData = {
             labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            datasets: { 
-              label: "Job Applications", 
+            datasets: {
+              label: "Job Applications",
               data: appStatsResponse.data.monthlyData || Array(12).fill(0)
             },
           };
           setJobApplicationChartData(jobApplicationData);
-          
+
           // Fetch real daily active students data
           const studentActivityResponse = await dashboardService.getDailyActiveStudents();
           if (studentActivityResponse.success) {
             const activeStudentsData = {
               labels: studentActivityResponse.data.labels || ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-              datasets: { 
-                label: "Active Students", 
+              datasets: {
+                label: "Active Students",
                 data: studentActivityResponse.data.dailyActiveStudents || Array(7).fill(0)
               },
             };
@@ -149,8 +149,8 @@ function Dashboard() {
             // Fallback to empty data if API fails
             const emptyActiveStudentsData = {
               labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-              datasets: { 
-                label: "Active Students", 
+              datasets: {
+                label: "Active Students",
                 data: Array(7).fill(0)
               },
             };
@@ -278,11 +278,8 @@ function Dashboard() {
         </MDBox>
         <MDBox>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6} lg={8}>
+            <Grid item xs={12}>
               <Projects recentJobs={recentJobs} />
-            </Grid>
-            <Grid item xs={12} md={6} lg={4}>
-              <OrdersOverview />
             </Grid>
           </Grid>
         </MDBox>

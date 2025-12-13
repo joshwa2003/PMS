@@ -25,17 +25,20 @@ import StudentDataTable from 'components/DepartmentStudents/StudentDataTable';
 // Services
 import departmentWiseStudentService from 'services/departmentWiseStudentService';
 
-const DepartmentStudents = () => {
+// Context
+import { StudentManagementProvider } from 'context/StudentManagementContext';
+
+const DepartmentStudentsContent = () => {
   const { departmentId, batchId } = useParams();
   const navigate = useNavigate();
-  
+
   const [department, setDepartment] = useState(null);
   const [batch, setBatch] = useState(null);
   const [students, setStudents] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -44,7 +47,7 @@ const DepartmentStudents = () => {
     hasNextPage: false,
     hasPrevPage: false
   });
-  
+
   // Filters state
   const [filters, setFilters] = useState({
     search: '',
@@ -58,7 +61,7 @@ const DepartmentStudents = () => {
     try {
       setLoading(true);
       const params = newFilters || filters;
-      
+
       let response;
       if (batchId) {
         // Fetch batch-specific students
@@ -67,13 +70,13 @@ const DepartmentStudents = () => {
         // Fetch all department students (legacy support)
         response = await departmentWiseStudentService.getDepartmentStudents(departmentId, params);
       }
-      
+
       if (response.success) {
         setDepartment(response.data.department);
         setBatch(response.data.batch || null);
         setStudents(response.data.students);
         setPagination(response.data.pagination);
-        
+
         // Use statistics from backend response if available, otherwise calculate
         const stats = response.data.statistics || {
           total: response.data.pagination.totalStudents,
@@ -81,7 +84,7 @@ const DepartmentStudents = () => {
           unplaced: response.data.students.filter(s => s.placementStatus === 'Unplaced').length,
           multipleOffers: response.data.students.filter(s => s.placementStatus === 'Multiple Offers').length
         };
-        
+
         setStatistics(stats);
         setError(null);
       } else {
@@ -105,9 +108,9 @@ const DepartmentStudents = () => {
         search: '',
         status: 'all'
       };
-      
+
       const response = await departmentWiseStudentService.getDepartmentStudents(departmentId, allStudentsParams);
-      
+
       if (response.success) {
         const allStudents = response.data.students;
         const stats = {
@@ -116,7 +119,7 @@ const DepartmentStudents = () => {
           unplaced: allStudents.filter(s => s.placementStatus === 'Unplaced').length,
           multipleOffers: allStudents.filter(s => s.placementStatus === 'Multiple Offers').length
         };
-        
+
         setStatistics(stats);
       }
     } catch (error) {
@@ -167,9 +170,9 @@ const DepartmentStudents = () => {
         search: filters.search,
         status: filters.status
       };
-      
+
       const response = await departmentWiseStudentService.getDepartmentStudents(departmentId, params);
-      
+
       if (response.success) {
         departmentWiseStudentService.exportToCSV(response.data.students, `${department?.name}_students`);
       }
@@ -183,7 +186,7 @@ const DepartmentStudents = () => {
     try {
       console.log('Deleting students:', studentIds);
       const response = await departmentWiseStudentService.deleteBulkStudents(studentIds);
-      
+
       if (response.success) {
         // Refresh the student list and statistics
         await fetchDepartmentStudents();
@@ -232,15 +235,18 @@ const DepartmentStudents = () => {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar />
+      <DashboardNavbar
+        customTitle={department ? department.name : "Loading..."}
+        customRoute={['department-students', department ? department.name : "Loading..."]}
+      />
       <MDBox py={3}>
         {/* Header */}
         <MDBox mb={3}>
           <Grid container spacing={3} alignItems="center">
             <Grid item>
-              <IconButton 
+              <IconButton
                 onClick={() => navigate(batchId ? `/department-batches/${departmentId}` : '/department-wise-student-dashboard')}
-                sx={{ 
+                sx={{
                   mr: 1,
                   backgroundColor: 'rgba(0,0,0,0.04)',
                   '&:hover': {
@@ -253,17 +259,17 @@ const DepartmentStudents = () => {
             </Grid>
             <Grid item xs>
               <MDTypography variant="h4" fontWeight="medium">
-                {batchId && batch ? 
-                  `Students in ${batch.batchCode} - ${department?.name}` : 
+                {batchId && batch ?
+                  `Students in ${batch.batchCode} - ${department?.name}` :
                   `Students in ${department?.name}`
                 }
               </MDTypography>
               <MDTypography variant="body2" color="text" mt={1}>
-                {batchId && batch ? 
-                  `${batch.courseType} • ${batch.startYear}-${batch.endYear} • ${department?.placementStaff ? 
+                {batchId && batch ?
+                  `${batch.courseType} • ${batch.startYear}-${batch.endYear} • ${department?.placementStaff ?
                     `Staff: ${department.placementStaff.name}` : 'No Staff Assigned'}` :
-                  (department?.placementStaff ? 
-                    `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` : 
+                  (department?.placementStaff ?
+                    `Placement Staff: ${department.placementStaff.name} (${department.placementStaff.email})` :
                     'No Staff Assigned')
                 }
               </MDTypography>
@@ -272,7 +278,7 @@ const DepartmentStudents = () => {
         </MDBox>
 
         {/* Analytics Dashboard */}
-        <StudentAnalytics 
+        <StudentAnalytics
           department={department}
           statistics={statistics}
           loading={loading && !statistics}
@@ -296,4 +302,10 @@ const DepartmentStudents = () => {
   );
 };
 
-export default DepartmentStudents;
+export default function DepartmentStudents() {
+  return (
+    <StudentManagementProvider>
+      <DepartmentStudentsContent />
+    </StudentManagementProvider>
+  );
+}

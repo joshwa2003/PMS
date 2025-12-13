@@ -5,11 +5,11 @@ class StudentManagementService {
   async createStudent(studentData) {
     try {
       const response = await api.post('/student-management/students', studentData);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to create student');
     } catch (error) {
       throw error;
@@ -21,7 +21,7 @@ class StudentManagementService {
     try {
       console.log('🔍 Service: Creating bulk students');
       console.log('🔍 Service: Input data:', uploadDataWithBatch);
-      
+
       // Handle both old format (array) and new format (object with studentData and batchInfo)
       let requestBody;
       if (Array.isArray(uploadDataWithBatch)) {
@@ -39,24 +39,24 @@ class StudentManagementService {
 
       console.log('🔍 Service: Request body:', requestBody);
       console.log('🚀 Service: Using bulkApi with extended timeout for bulk operations');
-      
+
       // Use bulkApi instead of regular api for extended timeout (5 minutes vs 30 seconds)
       const response = await bulkApi.post('/student-management/students/bulk', requestBody);
       console.log('✅ Service: Response received:', response);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to create bulk students');
     } catch (error) {
       console.error('❌ Service: Error in createBulkStudents:', error);
-      
+
       // Provide more specific error messages for common issues
       if (error.message && error.message.includes('timeout')) {
         throw new Error('The bulk upload is taking longer than expected. This might be due to email sending. Please check if students were created and try again if needed.');
       }
-      
+
       throw error;
     }
   }
@@ -66,11 +66,11 @@ class StudentManagementService {
     try {
       const queryParams = new URLSearchParams(params).toString();
       const response = await api.get(`/student-management/students?${queryParams}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch students');
     } catch (error) {
       throw error;
@@ -81,11 +81,11 @@ class StudentManagementService {
   async getStudentStats() {
     try {
       const response = await api.get('/student-management/stats');
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch student statistics');
     } catch (error) {
       throw error;
@@ -96,12 +96,27 @@ class StudentManagementService {
   async updateStudentStatus(studentId, statusData) {
     try {
       const response = await api.put(`/student-management/students/${studentId}/status`, statusData);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to update student status');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update student details
+  async updateStudent(studentId, studentData) {
+    try {
+      const response = await api.put(`/student-management/students/${studentId}`, studentData);
+
+      if (response.success) {
+        return response;
+      }
+
+      throw new Error(response.message || 'Failed to update student');
     } catch (error) {
       throw error;
     }
@@ -111,11 +126,11 @@ class StudentManagementService {
   async deleteStudent(studentId) {
     try {
       const response = await api.delete(`/student-management/students/${studentId}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to delete student');
     } catch (error) {
       throw error;
@@ -126,20 +141,20 @@ class StudentManagementService {
   async deleteBulkStudents(studentIds) {
     try {
       console.log('🔍 Service: Deleting bulk students:', studentIds);
-      
+
       // Ensure studentIds is an array of strings (not objects)
-      const ids = Array.isArray(studentIds) 
+      const ids = Array.isArray(studentIds)
         ? studentIds.map(id => typeof id === 'object' ? id.id || id._id : id)
         : [studentIds];
-      
+
       // Log the processed IDs for debugging
       console.log('🔧 Processed student IDs for deletion:', ids);
-      
+
       // Format the request data as expected by the backend
       const requestData = { studentIds: ids };
-      
+
       console.log('📤 Sending bulk delete request with data:', JSON.stringify(requestData, null, 2));
-      
+
       const response = await api.delete('/student-management/students/bulk', {
         data: requestData,
         headers: {
@@ -147,28 +162,28 @@ class StudentManagementService {
           'Accept': 'application/json'
         }
       });
-      
+
       console.log('✅ Service: Bulk delete response:', response);
-      
+
       if (response && response.success) {
         return response;
       }
-      
+
       throw new Error(response?.message || 'Failed to delete students. Please try again.');
     } catch (error) {
       console.error('❌ Service: Error in deleteBulkStudents:', error);
-      
+
       // Extract and provide more specific error message if available
-      const errorMessage = error.response?.data?.message || 
-                         error.message || 
-                         'An error occurred while deleting students. Please try again.';
-      
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        'An error occurred while deleting students. Please try again.';
+
       console.error('❌ Error details:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data
       });
-      
+
       throw new Error(errorMessage);
     }
   }
@@ -177,11 +192,11 @@ class StudentManagementService {
   async getAllBatches() {
     try {
       const response = await api.get('/student-management/batches');
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch batches');
     } catch (error) {
       console.error('Error fetching batches:', error);
@@ -194,11 +209,11 @@ class StudentManagementService {
     try {
       const queryParams = new URLSearchParams(params).toString();
       const response = await api.get(`/student-management/batches/${batchId}/students?${queryParams}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch students for batch');
     } catch (error) {
       console.error('Error fetching students for batch:', error);
@@ -265,12 +280,12 @@ class StudentManagementService {
   // Format last login date
   formatLastLogin(lastLogin) {
     if (!lastLogin) return 'Never';
-    
+
     const date = new Date(lastLogin);
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
     if (diffDays <= 7) return `${diffDays - 1} days ago`;
@@ -346,7 +361,7 @@ class StudentManagementService {
   // Calculate profile completion percentage
   calculateProfileCompletion(student) {
     if (!student.profile) return 0;
-    
+
     let completedFields = 0;
     let totalFields = 10; // Total important fields to check
 
@@ -370,7 +385,7 @@ class StudentManagementService {
   // Format creation date
   formatCreationDate(createdAt) {
     if (!createdAt) return 'Unknown';
-    
+
     const date = new Date(createdAt);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -457,10 +472,10 @@ class StudentManagementService {
 
   getBatchStatusColor(batch) {
     if (!batch) return 'secondary';
-    
+
     if (batch.isGraduated) return 'info';
     if (!batch.isActive) return 'secondary';
-    
+
     // Based on academic status
     const status = batch.academicStatus;
     if (status && status.includes('1st Year')) return 'success';
@@ -468,16 +483,16 @@ class StudentManagementService {
     if (status && status.includes('3rd Year')) return 'error';
     if (status && status.includes('4th Year')) return 'dark';
     if (status && status.includes('Alumni')) return 'info';
-    
+
     return 'primary';
   }
 
   getBatchStatusText(batch) {
     if (!batch) return 'Unknown';
-    
+
     if (batch.isGraduated) return 'Alumni';
     if (!batch.isActive) return 'Inactive';
-    
+
     return batch.academicStatus || 'Active';
   }
 
@@ -488,10 +503,10 @@ class StudentManagementService {
 
   calculateBatchPlacementRate(batch) {
     if (!batch || !batch.stats) return 0;
-    
+
     const { totalStudents, placement } = batch.stats;
     if (totalStudents === 0) return 0;
-    
+
     const placedCount = (placement.placed || 0) + (placement.multipleOffers || 0);
     return Math.round((placedCount / totalStudents) * 100);
   }

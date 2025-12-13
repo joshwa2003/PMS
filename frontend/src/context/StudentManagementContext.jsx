@@ -165,16 +165,16 @@ const studentManagementReducer = (state, action) => {
       const newSelectedStudents = isSelected
         ? state.selectedStudents.filter(id => id !== studentId)
         : [...state.selectedStudents, studentId];
-      
+
       // Check if all current page students are selected
-      const currentPageSelected = state.students.every(student => 
+      const currentPageSelected = state.students.every(student =>
         newSelectedStudents.includes(student.id)
       );
-      
+
       // Check if all students across pages are selected
-      const allAcrossPagesCurrentlySelected = state.selectAllAcrossPages && 
+      const allAcrossPagesCurrentlySelected = state.selectAllAcrossPages &&
         state.allStudentIds.every(id => newSelectedStudents.includes(id));
-      
+
       return {
         ...state,
         selectedStudents: newSelectedStudents,
@@ -186,8 +186,8 @@ const studentManagementReducer = (state, action) => {
       const allSelected = state.selectAll;
       return {
         ...state,
-        selectedStudents: allSelected ? 
-          state.selectedStudents.filter(id => !state.students.map(s => s.id).includes(id)) : 
+        selectedStudents: allSelected ?
+          state.selectedStudents.filter(id => !state.students.map(s => s.id).includes(id)) :
           [...new Set([...state.selectedStudents, ...state.students.map(student => student.id)])],
         selectAll: !allSelected,
         selectAllAcrossPages: false // Reset cross-page selection when toggling current page
@@ -326,6 +326,25 @@ export const StudentManagementProvider = ({ children }) => {
     }
   }, [clearError]);
 
+  // Update student details
+  const updateStudent = useCallback(async (studentId, studentData) => {
+    try {
+      dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      clearError();
+
+      const response = await studentManagementService.updateStudent(studentId, studentData);
+
+      // Update the student in the local state
+      dispatch({ type: actionTypes.UPDATE_STUDENT, payload: response.student });
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+
+      return response;
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_ERROR, payload: error.message });
+      throw error;
+    }
+  }, [clearError]);
+
   // Update student status
   const updateStudentStatus = useCallback(async (studentId, statusData) => {
     try {
@@ -394,7 +413,7 @@ export const StudentManagementProvider = ({ children }) => {
         status: state.filters.status !== 'all' ? state.filters.status : '',
         placementStatus: state.filters.placementStatus !== 'all' ? state.filters.placementStatus : ''
       });
-      
+
       const allIds = response.students.map(student => student.id);
       dispatch({ type: actionTypes.SET_ALL_STUDENT_IDS, payload: allIds });
       return allIds;
@@ -511,8 +530,11 @@ export const StudentManagementProvider = ({ children }) => {
     fetchStudents,
     createStudent,
     createBulkStudents,
+
+    updateStudent,
     updateStudentStatus,
     deleteStudent,
+
     deleteBulkStudents,
     fetchStudentStats,
     updateFilters,

@@ -37,6 +37,7 @@ import ExportMenu from 'components/ExportMenu';
 
 // Services
 import { formatSalary, getDaysUntilDeadline, getJobStatusColor, getApplicationStatusColor } from 'services/jobService';
+import placementStaffProfileApi from 'services/placementStaffProfileService';
 
 // Tab panel component
 function TabPanel({ children, value, index, ...other }) {
@@ -149,12 +150,34 @@ function JobMonitoring() {
     }
   };
 
-  const handleViewJobAnalytics = (job) => {
-    // For placement staff, show batch-wise analytics
-    // For admin/director, show department-wise analytics
+  const handleViewJobAnalytics = async (job) => {
+    // For placement staff, navigate directly to their department's applications
     if (user?.role === 'placement_staff') {
-      navigate(`/job-monitoring/${job._id}/batches`);
+      try {
+        // Get the user's department from their placement staff profile
+        const profile = await placementStaffProfileApi.getProfile();
+        console.log('Profile data:', profile);
+        
+        if (profile && profile.department) {
+          // Navigate to department applications page
+          navigate(`/job-monitoring/${job._id}/department/${profile.department}`);
+        } else {
+          setAlert({
+            show: true,
+            message: 'Department information not found in profile',
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setAlert({
+          show: true,
+          message: error.message || 'Failed to load department information',
+          type: 'error'
+        });
+      }
     } else {
+      // Admin/director use analytics view
       navigate(`/job-monitoring/${job._id}/analytics`);
     }
   };

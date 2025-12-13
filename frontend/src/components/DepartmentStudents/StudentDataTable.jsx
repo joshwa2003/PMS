@@ -28,7 +28,7 @@ import {
   DialogActions,
   Alert
 } from '@mui/material';
-import { 
+import {
   Search as SearchIcon,
   Clear as ClearIcon,
   Refresh as RefreshIcon,
@@ -44,29 +44,91 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
+// Material Dashboard 2 React context
+import { useMaterialUIController } from "context";
+
 // Custom components
 import CustomDataTable from "components/StaffManagement/CustomDataTable";
 import StudentDetailsModal from "./StudentDetailsModal";
+
 import studentTableData from "./data/studentTableData";
+import { useStudentManagement } from '../../context/StudentManagementContext';
 
 
-const StudentDataTable = ({ 
-  students = [], 
-  loading = false, 
+const StudentDataTable = ({
+  students = [],
+  loading = false,
   error = null,
   pagination = {},
   onPageChange,
   onRowsPerPageChange,
   onRefresh,
   onExportCSV,
-  onBulkDelete,
   department
 }) => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const navigate = useNavigate();
-  
-  // State for student detail modal
+
+  const {
+    updateStudent,
+    deleteStudent,
+    deleteBulkStudents
+  } = useStudentManagement();
+
+  // Local state for actions
+  const [actionSuccess, setActionSuccess] = useState(null);
+  const [actionError, setActionError] = useState(null);
+
+  // State for detail modal
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  
+  const [studentToEdit, setStudentToEdit] = useState(null);
+
+  // Handle save student
+  const handleSaveStudent = async (studentId, studentData) => {
+    try {
+      setActionError(null);
+      await updateStudent(studentId, studentData);
+
+      // Update local state to reflect changes immediately in the modal
+      if (studentToEdit && studentToEdit.id === studentId) {
+        setStudentToEdit(prev => ({
+          ...prev,
+          ...studentData,
+          // Handle nested updates if any (e.g., studentData might be flat but structure is nested)
+          profile: {
+            ...prev.profile,
+            ...((studentData.program || studentData.department) && {
+              academic: {
+                ...prev.profile?.academic,
+                ...(studentData.program && { program: studentData.program }),
+                ...(studentData.department && { department: studentData.department })
+              }
+            }),
+            ...(studentData.placementStatus && {
+              placement: {
+                ...prev.profile?.placement,
+                placementStatus: studentData.placementStatus
+              }
+            })
+          }
+        }));
+      }
+
+      setActionSuccess("Student updated successfully");
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      const errMsg = err.message || "Failed to update student";
+      setActionError(errMsg);
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setActionError(null), 5000);
+      throw err; // Propagate to modal
+    }
+  };
+
+
+
   // State for bulk delete confirmation
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -76,7 +138,6 @@ const StudentDataTable = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     placementStatus: '',
-    program: '',
     status: ''
   });
   const [sortOrder, setSortOrder] = useState('asc');
@@ -109,10 +170,7 @@ const StudentDataTable = ({
       filtered = filtered.filter(student => student.placementStatus === filters.placementStatus);
     }
 
-    // Apply program filter
-    if (filters.program) {
-      filtered = filtered.filter(student => student.program === filters.program);
-    }
+
 
     // Apply status filter
     if (filters.status) {
@@ -149,7 +207,6 @@ const StudentDataTable = ({
     setSearchTerm('');
     setFilters({
       placementStatus: '',
-      program: '',
       status: ''
     });
   };
@@ -168,6 +225,19 @@ const StudentDataTable = ({
   const handleDisplayModeChange = (event, newMode) => {
     if (newMode !== null && newMode !== displayMode) {
       setDisplayMode(newMode);
+
+      if (newMode === 'all') {
+        const total = pagination.totalStudents || 1000;
+        setItemsPerPage(total);
+        if (onRowsPerPageChange) {
+          onRowsPerPageChange({ target: { value: total } });
+        }
+      } else {
+        setItemsPerPage(10);
+        if (onRowsPerPageChange) {
+          onRowsPerPageChange({ target: { value: 10 } });
+        }
+      }
     }
   };
 
@@ -183,7 +253,6 @@ const StudentDataTable = ({
     let count = 0;
     if (searchTerm) count++;
     if (filters.placementStatus) count++;
-    if (filters.program) count++;
     if (filters.status) count++;
     return count;
   };
@@ -198,16 +267,29 @@ const StudentDataTable = ({
     navigate(`/placement-director/student-profile/${student.id || student._id}`);
   };
 
-  // Handle edit student (placeholder)
+
+
+  // Handle edit student - open modal
   const handleEditStudent = (student) => {
     console.log('Edit student:', student);
-    // TODO: Implement edit functionality
+    setStudentToEdit(student);
+    setDetailModalOpen(true);
   };
 
-  // Handle delete student (placeholder)
-  const handleDeleteStudent = (student) => {
-    console.log('Delete student:', student);
-    // TODO: Implement delete functionality
+  // Handle delete student
+  const handleDeleteStudent = async (student) => {
+    if (!window.confirm(`Are you sure you want to delete ${student.name}?`)) return;
+
+    try {
+      setActionError(null);
+      await deleteStudent(student.id || student._id);
+      setActionSuccess("Student deleted successfully");
+      setTimeout(() => setActionSuccess(null), 3000);
+      setDetailModalOpen(false);
+    } catch (err) {
+      setActionError(err.message || 'Failed to delete student');
+      setTimeout(() => setActionError(null), 5000);
+    }
   };
 
   // Handle student selection
@@ -216,10 +298,10 @@ const StudentDataTable = ({
       const newSelection = prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId];
-      
+
       // Update select all state
       setSelectAll(newSelection.length === filteredStudents.length && filteredStudents.length > 0);
-      
+
       return newSelection;
     });
   };
@@ -251,18 +333,18 @@ const StudentDataTable = ({
 
   // Handle bulk delete confirmation
   const handleBulkDeleteConfirm = async () => {
-    if (!onBulkDelete || selectedStudents.length === 0) return;
-    
+    if (selectedStudents.length === 0) return;
+
     try {
       setDeleting(true);
       setDeleteError(null);
-      
-      await onBulkDelete(selectedStudents);
-      
+
+      await deleteBulkStudents(selectedStudents);
+
       // Close dialog and clear selection
       setDeleteDialogOpen(false);
       clearSelection();
-      
+
       // Show success message (you can add a snackbar here)
       console.log('Successfully deleted students');
     } catch (error) {
@@ -281,14 +363,13 @@ const StudentDataTable = ({
     }
   };
 
-  // Get unique programs for filter
-  const availablePrograms = [...new Set(students.map(s => s.program).filter(Boolean))];
+
 
   // Get table data
   const { columns, rows } = studentTableData(
     filteredStudents,
     handleViewDetails,
-    handleEditStudent,
+    handleEditStudent, // Restored edit functionality
     handleDeleteStudent,
     null, // handleToggleStatus - not implemented yet
     {
@@ -331,6 +412,18 @@ const StudentDataTable = ({
       <Card>
         {/* Search and Filters Section - ABOVE the blue header */}
         <MDBox p={3} pb={0}>
+          {/* Action Alerts */}
+          {actionSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setActionSuccess(null)}>
+              {actionSuccess}
+            </Alert>
+          )}
+          {actionError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
+              {actionError}
+            </Alert>
+          )}
+
           <Grid container spacing={2} alignItems="center">
             {/* Search */}
             <Grid item xs={12} md={4}>
@@ -340,7 +433,7 @@ const StudentDataTable = ({
                 value={searchTerm}
                 onChange={handleSearchChange}
                 size="small"
-                sx={{ 
+                sx={{
                   height: '40px',
                   '& .MuiOutlinedInput-root': {
                     height: '40px',
@@ -378,7 +471,7 @@ const StudentDataTable = ({
                   value={filters.placementStatus}
                   onChange={handleFilterChange('placementStatus')}
                   label="Placement Status"
-                  sx={{ 
+                  sx={{
                     height: '40px',
                     minHeight: '40px',
                     '& .MuiSelect-select': {
@@ -392,39 +485,11 @@ const StudentDataTable = ({
                   <MenuItem value="">All Status</MenuItem>
                   <MenuItem value="Placed">Placed</MenuItem>
                   <MenuItem value="Unplaced">Unplaced</MenuItem>
-                  <MenuItem value="Multiple Offers">Multiple Offers</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
-            {/* Program Filter */}
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth size="small" sx={{ height: '40px' }}>
-                <InputLabel sx={{ top: '-7px' }}>Program</InputLabel>
-                <Select
-                  value={filters.program}
-                  onChange={handleFilterChange('program')}
-                  label="Program"
-                  sx={{ 
-                    height: '40px',
-                    minHeight: '40px',
-                    '& .MuiSelect-select': {
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      lineHeight: '20px'
-                    }
-                  }}
-                >
-                  <MenuItem value="">All Programs</MenuItem>
-                  {availablePrograms.map((program) => (
-                    <MenuItem key={program} value={program}>
-                      {program}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+
 
             {/* Status Filter */}
             <Grid item xs={12} md={2}>
@@ -434,7 +499,7 @@ const StudentDataTable = ({
                   value={filters.status}
                   onChange={handleFilterChange('status')}
                   label="Status"
-                  sx={{ 
+                  sx={{
                     height: '40px',
                     minHeight: '40px',
                     '& .MuiSelect-select': {
@@ -462,13 +527,19 @@ const StudentDataTable = ({
                 disabled={getActiveFiltersCount() === 0}
                 startIcon={<ClearIcon />}
                 size="small"
-                sx={{ 
+                sx={{
                   height: '40px',
                   minHeight: '40px',
                   padding: '8.5px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: darkMode ? 'white' : 'inherit',
+                  borderColor: darkMode ? 'rgba(255,255,255,0.3)' : undefined,
+                  '&:hover': {
+                    borderColor: darkMode ? 'white' : undefined,
+                    backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : undefined
+                  }
                 }}
               >
                 Clear ({getActiveFiltersCount()})
@@ -499,14 +570,7 @@ const StudentDataTable = ({
                     variant="outlined"
                   />
                 )}
-                {filters.program && (
-                  <Chip
-                    label={`Program: ${filters.program}`}
-                    onDelete={() => handleFilterChange('program')({ target: { value: '' } })}
-                    size="small"
-                    variant="outlined"
-                  />
-                )}
+
                 {filters.status && (
                   <Chip
                     label={`Status: ${filters.status === 'active' ? 'Active' : 'Inactive'}`}
@@ -521,15 +585,15 @@ const StudentDataTable = ({
 
           {/* Results Summary and Display Controls */}
           <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              {displayMode === 'paginated' 
+            <Typography variant="body2" sx={{ color: darkMode ? "#ffffff !important" : "text.secondary", opacity: darkMode ? 0.9 : 1 }}>
+              {displayMode === 'paginated'
                 ? `Showing ${filteredStudents.length} of ${pagination.totalStudents || students.length} students • Page ${pagination.currentPage || 1} of ${pagination.totalPages || 1}`
                 : `Showing ${filteredStudents.length} students`
               }
               {getActiveFiltersCount() > 0 && ' (filtered)'}
               {selectedStudents.length > 0 && ` • ${selectedStudents.length} selected`}
             </Typography>
-            
+
             {/* Display Mode Controls */}
             <Box display="flex" alignItems="center" gap={2}>
               {/* Export Button */}
@@ -552,7 +616,20 @@ const StudentDataTable = ({
                 exclusive
                 onChange={handleDisplayModeChange}
                 size="small"
-                sx={{ height: '32px' }}
+                sx={{
+                  height: '32px',
+                  '& .MuiToggleButton-root': {
+                    color: darkMode ? '#ffffff !important' : 'inherit',
+                    borderColor: darkMode ? 'rgba(255,255,255,0.3) !important' : 'inherit',
+                    '&.Mui-selected': {
+                      backgroundColor: darkMode ? 'rgba(255,255,255,0.2) !important' : 'rgba(0,0,0,0.08)',
+                      color: darkMode ? '#ffffff !important' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: darkMode ? 'rgba(255,255,255,0.3) !important' : 'rgba(0,0,0,0.12)',
+                      }
+                    }
+                  }
+                }}
               >
                 <ToggleButton value="all" sx={{ px: 2 }}>
                   <ViewListIcon sx={{ mr: 1, fontSize: '1rem' }} />
@@ -584,7 +661,7 @@ const StudentDataTable = ({
                   checked={selectAll}
                   indeterminate={selectedStudents.length > 0 && selectedStudents.length < filteredStudents.length}
                   onChange={handleSelectAllChange}
-                  sx={{ 
+                  sx={{
                     color: 'white',
                     '&.Mui-checked': { color: 'white' },
                     '&.MuiCheckbox-indeterminate': { color: 'white' }
@@ -594,7 +671,7 @@ const StudentDataTable = ({
                   {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected
                 </Typography>
               </Box>
-              
+
               <Box display="flex" alignItems="center" gap={1}>
                 <Tooltip title="Clear Selection">
                   <IconButton onClick={clearSelection} sx={{ color: 'white' }}>
@@ -602,7 +679,7 @@ const StudentDataTable = ({
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Delete Selected Students">
-                  <IconButton 
+                  <IconButton
                     onClick={handleBulkDeleteClick}
                     disabled={selectedStudents.length === 0}
                     sx={{ color: 'white' }}
@@ -633,7 +710,7 @@ const StudentDataTable = ({
                   checked={selectAll}
                   indeterminate={selectedStudents.length > 0 && selectedStudents.length < filteredStudents.length}
                   onChange={handleSelectAllChange}
-                  sx={{ 
+                  sx={{
                     color: 'white',
                     '&.Mui-checked': { color: 'white' },
                     '&.MuiCheckbox-indeterminate': { color: 'white' },
@@ -674,7 +751,7 @@ const StudentDataTable = ({
               noEndBorder
             />
           )}
-          
+
           {/* Pagination Controls */}
           {displayMode === 'paginated' && pagination && (
             <Box mt={3} mb={2}>
@@ -686,6 +763,27 @@ const StudentDataTable = ({
                 rowsPerPage={itemsPerPage}
                 onRowsPerPageChange={handleItemsPerPageChange}
                 rowsPerPageOptions={[5, 10, 25, 50]}
+                sx={{
+                  color: darkMode ? "#ffffff !important" : "inherit",
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                    color: darkMode ? "#ffffff !important" : "inherit",
+                  },
+                  "& .MuiTablePagination-select": {
+                    color: darkMode ? "#ffffff !important" : "inherit",
+                  },
+                  "& .MuiTablePagination-selectIcon": {
+                    color: darkMode ? "#ffffff !important" : "inherit",
+                  },
+                  "& .MuiTablePagination-actions": {
+                    color: darkMode ? "#ffffff !important" : "inherit",
+                  },
+                  "& .MuiIconButton-root": {
+                    color: darkMode ? "#ffffff !important" : "inherit",
+                    "&.Mui-disabled": {
+                      color: darkMode ? "rgba(255,255,255,0.3) !important" : "rgba(0,0,0,0.26) !important"
+                    }
+                  }
+                }}
               />
             </Box>
           )}
@@ -695,12 +793,16 @@ const StudentDataTable = ({
       {/* Student Detail Modal */}
       <StudentDetailsModal
         open={detailModalOpen}
-        onClose={() => setDetailModalOpen(false)}
-        student={null}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setStudentToEdit(null);
+        }}
+        student={studentToEdit}
         onEditStudent={handleEditStudent}
+        onSaveStudent={handleSaveStudent}
         onDeleteStudent={handleDeleteStudent}
-        canEdit={false} // TODO: Implement based on user permissions
-        canDelete={false} // TODO: Implement based on user permissions
+        canEdit={true}
+        canDelete={true}
       />
 
       {/* Bulk Delete Confirmation Dialog */}
@@ -725,15 +827,15 @@ const StudentDataTable = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={handleDeleteDialogClose} 
+          <Button
+            onClick={handleDeleteDialogClose}
             disabled={deleting}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleBulkDeleteConfirm} 
-            color="error" 
+          <Button
+            onClick={handleBulkDeleteConfirm}
+            color="error"
             variant="contained"
             disabled={deleting}
           >

@@ -957,6 +957,10 @@ const getJobAnalytics = async (req, res) => {
 // Get job analytics by department
 const getJobAnalyticsByDepartment = async (req, res) => {
   try {
+    console.log('🚀 getJobAnalyticsByDepartment called!');
+    console.log('🚀 Request params:', req.params);
+    console.log('🚀 User:', req.user ? { id: req.user._id, role: req.user.role, email: req.user.email } : 'No user');
+    
     const { jobId } = req.params;
 
     console.log('📊 Fetching job analytics by department for job:', jobId);
@@ -1098,10 +1102,14 @@ const getJobAnalyticsByDepartment = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error fetching job analytics by department:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Error fetching job analytics by department',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -1109,6 +1117,7 @@ const getJobAnalyticsByDepartment = async (req, res) => {
 // Get applications for specific department and job
 const getJobApplicationsByDepartment = async (req, res) => {
   try {
+    console.log('🚀 getJobApplicationsByDepartment called!');
     const { jobId, departmentId } = req.params;
     const { page = 1, limit = 10, batchId } = req.query;
 
@@ -1132,14 +1141,31 @@ const getJobApplicationsByDepartment = async (req, res) => {
       });
     }
 
-    // Verify department exists
-    const department = await Department.findById(departmentId);
+    // Verify department exists - handle both ObjectId and department code
+    let department;
+    try {
+      // Try to find by ObjectId first
+      if (mongoose.Types.ObjectId.isValid(departmentId)) {
+        department = await Department.findById(departmentId);
+      }
+    } catch (err) {
+      console.log('Not a valid ObjectId, trying by code...');
+    }
+    
+    // If not found by ID, try by code
+    if (!department) {
+      department = await Department.findOne({ code: departmentId });
+    }
+    
     if (!department) {
       return res.status(404).json({
         success: false,
         message: 'Department not found'
       });
     }
+    
+    console.log('✅ Department found:', department.name, '(', department.code, ')');
+
 
     // For placement_staff, verify they can only access their own department
     if (req.user.role === 'placement_staff') {
@@ -1177,12 +1203,16 @@ const getJobApplicationsByDepartment = async (req, res) => {
       }
       
       // Check if the requested department matches staff's department
-      if (staffDepartment._id.toString() !== departmentId) {
+      // Compare using ObjectIds (department was already resolved above)
+      if (staffDepartment._id.toString() !== department._id.toString()) {
+        console.log('❌ Department mismatch! Staff:', staffDepartment.name, 'Requested:', department.name);
         return res.status(403).json({
           success: false,
           message: 'You can only view applications from your own department'
         });
       }
+      
+      console.log('✅ Department access granted for:', staffDepartment.name);
       
       console.log('🔒 Placement staff accessing their department:', staffDepartment.name, '(', staffDepartment.code, ')');
     }
@@ -1193,7 +1223,7 @@ const getJobApplicationsByDepartment = async (req, res) => {
     // Build query for applications - ONLY students who actually applied
     const applicationQuery = { 
       job: jobId, 
-      department: departmentId,
+      department: department._id,
       status: 'Applied' // Only show students who actually applied
     };
     
@@ -1269,7 +1299,7 @@ const getJobApplicationsByDepartment = async (req, res) => {
     // Get department statistics - ONLY for applied students (with batch filter if provided)
     const departmentStatsQuery = { 
       job: new mongoose.Types.ObjectId(jobId), 
-      department: new mongoose.Types.ObjectId(departmentId),
+      department: department._id, // Use the resolved department ObjectId
       status: 'Applied' // Only count students who actually applied
     };
     
@@ -1330,10 +1360,13 @@ const getJobApplicationsByDepartment = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error fetching department applications:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching department applications',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

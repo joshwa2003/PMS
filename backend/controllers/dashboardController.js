@@ -29,7 +29,8 @@ class DashboardController {
       // Get department details
       const department = await Department.findById(departmentId)
         .populate('placementStaff', 'firstName lastName email')
-        .populate('courseCategory', 'name');
+        .populate('courseCategory', 'name')
+        .lean();
 
       if (!department) {
         return res.status(404).json({
@@ -38,13 +39,29 @@ class DashboardController {
         });
       }
 
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      if (!department.placementStaff) {
+        const staff = await User.findOne({
+          department: department._id,
+          role: 'placement_staff',
+          isActive: true
+        }).select('firstName lastName email').lean();
+
+        if (staff) {
+          department.placementStaff = staff;
+          console.log('Found assigned placement staff (fallback):', staff.email);
+        }
+      }
+
       console.log('Department found:', { name: department.name, code: department.code });
 
       // First, let's check what students exist and their department values
       const allStudents = await Student.find({})
         .select('academic.department personalInfo.fullName studentId')
         .limit(10);
-      
+
       console.log('Sample students and their departments:');
       allStudents.forEach(student => {
         console.log(`Student ${student.studentId}: department = "${student.academic?.department}"`);
@@ -189,7 +206,8 @@ class DashboardController {
       // Get department details
       const department = await Department.findById(departmentId)
         .populate('placementStaff', 'firstName lastName email')
-        .populate('courseCategory', 'name');
+        .populate('courseCategory', 'name')
+        .lean();
 
       if (!department) {
         return res.status(404).json({
@@ -198,16 +216,32 @@ class DashboardController {
         });
       }
 
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      if (!department.placementStaff) {
+        const staff = await User.findOne({
+          department: department._id,
+          role: 'placement_staff',
+          isActive: true
+        }).select('firstName lastName email').lean();
+
+        if (staff) {
+          department.placementStaff = staff;
+          console.log('Found assigned placement staff (fallback):', staff.email);
+        }
+      }
+
       console.log('Department found:', { name: department.name, code: department.code });
 
       // Get all batches for this department
       const Batch = require('../models/Batch');
-      const batches = await Batch.find({ 
+      const batches = await Batch.find({
         department: departmentId
       })
-      .select('batchCode startYear endYear courseType courseDuration isActive isGraduated')
-      .sort({ startYear: -1 }) // Most recent first
-      .lean();
+        .select('batchCode startYear endYear courseType courseDuration isActive isGraduated')
+        .sort({ startYear: -1 }) // Most recent first
+        .lean();
 
       console.log(`Found ${batches.length} batches for department ${department.name}`);
 
@@ -221,8 +255,8 @@ class DashboardController {
             batchId: batch._id,
             'academic.department': { $in: [department.name, department.code] }
           })
-          .select('placement.placementStatus')
-          .lean();
+            .select('placement.placementStatus')
+            .lean();
 
           // Calculate placement statistics
           const placementSummary = {
@@ -232,7 +266,7 @@ class DashboardController {
           };
 
           const totalStudents = studentsInBatch.length;
-          const placementRate = totalStudents > 0 ? 
+          const placementRate = totalStudents > 0 ?
             Math.round(((placementSummary.placed + placementSummary.multipleOffers) / totalStudents) * 100) : 0;
 
           console.log(`Batch ${batch.batchCode}: Found ${totalStudents} students (Placed: ${placementSummary.placed}, Unplaced: ${placementSummary.unplaced})`);
@@ -340,7 +374,8 @@ class DashboardController {
       const [department, batch] = await Promise.all([
         Department.findById(departmentId)
           .populate('placementStaff', 'firstName lastName email')
-          .populate('courseCategory', 'name'),
+          .populate('courseCategory', 'name')
+          .lean(),
         require('../models/Batch').findById(batchId).populate('department', 'name code')
       ]);
 
@@ -358,9 +393,25 @@ class DashboardController {
         });
       }
 
-      console.log('Department and batch found:', { 
-        departmentName: department.name, 
-        batchCode: batch.batchCode 
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      // Fallback: If placementStaff is not set, look for a user with role 'placement_staff' assigned to this department
+      if (!department.placementStaff) {
+        const staff = await User.findOne({
+          department: department._id,
+          role: 'placement_staff',
+          isActive: true
+        }).select('firstName lastName email').lean();
+
+        if (staff) {
+          department.placementStaff = staff;
+          console.log('Found assigned placement staff (fallback):', staff.email);
+        }
+      }
+
+      console.log('Department and batch found:', {
+        departmentName: department.name,
+        batchCode: batch.batchCode
       });
 
       // Build query for students - match by department and batch
@@ -548,54 +599,54 @@ class DashboardController {
 
   // Get daily active students for the past week
   async getDailyActiveStudents(req, res) {
-  try {
-    // Check if user has permission
-    if (!['admin', 'placement_director'].includes(req.user.role)) {
-      return res.status(403).json({
+    try {
+      // Check if user has permission
+      if (!['admin', 'placement_director'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Only administrators and placement directors can view this data.'
+        });
+      }
+
+      // Get current date and date 7 days ago
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 6); // Get data for past 7 days (including today)
+
+      // Initialize data array for each day of the week (Sunday to Saturday)
+      const dailyData = Array(7).fill(0);
+
+      // Query users with login activity in the past week
+      const users = await User.find({
+        role: 'student',
+        lastLogin: { $gte: startDate, $lte: endDate }
+      });
+
+      // Count logins for each day
+      users.forEach(user => {
+        if (user.lastLogin) {
+          const dayOfWeek = user.lastLogin.getDay(); // 0 = Sunday, 6 = Saturday
+          dailyData[dayOfWeek]++;
+        }
+      });
+
+      // Return the data
+      return res.status(200).json({
+        success: true,
+        data: {
+          labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+          dailyActiveStudents: dailyData,
+          totalActiveStudents: users.length
+        }
+      });
+    } catch (error) {
+      console.error('Error getting daily active students:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Access denied. Only administrators and placement directors can view this data.'
+        message: 'Error getting daily active students',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
       });
     }
-    
-    // Get current date and date 7 days ago
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 6); // Get data for past 7 days (including today)
-    
-    // Initialize data array for each day of the week (Sunday to Saturday)
-    const dailyData = Array(7).fill(0);
-    
-    // Query users with login activity in the past week
-    const users = await User.find({
-      role: 'student',
-      lastLogin: { $gte: startDate, $lte: endDate }
-    });
-    
-    // Count logins for each day
-    users.forEach(user => {
-      if (user.lastLogin) {
-        const dayOfWeek = user.lastLogin.getDay(); // 0 = Sunday, 6 = Saturday
-        dailyData[dayOfWeek]++;
-      }
-    });
-    
-    // Return the data
-    return res.status(200).json({
-      success: true,
-      data: {
-        labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        dailyActiveStudents: dailyData,
-        totalActiveStudents: users.length
-      }
-    });
-  } catch (error) {
-    console.error('Error getting daily active students:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error getting daily active students',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
-    });
-  }
   }
 }
 

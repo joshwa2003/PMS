@@ -32,7 +32,7 @@ const studentTableData = (
   const getInitials = (student) => {
     const name = student.name || '';
     const parts = name.split(' ');
-    return parts.length >= 2 ? 
+    return parts.length >= 2 ?
       `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase() :
       name.charAt(0).toUpperCase();
   };
@@ -90,12 +90,7 @@ const studentTableData = (
       width: '250px',
       align: 'left'
     },
-    {
-      Header: 'Program',
-      accessor: 'program',
-      width: '150px',
-      align: 'center'
-    },
+
     {
       Header: 'CGPA',
       accessor: 'cgpa',
@@ -152,11 +147,11 @@ const studentTableData = (
 
       // Student info with avatar - Make clickable
       student: (
-        <MDBox 
-          display="flex" 
-          alignItems="center" 
+        <MDBox
+          display="flex"
+          alignItems="center"
           lineHeight={1}
-          sx={{ 
+          sx={{
             cursor: handleRowClick ? 'pointer' : 'default',
             '&:hover': handleRowClick ? {
               backgroundColor: 'rgba(0, 123, 255, 0.04)',
@@ -208,20 +203,13 @@ const studentTableData = (
         </MDBox>
       ),
 
-      // Program
-      program: (
-        <MDBox textAlign="center">
-          <MDTypography variant="caption" color="text">
-            {student.program || 'Not Specified'}
-          </MDTypography>
-        </MDBox>
-      ),
+
 
       // CGPA
       cgpa: (
         <MDBox textAlign="center">
-          <MDTypography 
-            variant="caption" 
+          <MDTypography
+            variant="caption"
             fontWeight="medium"
             color={student.cgpa >= 8 ? 'success' : student.cgpa >= 6 ? 'warning' : 'error'}
           >
@@ -266,12 +254,12 @@ const studentTableData = (
       lastUpdated: (
         <MDBox textAlign="center">
           <MDTypography variant="caption" color="text">
-            {student.createdAt ? 
+            {student.createdAt ?
               new Date(student.createdAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric'
-              }) : 
+              }) :
               'N/A'
             }
           </MDTypography>

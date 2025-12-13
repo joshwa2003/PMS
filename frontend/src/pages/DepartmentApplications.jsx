@@ -107,7 +107,12 @@ function DepartmentApplications() {
   };
 
   const handleBackToAnalytics = () => {
-    navigate(`/job-monitoring/${jobId}/analytics`);
+    // Placement staff should go back to Job Monitoring, not Analytics
+    if (user?.role === 'placement_staff') {
+      navigate('/job-monitoring');
+    } else {
+      navigate(`/job-monitoring/${jobId}/analytics`);
+    }
   };
 
   const handleViewApplication = (application) => {
@@ -265,11 +270,11 @@ function DepartmentApplications() {
   return (
     <DashboardLayout>
       <DashboardNavbar 
-        customTitle={departmentData?.name || 'Department'}
-        customRoute={['job-monitoring', jobData?.title || jobId, 'department', departmentData?.name || departmentId]}
+        customTitle="Department Applications"
+        customRoute={['Job Monitoring', 'Department', departmentData?.code || departmentId]}
       />
       
-      <MDBox py={3}>
+      <MDBox pt={6} pb={3}>
         {/* Header */}
         <MDBox mb={3}>
           <Grid container spacing={3} alignItems="center">
@@ -295,9 +300,9 @@ function DepartmentApplications() {
                   variant="outlined"
                   color="info"
                   startIcon={<AssessmentIcon />}
-                  onClick={() => navigate(`/job-monitoring/${jobId}/analytics`)}
+                  onClick={handleBackToAnalytics}
                 >
-                  Back to Analytics
+                  {user?.role === 'placement_staff' ? 'Back to Job Monitoring' : 'Back to Analytics'}
                 </MDButton>
               </MDBox>
             </Grid>

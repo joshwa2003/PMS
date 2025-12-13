@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Job = require('../models/Job');
 const JobApplication = require('../models/JobApplication');
 const JobView = require('../models/JobView');
@@ -9,7 +10,7 @@ const Department = require('../models/Department');
 const getAllJobs = async (req, res) => {
   try {
     console.log('📋 Fetching jobs - Request params:', req.query);
-    console.log('👤 User making request:', req.user ? { id: req.user._id, role: req.user.role } : 'No user');
+    console.log('👤 User making request:', req.user ? { id: req.user._id, role: req.user.role, email: req.user.email } : 'No user');
 
     const { 
       page = 1, 
@@ -28,8 +29,56 @@ const getAllJobs = async (req, res) => {
     
     // Role-based filtering
     if (req.user.role === 'placement_staff') {
-      // Placement staff can only see jobs, not create them
+      // Placement staff can only see jobs for their department
       filter.status = { $in: ['Active', 'Closed', 'Expired'] };
+      
+      // Get placement staff's department
+      const PlacementStaffProfile = require('../models/PlacementStaffProfile');
+      const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
+      
+      if (staffProfile && staffProfile.department) {
+        // Department can be stored as either ObjectId or string code
+        // Need to find the actual Department document
+        const Department = require('../models/Department');
+        let department;
+        
+        // Try to find by ObjectId first
+        try {
+          if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
+            department = await Department.findById(staffProfile.department);
+          }
+        } catch (err) {
+          console.log('Not a valid ObjectId, trying by code...');
+        }
+        
+        // If not found by ID, try by code
+        if (!department) {
+          department = await Department.findOne({ code: staffProfile.department });
+        }
+        
+        if (department) {
+          console.log('🔒 Placement staff department filter:', department.name, '(', department.code, ')');
+          console.log('🔒 Department ObjectId:', department._id);
+          
+          // Filter jobs to only show those targeting this department OR posted to all departments
+          filter.$or = [
+            { postingType: 'All Departments' },
+            { targetDepartments: department._id },
+            { 'eligibility.departments': department._id }
+          ];
+          
+          console.log('🔒 Applied filter:', JSON.stringify(filter, null, 2));
+        } else {
+          console.warn('⚠️ Department not found in database:', staffProfile.department);
+          console.warn('⚠️ Staff profile department value:', staffProfile.department, 'Type:', typeof staffProfile.department);
+          // If department not found, show no jobs
+          filter._id = null;
+        }
+      } else {
+        console.warn('⚠️ Placement staff has no department assigned - showing no jobs');
+        // If no department, show no jobs
+        filter._id = null;
+      }
     } else if (req.user.role === 'student') {
       // Students can only see active jobs for their department
       filter.status = 'Active';
@@ -140,13 +189,52 @@ const getAllJobs = async (req, res) => {
 
     console.log('✅ Jobs found:', jobs.length);
 
+    // Get staff department for filtering application counts (if placement staff)
+    let staffDepartmentId = null;
+    if (req.user.role === 'placement_staff') {
+      const PlacementStaffProfile = require('../models/PlacementStaffProfile');
+      const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
+      if (staffProfile && staffProfile.department) {
+        // Department can be stored as either ObjectId or string code
+        const Department = require('../models/Department');
+        let department;
+        
+        // Try to find by ObjectId first
+        try {
+          if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
+            department = await Department.findById(staffProfile.department);
+          }
+        } catch (err) {
+          // Not a valid ObjectId
+        }
+        
+        // If not found by ID, try by code
+        if (!department) {
+          department = await Department.findOne({ code: staffProfile.department });
+        }
+        
+        if (department) {
+          staffDepartmentId = department._id;
+          console.log('🔒 Filtering application counts by department:', department.name);
+        }
+      }
+    }
+
     // Calculate actual application counts for each job
     const jobsWithRealCounts = await Promise.all(jobs.map(async (job) => {
-      // Count actual applications with status 'Applied'
-      const actualApplicationCount = await JobApplication.countDocuments({
+      // Build query for counting applications
+      const applicationQuery = {
         job: job._id,
         status: 'Applied'
-      });
+      };
+      
+      // If placement staff, only count applications from their department
+      if (staffDepartmentId) {
+        applicationQuery.department = staffDepartmentId;
+      }
+      
+      // Count actual applications with status 'Applied'
+      const actualApplicationCount = await JobApplication.countDocuments(applicationQuery);
       
       // Update the stats with real count
       return {
