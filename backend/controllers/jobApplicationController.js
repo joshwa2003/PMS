@@ -10,24 +10,24 @@ const Department = require('../models/Department');
 const getApplicationStats = async (req, res) => {
   try {
     // Count total applications
-    const totalApplications = await JobApplication.countDocuments({ 
-      status: { $in: ['Applied', 'Shortlisted', 'Interviewed', 'Offered', 'Accepted', 'Rejected'] } 
+    const totalApplications = await JobApplication.countDocuments({
+      status: { $in: ['Applied', 'Shortlisted', 'Interviewed', 'Offered', 'Accepted', 'Rejected'] }
     });
-    
+
     // Calculate application rate
     const totalJobs = await Job.countDocuments({ status: 'Active' });
     const applicationRate = totalJobs > 0 ? Math.round((totalApplications / totalJobs) * 100) : 0;
-    
+
     // Initialize monthly data with zeros
     const monthlyData = Array(12).fill(0);
-    
+
     // Only query the database if there are applications
     if (totalApplications > 0) {
       // Get monthly application data for the current year
       const currentYear = new Date().getFullYear();
       const startOfYear = new Date(currentYear, 0, 1);
       const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
-      
+
       const monthlyApplications = await JobApplication.aggregate([
         {
           $match: {
@@ -45,7 +45,7 @@ const getApplicationStats = async (req, res) => {
           $sort: { _id: 1 }
         }
       ]);
-      
+
       // Convert to array with all months (1-12)
       monthlyApplications.forEach(item => {
         monthlyData[item._id - 1] = item.count;
@@ -56,7 +56,7 @@ const getApplicationStats = async (req, res) => {
       const currentMonth = new Date().getMonth();
       monthlyData[currentMonth] = totalJobs;
     }
-    
+
     // Return the statistics
     return res.status(200).json({
       success: true,
@@ -80,7 +80,7 @@ const getApplicationStats = async (req, res) => {
 const recordJobView = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const { 
+    const {
       viewType = 'Detail View',
       duration = 0,
       interactions = {},
@@ -115,7 +115,7 @@ const recordJobView = async (req, res) => {
         }
       })
       .populate('batchId', 'name year');
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -125,14 +125,14 @@ const recordJobView = async (req, res) => {
 
     // Get department ID from the populated userId.department
     const departmentId = student.userId?.department?._id || student.userId?.department || null;
-    
+
     console.log('📋 Student info:', {
       studentId: student._id,
       userId: student.userId?._id,
       department: departmentId,
       batch: student.batchId
     });
-    
+
     // Department is optional - if not found, we'll still track the view but without department stats
     if (!departmentId) {
       console.warn('⚠️ Department not found for student - will track view without department stats:', student._id);
@@ -205,7 +205,7 @@ const recordJobView = async (req, res) => {
     if (!jobApplication) {
       // Check eligibility
       const eligibilityCheck = job.isStudentEligible(student);
-      
+
       jobApplication = new JobApplication({
         job: jobId,
         student: student._id,
@@ -256,14 +256,14 @@ const recordJobView = async (req, res) => {
 const recordApplicationClick = async (req, res) => {
   try {
     const { jobId } = req.params;
-    
+
     console.log('🔗 Recording application click for job:', jobId, 'by user:', req.user._id);
 
     // Get student information or create a basic one if not found
     let student = await Student.findOne({ userId: req.user._id });
     if (!student) {
       console.log('⚠️ Student profile not found, creating basic profile for user:', req.user._id);
-      
+
       // Create a basic student profile for demo purposes
       student = new Student({
         userId: req.user._id,
@@ -279,7 +279,7 @@ const recordApplicationClick = async (req, res) => {
           backlogs: 0
         }
       });
-      
+
       await student.save();
       console.log('✅ Created basic student profile:', student._id);
     }
@@ -292,7 +292,7 @@ const recordApplicationClick = async (req, res) => {
 
     if (!jobApplication) {
       console.log('⚠️ Job application record not found, creating new one');
-      
+
       // Get job information
       const job = await Job.findById(jobId);
       if (!job) {
@@ -305,7 +305,7 @@ const recordApplicationClick = async (req, res) => {
       // Get student's department
       const Department = require('../models/Department');
       let department = null;
-      
+
       // Student model doesn't have department as ObjectId, get it from batch
       if (student.batchId) {
         const Batch = require('../models/Batch');
@@ -315,7 +315,7 @@ const recordApplicationClick = async (req, res) => {
           console.log('✅ Using batch department:', department.name);
         }
       }
-      
+
       // If not found from batch, try to find by department code from academic.department
       if (!department && student.academic?.department) {
         department = await Department.findOne({ code: student.academic.department });
@@ -323,7 +323,7 @@ const recordApplicationClick = async (req, res) => {
           console.log('✅ Using department from academic code:', department.name);
         }
       }
-      
+
       // If still no department found, return error
       if (!department) {
         return res.status(400).json({
@@ -359,7 +359,7 @@ const recordApplicationClick = async (req, res) => {
 
     if (!existingView) {
       console.log('⚠️ No view record found for student clicking apply - creating view record now');
-      
+
       // Get department ID
       let departmentId = null;
       if (student.batchId) {
@@ -369,7 +369,7 @@ const recordApplicationClick = async (req, res) => {
           departmentId = batch.department._id;
         }
       }
-      
+
       if (!departmentId && student.academic?.department) {
         const Department = require('../models/Department');
         const dept = await Department.findOne({ code: student.academic.department });
@@ -377,7 +377,7 @@ const recordApplicationClick = async (req, res) => {
           departmentId = dept._id;
         }
       }
-      
+
       // Create view record
       const newView = new JobView({
         job: jobId,
@@ -395,18 +395,18 @@ const recordApplicationClick = async (req, res) => {
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.headers['user-agent']
       });
-      
+
       await newView.save();
-      
+
       // Increment view count in job
       const job = await Job.findById(jobId);
       await job.incrementViewCount(departmentId);
-      
+
       console.log('✅ View record created and count incremented');
     } else {
       console.log('✅ View record already exists for this student');
     }
-    
+
     // Record the click
     await jobApplication.recordLinkClick({
       ipAddress: req.ip,
@@ -496,26 +496,26 @@ const submitStudentResponse = async (req, res) => {
     // This removes the linkClicked flag so modal won't show again
     if (applied === false) {
       console.log('🚫 Student clicked "No" - clearing pending state without saving response');
-      
+
       // Reset the external application tracking
       jobApplication.externalApplication.linkClicked = false;
       jobApplication.externalApplication.linkClickedAt = null;
       jobApplication.externalApplication.clickCount = 0;
       jobApplication.externalApplication.lastClickedAt = null;
-      
+
       // Set status back to initial state
       jobApplication.status = 'Pending Response';
-      
+
       // Add journey entry
       await jobApplication.addJourneyEntry('Responded', 'Student indicated they did not apply', {
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
-      
+
       await jobApplication.save();
-      
+
       console.log('✅ Pending state cleared - modal will not show again unless Apply is clicked again');
-      
+
       return res.status(200).json({
         success: true,
         message: 'Response recorded - you can apply again if you change your mind',
@@ -528,7 +528,7 @@ const submitStudentResponse = async (req, res) => {
 
     // Only save to database if they clicked "Yes, I Applied"
     console.log('✅ Student confirmed they applied - saving to database');
-    
+
     // IMPORTANT: Ensure a view is recorded before applying
     // If student applies, they must have viewed the job
     const existingView = await JobView.findOne({
@@ -538,10 +538,10 @@ const submitStudentResponse = async (req, res) => {
 
     if (!existingView) {
       console.log('⚠️ No view record found for student who is applying - creating view record now');
-      
+
       // Get department ID
       const departmentId = student.userId?.department?._id || student.userId?.department || null;
-      
+
       // Create view record
       const newView = new JobView({
         job: jobId,
@@ -559,18 +559,18 @@ const submitStudentResponse = async (req, res) => {
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.headers['user-agent']
       });
-      
+
       await newView.save();
-      
+
       // Increment view count in job
       const job = await Job.findById(jobId);
       await job.incrementViewCount(departmentId);
-      
+
       console.log('✅ View record created and count incremented');
     } else {
       console.log('✅ View record already exists for this student');
     }
-    
+
     // Record the response
     await jobApplication.recordStudentResponse(applied, notes, {
       ipAddress: req.ip,
@@ -712,42 +712,42 @@ const getJobApplications = async (req, res) => {
     if (status) {
       query.status = status;
     }
-    
+
     // For placement_staff, filter by their department only
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found. Please complete your profile.'
         });
       }
-      
+
       // Try to find department - first by ID, then by code
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       // Try finding by ID first (works for both ObjectId and string IDs)
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         // Not a valid ObjectId
       }
-      
+
       // If not found by ID, try by code
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       if (!staffDepartment) {
         return res.status(403).json({
           success: false,
           message: 'Department not found in system'
         });
       }
-      
+
       query.department = staffDepartment._id;
       console.log('🔒 Filtering applications for placement staff department:', staffDepartment.name, '(', staffDepartment.code, ')');
     } else if (department) {
@@ -848,46 +848,46 @@ const getJobAnalytics = async (req, res) => {
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found. Please complete your profile.'
         });
       }
-      
+
       // Try to find department - first by ID, then by code
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       // Try finding by ID first (works for both ObjectId and string IDs)
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         // Not a valid ObjectId
       }
-      
+
       // If not found by ID, try by code
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       if (!staffDepartment) {
         return res.status(403).json({
           success: false,
           message: 'Department not found in system'
         });
       }
-      
+
       staffDepartmentId = staffDepartment._id;
       console.log('🔒 Filtering analytics for placement staff department:', staffDepartment.name, '(', staffDepartment.code, ')');
     }
 
     // Get application statistics by department
     const allDepartmentStats = await JobApplication.getDepartmentStatsForJob(jobId);
-    
+
     // Filter department stats for placement staff
-    const departmentStats = req.user.role === 'placement_staff' 
+    const departmentStats = req.user.role === 'placement_staff'
       ? allDepartmentStats.filter(stat => stat.department._id.toString() === staffDepartmentId.toString())
       : allDepartmentStats;
 
@@ -896,7 +896,7 @@ const getJobAnalytics = async (req, res) => {
 
     // Get department-wise view statistics
     const allDepartmentViewStats = await JobView.getDepartmentViewStats(jobId);
-    
+
     // Filter view stats for placement staff
     const departmentViewStats = req.user.role === 'placement_staff'
       ? allDepartmentViewStats.filter(stat => stat.department._id.toString() === staffDepartmentId.toString())
@@ -911,7 +911,7 @@ const getJobAnalytics = async (req, res) => {
       overallStats = {
         totalViews: deptViewStat.totalViews || 0,
         totalApplications: deptStat.totalStudents || 0,
-        conversionRate: deptViewStat.totalViews > 0 ? 
+        conversionRate: deptViewStat.totalViews > 0 ?
           ((deptStat.appliedCount / deptViewStat.totalViews) * 100).toFixed(2) : 0
       };
     } else {
@@ -919,7 +919,7 @@ const getJobAnalytics = async (req, res) => {
       overallStats = {
         totalViews: job.stats.totalViews,
         totalApplications: job.stats.totalApplications,
-        conversionRate: job.stats.totalViews > 0 ? 
+        conversionRate: job.stats.totalViews > 0 ?
           ((job.stats.totalApplications / job.stats.totalViews) * 100).toFixed(2) : 0
       };
     }
@@ -960,7 +960,7 @@ const getJobAnalyticsByDepartment = async (req, res) => {
     console.log('🚀 getJobAnalyticsByDepartment called!');
     console.log('🚀 Request params:', req.params);
     console.log('🚀 User:', req.user ? { id: req.user._id, role: req.user.role, email: req.user.email } : 'No user');
-    
+
     const { jobId } = req.params;
 
     console.log('📊 Fetching job analytics by department for job:', jobId);
@@ -988,65 +988,65 @@ const getJobAnalyticsByDepartment = async (req, res) => {
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       console.log('🔍 Staff Profile:', staffProfile ? {
         userId: staffProfile.userId,
         department: staffProfile.department,
         departmentType: typeof staffProfile.department,
         name: staffProfile.name
       } : 'NOT FOUND');
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found. Please complete your profile.'
         });
       }
-      
+
       // Try to find department - first by ID, then by code
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       console.log('🔍 Looking for department:', deptValue, 'Type:', typeof deptValue);
-      
+
       // Try finding by ID first (works for both ObjectId and string IDs)
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         console.log('⚠️ Not a valid ObjectId, trying by code...');
       }
-      
+
       // If not found by ID, try by code
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       console.log('🔍 Department found:', staffDepartment ? staffDepartment.name : 'NOT FOUND');
-      
+
       console.log('🔍 Department found:', staffDepartment ? {
         _id: staffDepartment._id,
         name: staffDepartment.name,
         code: staffDepartment.code
       } : 'NOT FOUND');
-      
+
       if (!staffDepartment) {
         // List all available departments for debugging
         const allDepartments = await Department.find({}, 'name code');
         console.log('🔍 Available departments:', allDepartments);
-        
+
         return res.status(403).json({
           success: false,
           message: `Department '${staffProfile.department}' not found in system. Please contact administrator.`
         });
       }
-      
+
       staffDepartmentId = staffDepartment._id;
       console.log('🔒 Filtering analytics by department:', staffDepartment.name, '(', staffDepartment.code, ')', staffDepartmentId);
     }
 
     // Get department-wise statistics
     const allDepartmentStats = await JobApplication.getDepartmentStatsForJob(jobId);
-    
+
     // Filter for placement staff
     const departmentStats = req.user.role === 'placement_staff'
       ? allDepartmentStats.filter(stat => stat.department._id.toString() === staffDepartmentId.toString())
@@ -1151,19 +1151,19 @@ const getJobApplicationsByDepartment = async (req, res) => {
     } catch (err) {
       console.log('Not a valid ObjectId, trying by code...');
     }
-    
+
     // If not found by ID, try by code
     if (!department) {
       department = await Department.findOne({ code: departmentId });
     }
-    
+
     if (!department) {
       return res.status(404).json({
         success: false,
         message: 'Department not found'
       });
     }
-    
+
     console.log('✅ Department found:', department.name, '(', department.code, ')');
 
 
@@ -1171,37 +1171,37 @@ const getJobApplicationsByDepartment = async (req, res) => {
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found. Please complete your profile.'
         });
       }
-      
+
       // Try to find department - first by ID, then by code
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       // Try finding by ID first (works for both ObjectId and string IDs)
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         // Not a valid ObjectId
       }
-      
+
       // If not found by ID, try by code
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       if (!staffDepartment) {
         return res.status(403).json({
           success: false,
           message: 'Department not found in system'
         });
       }
-      
+
       // Check if the requested department matches staff's department
       // Compare using ObjectIds (department was already resolved above)
       if (staffDepartment._id.toString() !== department._id.toString()) {
@@ -1211,9 +1211,9 @@ const getJobApplicationsByDepartment = async (req, res) => {
           message: 'You can only view applications from your own department'
         });
       }
-      
+
       console.log('✅ Department access granted for:', staffDepartment.name);
-      
+
       console.log('🔒 Placement staff accessing their department:', staffDepartment.name, '(', staffDepartment.code, ')');
     }
 
@@ -1221,12 +1221,12 @@ const getJobApplicationsByDepartment = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build query for applications - ONLY students who actually applied
-    const applicationQuery = { 
-      job: jobId, 
+    const applicationQuery = {
+      job: jobId,
       department: department._id,
       status: 'Applied' // Only show students who actually applied
     };
-    
+
     // Add batch filter if provided
     if (batchId) {
       applicationQuery.batch = batchId;
@@ -1297,18 +1297,18 @@ const getJobApplicationsByDepartment = async (req, res) => {
     ]);
 
     // Get department statistics - ONLY for applied students (with batch filter if provided)
-    const departmentStatsQuery = { 
-      job: new mongoose.Types.ObjectId(jobId), 
+    const departmentStatsQuery = {
+      job: new mongoose.Types.ObjectId(jobId),
       department: department._id, // Use the resolved department ObjectId
       status: 'Applied' // Only count students who actually applied
     };
-    
+
     if (batchId) {
       departmentStatsQuery.batch = new mongoose.Types.ObjectId(batchId);
     }
-    
+
     const departmentStats = await JobApplication.aggregate([
-      { 
+      {
         $match: departmentStatsQuery
       },
       {
@@ -1441,12 +1441,12 @@ const getApplicationDetails = async (req, res) => {
 // Get pending responses for current student
 const getPendingResponses = async (req, res) => {
   try {
-    console.log('🔍 Fetching pending responses for student:', req.user._id);
+    // console.log('🔍 Fetching pending responses for student:', req.user._id);
 
     // Get student information
     const student = await Student.findOne({ userId: req.user._id });
     if (!student) {
-      console.log('⚠️ Student profile not found, returning empty pending responses');
+      // console.log('⚠️ Student profile not found, returning empty pending responses');
       return res.status(200).json({
         success: true,
         data: {
@@ -1467,9 +1467,9 @@ const getPendingResponses = async (req, res) => {
       ],
       status: { $in: ['Pending Response', 'Not Applied'] }
     })
-    .populate('job', 'title company.name company.logo location deadline status')
-    .sort({ 'externalApplication.linkClickedAt': -1 })
-    .lean();
+      .populate('job', 'title company.name company.logo location deadline status')
+      .sort({ 'externalApplication.linkClickedAt': -1 })
+      .lean();
 
     console.log('🔍 Found pending applications before filtering:', pendingApplications.length);
 
@@ -1573,7 +1573,7 @@ const notifyStaffOfResponse = async (jobApplication, applied, responseMethod) =>
   try {
     // Import notification services
     const { sendNotificationToStaff } = require('../services/emailService');
-    
+
     const notificationData = {
       type: 'student_application_response',
       jobId: jobApplication.job._id,
@@ -1589,7 +1589,7 @@ const notifyStaffOfResponse = async (jobApplication, applied, responseMethod) =>
 
     // Send notifications to relevant staff
     await sendNotificationToStaff(notificationData);
-    
+
     console.log('✅ Staff notifications sent for student response');
   } catch (error) {
     console.error('❌ Error sending staff notifications:', error);
@@ -1627,35 +1627,35 @@ const getJobBatchAnalytics = async (req, res) => {
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found. Please complete your profile.'
         });
       }
-      
+
       // Try to find department - first by ID, then by code
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         // Not a valid ObjectId
       }
-      
+
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       if (!staffDepartment) {
         return res.status(403).json({
           success: false,
           message: 'Department not found in system'
         });
       }
-      
+
       staffDepartmentId = staffDepartment._id;
       console.log('🔒 Filtering batch analytics for department:', staffDepartment.name);
     }
@@ -1669,9 +1669,9 @@ const getJobBatchAnalytics = async (req, res) => {
     // Get batch-wise statistics
     const Batch = require('../models/Batch');
     const Student = require('../models/Student');
-    
+
     console.log('🔍 Application query:', JSON.stringify(applicationQuery));
-    
+
     // First, let's check what applications we have
     const testApplications = await JobApplication.find(applicationQuery)
       .populate('student', 'studentId batch')
@@ -1685,7 +1685,7 @@ const getJobBatchAnalytics = async (req, res) => {
       } : null,
       status: app.status
     })));
-    
+
     const batchStats = await JobApplication.aggregate([
       { $match: applicationQuery },
       {
@@ -1696,11 +1696,11 @@ const getJobBatchAnalytics = async (req, res) => {
           as: 'studentData'
         }
       },
-      { 
-        $unwind: { 
+      {
+        $unwind: {
           path: '$studentData',
           preserveNullAndEmptyArrays: false // Skip if no student found
-        } 
+        }
       },
       // Add a stage to check what we have so far
       {
@@ -1716,11 +1716,11 @@ const getJobBatchAnalytics = async (req, res) => {
           as: 'batchData'
         }
       },
-      { 
-        $unwind: { 
+      {
+        $unwind: {
           path: '$batchData',
           preserveNullAndEmptyArrays: false // Skip if no batch found
-        } 
+        }
       },
       {
         $group: {
@@ -1810,28 +1810,28 @@ const getJobBatchStudents = async (req, res) => {
     if (req.user.role === 'placement_staff') {
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (!staffProfile || !staffProfile.department) {
         return res.status(403).json({
           success: false,
           message: 'Staff profile or department not found.'
         });
       }
-      
+
       // Try to find department
       let staffDepartment;
       const deptValue = staffProfile.department;
-      
+
       try {
         staffDepartment = await Department.findById(deptValue);
       } catch (err) {
         // Not a valid ObjectId
       }
-      
+
       if (!staffDepartment) {
         staffDepartment = await Department.findOne({ code: deptValue });
       }
-      
+
       if (!staffDepartment) {
         return res.status(403).json({
           success: false,
@@ -1852,7 +1852,7 @@ const getJobBatchStudents = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get students from this batch who interacted with the job
-    const applications = await JobApplication.find({ 
+    const applications = await JobApplication.find({
       job: jobId
     })
       .populate({
@@ -1878,7 +1878,7 @@ const getJobBatchStudents = async (req, res) => {
     const filteredApplications = applications.filter(app => app.student !== null);
 
     // Get total count
-    const totalApplications = await JobApplication.countDocuments({ 
+    const totalApplications = await JobApplication.countDocuments({
       job: jobId
     }).then(async (count) => {
       // Need to count only students from this batch

@@ -46,6 +46,7 @@ import {
   Cancel as CancelIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import { useMaterialUIController } from "../context";
 import DashboardLayout from '../examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from '../examples/Navbars/DashboardNavbar';
 import placementDirectorManagementService from '../services/placementDirectorManagementService';
@@ -59,7 +60,10 @@ import MDButton from "../components/MDButton";
 import DataTableHeadCell from "../examples/Tables/DataTable/DataTableHeadCell";
 import DataTableBodyCell from "../examples/Tables/DataTable/DataTableBodyCell";
 
+
 const PlacementDirectorManagement = () => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const { user } = useAuth();
   const [directors, setDirectors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +118,7 @@ const PlacementDirectorManagement = () => {
       };
 
       const response = await placementDirectorManagementService.getAllPlacementDirectors(params);
-      
+
       if (response.success) {
         setDirectors(response.directors || []);
         setTotalDirectors(response.pagination?.totalDirectors || 0);
@@ -149,7 +153,7 @@ const PlacementDirectorManagement = () => {
       }
 
       const response = await placementDirectorManagementService.createPlacementDirector(formData);
-      
+
       if (response.success) {
         setSuccess('Placement Director created successfully! Welcome email sent.');
         setCreateDialogOpen(false);
@@ -176,7 +180,7 @@ const PlacementDirectorManagement = () => {
         selectedDirector.id,
         formData
       );
-      
+
       if (response.success) {
         setSuccess('Placement Director updated successfully!');
         setEditDialogOpen(false);
@@ -194,7 +198,7 @@ const PlacementDirectorManagement = () => {
   const handleDeleteDirector = async () => {
     try {
       const response = await placementDirectorManagementService.deletePlacementDirector(selectedDirector.id);
-      
+
       if (response.success) {
         setSuccess('Placement Director deleted successfully!');
         setDeleteDialogOpen(false);
@@ -212,7 +216,7 @@ const PlacementDirectorManagement = () => {
   const handleResendEmail = async (director) => {
     try {
       const response = await placementDirectorManagementService.resendWelcomeEmail(director.id);
-      
+
       if (response.success) {
         setSuccess('Welcome email sent successfully!');
         loadDirectors();
@@ -277,70 +281,139 @@ const PlacementDirectorManagement = () => {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
             Placement Director Management
           </Typography>
-          <Button
-            variant="contained"
+          <MDButton
+            variant="gradient"
+            color="info"
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
-            sx={{ 
-              background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)',
-              '&:hover': { background: 'linear-gradient(135deg, #E55A2B 0%, #E8851A 100%)' }
-            }}
           >
             Add Placement Director
-          </Button>
+          </MDButton>
         </Box>
 
         {/* Statistics Cards */}
         {stats && (
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <Card sx={{
+                background: darkMode ? 'transparent' : '#FFFFFF',
+                color: darkMode ? 'white' : 'text.primary',
+                boxShadow: darkMode ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                border: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+              }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.total}</Typography>
-                      <Typography variant="body2">Total Directors</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', color: darkMode ? 'white' : 'text.primary' }}>{stats.total}</Typography>
+                      <Typography variant="body2" sx={{ color: darkMode ? 'white' : 'text.secondary', opacity: 0.8 }}>Total Directors</Typography>
                     </Box>
-                    <PersonIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                    <MDBox
+                      variant="gradient"
+                      bgColor="info"
+                      borderRadius="lg"
+                      coloredShadow="info"
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      width="4rem"
+                      height="4rem"
+                      sx={{ ml: 2 }}
+                    >
+                      <PersonIcon sx={{ fontSize: 32, color: 'white' }} />
+                    </MDBox>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+              <Card sx={{
+                background: darkMode ? 'transparent' : '#FFFFFF',
+                color: darkMode ? 'white' : 'text.primary',
+                boxShadow: darkMode ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                border: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+              }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.active}</Typography>
-                      <Typography variant="body2">Active Directors</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', color: darkMode ? 'white' : 'text.primary' }}>{stats.active}</Typography>
+                      <Typography variant="body2" sx={{ color: darkMode ? 'white' : 'text.secondary', opacity: 0.8 }}>Active Directors</Typography>
                     </Box>
-                    <CheckCircleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                    <MDBox
+                      variant="gradient"
+                      bgColor="success"
+                      borderRadius="lg"
+                      coloredShadow="success"
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      width="4rem"
+                      height="4rem"
+                      sx={{ ml: 2 }}
+                    >
+                      <CheckCircleIcon sx={{ fontSize: 32, color: 'white' }} />
+                    </MDBox>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+              <Card sx={{
+                background: darkMode ? 'transparent' : '#FFFFFF',
+                color: darkMode ? 'white' : 'text.primary',
+                boxShadow: darkMode ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                border: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+              }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.verified}</Typography>
-                      <Typography variant="body2">Verified Directors</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', color: darkMode ? 'white' : 'text.primary' }}>{stats.verified}</Typography>
+                      <Typography variant="body2" sx={{ color: darkMode ? 'white' : 'text.secondary', opacity: 0.8 }}>Verified Directors</Typography>
                     </Box>
-                    <EmailIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                    <MDBox
+                      variant="gradient"
+                      bgColor="info"
+                      borderRadius="lg"
+                      coloredShadow="info"
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      width="4rem"
+                      height="4rem"
+                      sx={{ ml: 2 }}
+                    >
+                      <EmailIcon sx={{ fontSize: 32, color: 'white' }} />
+                    </MDBox>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', color: 'white' }}>
+              <Card sx={{
+                background: darkMode ? 'transparent' : '#FFFFFF',
+                color: darkMode ? 'white' : 'text.primary',
+                boxShadow: darkMode ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                border: darkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+              }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>{stats.recent}</Typography>
-                      <Typography variant="body2">Recent (30 days)</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', color: darkMode ? 'white' : 'text.primary' }}>{stats.recent}</Typography>
+                      <Typography variant="body2" sx={{ color: darkMode ? 'white' : 'text.secondary', opacity: 0.8 }}>Recent (30 days)</Typography>
                     </Box>
-                    <BusinessIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                    <MDBox
+                      variant="gradient"
+                      bgColor="warning"
+                      borderRadius="lg"
+                      coloredShadow="warning"
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      width="4rem"
+                      height="4rem"
+                      sx={{ ml: 2 }}
+                    >
+                      <BusinessIcon sx={{ fontSize: 32, color: 'white' }} />
+                    </MDBox>
                   </Box>
                 </CardContent>
               </Card>
@@ -352,7 +425,7 @@ const PlacementDirectorManagement = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   placeholder="Search directors..."
@@ -367,29 +440,21 @@ const PlacementDirectorManagement = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
+                  <InputLabel id="status-select-label">Status</InputLabel>
                   <Select
+                    labelId="status-select-label"
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     label="Status"
+                    sx={{ height: '44.13px' }}
                   >
                     <MenuItem value="">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={loadDirectors}
-                >
-                  Refresh
-                </Button>
               </Grid>
             </Grid>
           </CardContent>
@@ -475,10 +540,10 @@ const PlacementDirectorManagement = () => {
                                   {getInitials(director)}
                                 </Avatar>
                                 <MDBox>
-                                  <MDTypography 
-                                    variant="button" 
+                                  <MDTypography
+                                    variant="button"
                                     fontWeight="medium"
-                                    sx={{ 
+                                    sx={{
                                       fontSize: '0.875rem',
                                       lineHeight: 1.4
                                     }}
@@ -486,10 +551,10 @@ const PlacementDirectorManagement = () => {
                                     {director.firstName} {director.lastName}
                                   </MDTypography>
                                   {director.employeeId && (
-                                    <MDTypography 
-                                      variant="caption" 
+                                    <MDTypography
+                                      variant="caption"
                                       color="text"
-                                      sx={{ 
+                                      sx={{
                                         fontSize: '0.75rem',
                                         display: 'block'
                                       }}
@@ -501,10 +566,10 @@ const PlacementDirectorManagement = () => {
                               </MDBox>
                             </DataTableBodyCell>
                             <DataTableBodyCell align="left">
-                              <MDTypography 
-                                variant="caption" 
+                              <MDTypography
+                                variant="caption"
                                 color="text"
-                                sx={{ 
+                                sx={{
                                   fontSize: '0.875rem'
                                 }}
                               >
@@ -541,7 +606,7 @@ const PlacementDirectorManagement = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => openEditDialog(director)}
-                                    sx={{ 
+                                    sx={{
                                       color: '#1976d2',
                                       '&:hover': {
                                         backgroundColor: 'rgba(25, 118, 210, 0.04)'
@@ -555,7 +620,7 @@ const PlacementDirectorManagement = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => handleResendEmail(director)}
-                                    sx={{ 
+                                    sx={{
                                       color: '#0288d1',
                                       '&:hover': {
                                         backgroundColor: 'rgba(2, 136, 209, 0.04)'
@@ -569,7 +634,7 @@ const PlacementDirectorManagement = () => {
                                   <IconButton
                                     size="small"
                                     onClick={() => openDeleteDialog(director)}
-                                    sx={{ 
+                                    sx={{
                                       color: '#d32f2f',
                                       '&:hover': {
                                         backgroundColor: 'rgba(211, 47, 47, 0.04)'

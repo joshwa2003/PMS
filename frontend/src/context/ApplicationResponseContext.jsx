@@ -22,16 +22,21 @@ export const ApplicationResponseProvider = ({ children }) => {
 
   // Check server for pending responses (MongoDB only)
   const checkForPendingResponses = useCallback(async () => {
+    // Only students need to check for pending responses
+    if (!user || user.role !== 'student') {
+      return;
+    }
+
     if (isCheckingPending) {
       console.log('⚠️ Already checking for pending responses, skipping...');
       return;
     }
-    
+
     setIsCheckingPending(true);
-    
+
     try {
       console.log('🔍 Checking database for pending responses...');
-      
+
       // Check server for any pending responses
       const response = await fetch('http://localhost:5001/api/v1/jobs/pending-responses', {
         headers: {
@@ -41,7 +46,7 @@ export const ApplicationResponseProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.success && data.data.pendingResponses.length > 0) {
           // Validate job data
           const validPendingResponses = data.data.pendingResponses.filter(
@@ -50,12 +55,12 @@ export const ApplicationResponseProvider = ({ children }) => {
               return pending.job && pending.job._id && pending.job.title;
             }
           );
-          
+
           if (validPendingResponses.length > 0) {
             // Show modal for the most recent pending response
             const mostRecent = validPendingResponses[0];
             console.log('✅ Found pending response in database, showing modal for job:', mostRecent.job._id);
-            
+
             setPendingResponse({
               jobId: mostRecent.job._id,
               jobData: mostRecent.job,
@@ -113,7 +118,7 @@ export const ApplicationResponseProvider = ({ children }) => {
   const recordApplyClick = async (jobId, jobData) => {
     try {
       console.log('🔗 Recording apply click for job:', jobId);
-      
+
       // Record click on server (MongoDB)
       const response = await fetch(`http://localhost:5001/api/v1/jobs/${jobId}/click`, {
         method: 'POST',
@@ -125,7 +130,7 @@ export const ApplicationResponseProvider = ({ children }) => {
 
       if (response.ok) {
         console.log('✅ Apply click recorded in database');
-        
+
         // Show modal immediately after recording the click
         setPendingResponse({
           jobId: jobId,
@@ -133,7 +138,7 @@ export const ApplicationResponseProvider = ({ children }) => {
           clickedAt: new Date()
         });
         setShowModal(true);
-        
+
         console.log('📱 Showing Application Confirmation Modal');
       } else {
         console.error('❌ Failed to record apply click on server:', response.status);
@@ -152,7 +157,7 @@ export const ApplicationResponseProvider = ({ children }) => {
 
     try {
       console.log('📤 Submitting response to database:', responseData);
-      
+
       // Submit to server (MongoDB) - for both "Yes" and "No"
       const response = await fetch(`http://localhost:5001/api/v1/jobs/${responseData.jobId}/response`, {
         method: 'POST',
@@ -173,7 +178,7 @@ export const ApplicationResponseProvider = ({ children }) => {
         // Clear pending response and close modal
         setPendingResponse(null);
         setShowModal(false);
-        
+
         console.log('✅ Response submitted successfully to database');
         return { success: true, data: data.data };
       } else {
