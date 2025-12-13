@@ -30,10 +30,10 @@ const defaultAvatar = "https://ui-avatars.com/api/?name=";
 export default function staffTableData(staff, onViewDetails, onDeleteStaff, onToggleStatus, selectionProps = null, departments = []) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
-      <MDAvatar 
-        src={image || `${defaultAvatar}${encodeURIComponent(name || 'Staff')}&size=40&background=2196F3&color=ffffff`} 
-        name={name} 
-        size="sm" 
+      <MDAvatar
+        src={image || `${defaultAvatar}${encodeURIComponent(name || 'Staff')}&size=40&background=2196F3&color=ffffff`}
+        name={name}
+        size="sm"
       />
       <MDBox ml={2} lineHeight={1}>
         <MDTypography display="block" variant="button" fontWeight="medium">
@@ -158,7 +158,7 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-  
+
     };
     return roleNames[role] || role;
   };
@@ -166,29 +166,37 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
   const getDepartmentDisplayName = (department) => {
     // Handle both ObjectId and department code cases
     if (!department) return 'Not Assigned';
-    
-    // If it looks like an ObjectId (24 character hex string), just return the department code
-    if (typeof department === 'string' && department.length === 24 && /^[0-9a-fA-F]{24}$/.test(department)) {
-      return department; // This will show the ObjectId until data is migrated
-    }
-    
-    // First try to find in dynamic departments
+
+    // Check if it's an ObjectId or code
+    const isObjectId = typeof department === 'string' && department.length === 24 && /^[0-9a-fA-F]{24}$/.test(department);
+
+    // Try to find in dynamic departments list first
     if (departments && departments.length > 0) {
-      const foundDept = departments.find(dept => 
-        dept.value === department || 
+      const foundDept = departments.find(dept =>
+        // Match by ID if it's an ObjectId
+        (isObjectId && dept.id === department) ||
+        // Match by value/code
+        dept.value === department ||
         dept.code === department ||
         dept.value === department?.toUpperCase() ||
         dept.value === department?.toLowerCase()
       );
+
       if (foundDept) {
         return foundDept.label || foundDept.name;
       }
     }
-    
-    // Fallback to hardcoded mapping for backward compatibility
+
+    // If it's an ObjectId and we couldn't find it in the list, try to lookup by ID from hardcoded map (unlikely to work but safe fallback)
+    // Or just return the ID if we really can't find it (better than crashing)
+    if (isObjectId) {
+      return department;
+    }
+
+    // Fallback to hardcoded mapping for backward compatibility (for codes like CSE, ECE)
     const departmentNames = {
       CSE: 'Computer Science & Engineering',
-      ECE: 'Electronics & Communication Engineering', 
+      ECE: 'Electronics & Communication Engineering',
       EEE: 'Electrical & Electronics Engineering',
       MECH: 'Mechanical Engineering',
       CIVIL: 'Civil Engineering',
@@ -210,6 +218,9 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
       admin: 'Administration',
       hr: 'Human Resources',
       other: 'Other',
+      // Common abbreviations
+      'AI&DS': 'Artificial Intelligence & Data Science',
+      'AI&ML': 'Artificial Intelligence & Machine Learning',
     };
     return departmentNames[department] || department;
   };
@@ -217,14 +228,14 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
   const getStatusBadge = (staffMember) => {
     // Determine status based on staff member data
     const isActive = staffMember.isActive !== false; // Default to active if not specified
-    
+
     return (
       <MDBox ml={-1}>
-        <MDBadge 
-          badgeContent={isActive ? "active" : "inactive"} 
-          color={isActive ? "success" : "dark"} 
-          variant="gradient" 
-          size="sm" 
+        <MDBadge
+          badgeContent={isActive ? "active" : "inactive"}
+          color={isActive ? "success" : "dark"}
+          variant="gradient"
+          size="sm"
         />
       </MDBox>
     );
@@ -243,16 +254,16 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
   // Selection checkbox component
   const SelectionCheckbox = ({ staffMember }) => {
     if (!selectionProps) return null;
-    
+
     const { selectedStaff, toggleStaffSelection } = selectionProps;
     const isSelected = selectedStaff.includes(staffMember.id);
-    
+
     return (
       <Checkbox
         checked={isSelected}
         onChange={() => toggleStaffSelection(staffMember.id)}
         size="small"
-        sx={{ 
+        sx={{
           color: 'text.secondary',
           '&.Mui-checked': {
             color: 'primary.main'
@@ -264,12 +275,12 @@ export default function staffTableData(staff, onViewDetails, onDeleteStaff, onTo
 
   // Build columns array based on whether selection is enabled
   const columns = [];
-  
+
   // Add selection column if selection props are provided
   if (selectionProps) {
     columns.push({ Header: "", accessor: "selection", width: "5%", align: "center" });
   }
-  
+
   // Add standard columns
   columns.push(
     { Header: "staff member", accessor: "staffMember", width: selectionProps ? "40%" : "45%", align: "left" },

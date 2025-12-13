@@ -35,10 +35,7 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
     loading,
     error,
     clearError,
-    getAvailableRoles,
     getAvailableDepartments,
-    getCommonDesignations,
-    generateEmployeeIdSuggestion,
     validateStaffData
   } = useStaffManagement();
 
@@ -46,28 +43,37 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
     firstName: '',
     lastName: '',
     email: '',
-    role: '',
     department: '',
-    designation: '',
+    role: 'placement_staff', // Default role
+    designation: 'Staff Member', // Default designation
     employeeId: '',
     phone: '',
     adminNotes: ''
   });
 
+  const [departments, setDepartments] = useState([]);
   const [validationErrors, setValidationErrors] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState('');
 
-  const availableRoles = getAvailableRoles();
-  const availableDepartments = getAvailableDepartments();
-
-  // Clear error when component mounts
+  // Fetch departments on mount
   useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const depts = await getAvailableDepartments();
+        if (Array.isArray(depts)) {
+          setDepartments(depts);
+        } else {
+          setDepartments([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch departments', err);
+        setDepartments([]);
+      }
+    };
+    fetchDepartments();
     clearError();
-  }, [clearError]);
-
-  // Get common designations when role changes
-  const commonDesignations = formData.role ? getCommonDesignations(formData.role) : [];
+  }, [getAvailableDepartments, clearError]);
 
   const handleInputChange = (field) => (event) => {
     const value = event.target.value;
@@ -82,23 +88,6 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
     }
   };
 
-  const handleGenerateEmployeeId = () => {
-    if (formData.department && formData.role) {
-      const suggestion = generateEmployeeIdSuggestion(formData.department, formData.role);
-      setFormData(prev => ({
-        ...prev,
-        employeeId: suggestion
-      }));
-    }
-  };
-
-  const handleDesignationSelect = (designation) => {
-    setFormData(prev => ({
-      ...prev,
-      designation
-    }));
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -110,22 +99,30 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
     }
 
     try {
-      const response = await createStaff(formData);
+      // Create a copy of formData and remove empty optional fields
+      const payload = { ...formData };
+
+      // Remove empty strings for optional fields to avoid backend validation errors
+      if (!payload.employeeId) delete payload.employeeId;
+      if (!payload.phone) delete payload.phone;
+      if (!payload.adminNotes) delete payload.adminNotes;
+
+      const response = await createStaff(payload);
       setGeneratedPassword(response.defaultPassword);
-      
-      // Reset form
+
+      // Reset form (keep defaults)
       setFormData({
         firstName: '',
         lastName: '',
         email: '',
-        role: '',
         department: '',
-        designation: '',
+        role: 'placement_staff',
+        designation: 'Staff Member',
         employeeId: '',
         phone: '',
         adminNotes: ''
       });
-      
+
       if (onSuccess) {
         onSuccess(response);
       }
@@ -139,9 +136,9 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
       firstName: '',
       lastName: '',
       email: '',
-      role: '',
       department: '',
-      designation: '',
+      role: 'placement_staff',
+      designation: 'Staff Member',
       employeeId: '',
       phone: '',
       adminNotes: ''
@@ -159,7 +156,7 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
             Create New Staff Member
           </MDTypography>
           <MDTypography variant="body2" color="text" mt={1}>
-            Add a new staff member to the system. They will receive login credentials via email.
+            Add a new staff member to the system.
           </MDTypography>
         </MDBox>
 
@@ -194,12 +191,12 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
             </Typography>
             <Box display="flex" alignItems="center" gap={1}>
               <Typography variant="body2">
-                Generated Password: 
+                Generated Password:
               </Typography>
-              <Typography 
-                variant="body2" 
-                fontWeight="bold" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                fontWeight="bold"
+                sx={{
                   fontFamily: 'monospace',
                   backgroundColor: 'rgba(0,0,0,0.1)',
                   padding: '2px 6px',
@@ -208,8 +205,8 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
               >
                 {showPassword ? generatedPassword : '••••••••••'}
               </Typography>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
@@ -223,13 +220,7 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
 
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            {/* Basic Information */}
-            <Grid item xs={12}>
-              <MDTypography variant="h6" fontWeight="medium" mb={2}>
-                Basic Information
-              </MDTypography>
-            </Grid>
-
+            {/* Simplified Fields */}
             <Grid item xs={12} md={6}>
               <MDInput
                 fullWidth
@@ -253,62 +244,15 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <MDInput
-                fullWidth
-                type="email"
-                label="Email Address"
-                value={formData.email}
-                onChange={handleInputChange('email')}
-                required
-                error={validationErrors.some(error => error.includes('email'))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <MDInput
-                fullWidth
-                label="Phone Number"
-                value={formData.phone}
-                onChange={handleInputChange('phone')}
-                placeholder="10-digit phone number"
-                error={validationErrors.some(error => error.includes('Phone'))}
-              />
-            </Grid>
-
-            {/* Professional Information */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <MDTypography variant="h6" fontWeight="medium" mb={2}>
-                Professional Information
-              </MDTypography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={formData.role}
-                  onChange={handleInputChange('role')}
-                  label="Role"
-                >
-                  {availableRoles.map((role) => (
-                    <MenuItem key={role.value} value={role.value}>
-                      {role.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth required error={validationErrors.some(error => error.includes('Department'))}>
                 <InputLabel>Department</InputLabel>
                 <Select
                   value={formData.department}
                   onChange={handleInputChange('department')}
                   label="Department"
+                  sx={{ height: 44.13 }}
                 >
-                  {availableDepartments.map((dept) => (
+                  {departments.map((dept) => (
                     <MenuItem key={dept.value} value={dept.value}>
                       {dept.label}
                     </MenuItem>
@@ -317,81 +261,15 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <MDInput
                 fullWidth
-                label="Designation"
-                value={formData.designation}
-                onChange={handleInputChange('designation')}
+                type="email"
+                label="Email Address"
+                value={formData.email}
+                onChange={handleInputChange('email')}
                 required
-                error={validationErrors.some(error => error.includes('Designation'))}
-              />
-              
-              {/* Common designations chips */}
-              {commonDesignations.length > 0 && (
-                <Box mt={1}>
-                  <Typography variant="caption" color="text">
-                    Common designations:
-                  </Typography>
-                  <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
-                    {commonDesignations.map((designation, index) => (
-                      <Chip
-                        key={index}
-                        label={designation}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleDesignationSelect(designation)}
-                        sx={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Grid>
-
-            <Grid item xs={12} md={8}>
-              <MDInput
-                fullWidth
-                label="Employee ID"
-                value={formData.employeeId}
-                onChange={handleInputChange('employeeId')}
-                placeholder="Optional - will be auto-generated if empty"
-                error={validationErrors.some(error => error.includes('Employee ID'))}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Tooltip title="Generate Employee ID">
-                <MDButton
-                  variant="outlined"
-                  color="info"
-                  fullWidth
-                  onClick={handleGenerateEmployeeId}
-                  disabled={!formData.department || !formData.role}
-                  startIcon={<AutoIcon />}
-                >
-                  Generate ID
-                </MDButton>
-              </Tooltip>
-            </Grid>
-
-            {/* Additional Information */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <MDTypography variant="h6" fontWeight="medium" mb={2}>
-                Additional Information
-              </MDTypography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <MDInput
-                fullWidth
-                multiline
-                rows={3}
-                label="Admin Notes"
-                value={formData.adminNotes}
-                onChange={handleInputChange('adminNotes')}
-                placeholder="Optional notes about the staff member..."
+                error={validationErrors.some(error => error.includes('email'))}
               />
             </Grid>
 
@@ -406,7 +284,7 @@ const CreateStaffForm = ({ onSuccess, onCancel }) => {
                 >
                   {onCancel ? 'Cancel' : 'Reset'}
                 </MDButton>
-                
+
                 <MDButton
                   type="submit"
                   variant="gradient"

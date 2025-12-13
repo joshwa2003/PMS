@@ -1402,7 +1402,6 @@ const getApplicationDetails = async (req, res) => {
       });
     }
 
-    // Check permissions
     const isStudent = req.user.role === 'student' && application.user._id.toString() === req.user._id.toString();
     const isStaff = ['admin', 'placement_director', 'placement_staff'].includes(req.user.role);
 
@@ -1413,7 +1412,6 @@ const getApplicationDetails = async (req, res) => {
       });
     }
 
-    // Get related job views for this student
     const jobViews = await JobView.find({
       job: application.job._id,
       student: application.student._id
@@ -1438,15 +1436,11 @@ const getApplicationDetails = async (req, res) => {
   }
 };
 
-// Get pending responses for current student
 const getPendingResponses = async (req, res) => {
   try {
-    // console.log('🔍 Fetching pending responses for student:', req.user._id);
 
-    // Get student information
     const student = await Student.findOne({ userId: req.user._id });
     if (!student) {
-      // console.log('⚠️ Student profile not found, returning empty pending responses');
       return res.status(200).json({
         success: true,
         data: {
@@ -1456,8 +1450,6 @@ const getPendingResponses = async (req, res) => {
       });
     }
 
-    // Find applications where student clicked apply but hasn't confirmed they applied
-    // Keep asking until they say "Yes, I Applied" (applied === true)
     const pendingApplications = await JobApplication.find({
       student: student._id,
       'externalApplication.linkClicked': true,
@@ -1473,7 +1465,6 @@ const getPendingResponses = async (req, res) => {
 
     console.log('🔍 Found pending applications before filtering:', pendingApplications.length);
 
-    // Filter out expired jobs
     const validPendingApplications = pendingApplications.filter(app => {
       const isValid = app.job && app.job.status === 'Active' && new Date(app.job.deadline) > new Date();
       if (!isValid && app.job) {
@@ -1508,7 +1499,6 @@ const getPendingResponses = async (req, res) => {
   }
 };
 
-// Check if response is required for a specific job
 const getResponseStatus = async (req, res) => {
   try {
     const { jobId } = req.params;

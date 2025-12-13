@@ -12,7 +12,7 @@ const passwordValidation = body('password')
   .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
   .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number');
 
-const nameValidation = (field) => 
+const nameValidation = (field) =>
   body(field)
     .trim()
     .isLength({ min: 1, max: 50 })
@@ -31,7 +31,7 @@ const roleValidation = body('role')
 
 const departmentValidation = body('department')
   .optional()
-  .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+  .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
   .withMessage('Invalid department specified');
 
 // Registration validation
@@ -43,7 +43,7 @@ exports.validateRegister = [
   roleValidation,
   phoneValidation,
   departmentValidation,
-  
+
   // Student-specific validations
   body('studentId')
     .if(body('role').equals('student'))
@@ -51,21 +51,21 @@ exports.validateRegister = [
     .withMessage('Student ID is required for students')
     .isLength({ min: 6, max: 20 })
     .withMessage('Student ID must be between 6 and 20 characters'),
-  
+
   body('batch')
     .if(body('role').equals('student'))
     .notEmpty()
     .withMessage('Batch is required for students')
     .matches(/^(20\d{2})-(20\d{2})$/)
     .withMessage('Batch must be in format YYYY-YYYY (e.g., 2020-2024)'),
-  
+
   body('cgpa')
     .optional()
     .isFloat({ min: 0, max: 10 })
     .withMessage('CGPA must be between 0 and 10'),
-  
+
   // Staff-specific validations
-  
+
   // Staff-specific validations
   body('employeeId')
     .if(body('role').isIn(['placement_staff', 'department_hod', 'other_staff', 'admin']))
@@ -73,7 +73,7 @@ exports.validateRegister = [
     .withMessage('Employee ID is required for staff members')
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('designation')
     .if(body('role').isIn(['placement_staff', 'department_hod', 'other_staff', 'admin']))
     .notEmpty()
@@ -95,89 +95,89 @@ exports.validateProfileUpdate = [
   nameValidation('firstName').optional(),
   nameValidation('lastName').optional(),
   phoneValidation,
-  
+
   body('bio')
     .optional()
     .isLength({ max: 500 })
     .withMessage('Bio cannot exceed 500 characters'),
-  
+
   body('profilePicture')
     .optional()
     .isURL()
     .withMessage('Profile picture must be a valid URL'),
-  
+
   // Student-specific fields
   body('cgpa')
     .optional()
     .isFloat({ min: 0, max: 10 })
     .withMessage('CGPA must be between 0 and 10'),
-  
+
   body('studentId')
     .optional()
     .isLength({ min: 6, max: 20 })
     .withMessage('Student ID must be between 6 and 20 characters'),
-  
+
   body('batch')
     .optional()
     .matches(/^(20\d{2})-(20\d{2})$/)
     .withMessage('Batch must be in format YYYY-YYYY (e.g., 2020-2024)'),
-  
+
   // Alumni-specific fields
   body('currentCompany')
     .optional()
     .isLength({ max: 100 })
     .withMessage('Current company name cannot exceed 100 characters'),
-  
+
   body('currentPosition')
     .optional()
     .isLength({ max: 100 })
     .withMessage('Current position cannot exceed 100 characters'),
-  
+
   body('graduationYear')
     .optional()
     .isInt({ min: 1990, max: new Date().getFullYear() })
     .withMessage('Invalid graduation year'),
-  
+
   // Staff/Administrator-specific fields
   body('employeeId')
     .optional()
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('designation')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Designation must be between 2 and 100 characters'),
-  
+
   body('mobileNumber')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Mobile number must be exactly 10 digits'),
-  
+
   body('gender')
     .optional()
     .isIn(['Male', 'Female', 'Other'])
     .withMessage('Gender must be Male, Female, or Other'),
-  
+
   body('profilePhotoUrl')
     .optional()
     .isURL()
     .withMessage('Profile photo URL must be a valid URL'),
-  
+
   body('dateOfJoining')
     .optional()
     .isISO8601()
     .withMessage('Date of joining must be a valid date'),
-  
+
   body('officeLocation')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Office location must be between 2 and 100 characters'),
-  
+
   // Department validation
   body('department')
     .optional()
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
     .withMessage('Invalid department specified'),
 ];
 
@@ -186,13 +186,13 @@ exports.validateChangePassword = [
   body('currentPassword')
     .notEmpty()
     .withMessage('Current password is required'),
-  
+
   body('newPassword')
     .isLength({ min: 6 })
     .withMessage('New password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  
+
   body('confirmPassword')
     .custom((value, { req }) => {
       if (value !== req.body.newPassword) {
@@ -207,7 +207,7 @@ exports.validateFirstLoginPasswordReset = [
   body('currentPassword')
     .notEmpty()
     .withMessage('Current password is required'),
-  
+
   body('newPassword')
     .isLength({ min: 8 })
     .withMessage('New password must be at least 8 characters long')
@@ -222,34 +222,34 @@ exports.validateUserUpdate = [
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('First name must be between 1 and 50 characters'),
-  
+
   body('lastName')
     .optional()
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Last name must be between 1 and 50 characters'),
-  
+
   body('email')
     .optional()
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('role')
     .optional()
     .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
     .withMessage('Invalid role specified'),
-  
+
   body('department')
     .optional()
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
     .withMessage('Invalid department specified'),
-  
+
   body('isActive')
     .optional()
     .isBoolean()
     .withMessage('isActive must be a boolean value'),
-  
+
   body('isVerified')
     .optional()
     .isBoolean()
@@ -262,37 +262,37 @@ exports.validateUserSearch = [
     .optional()
     .isIn(['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'])
     .withMessage('Invalid role specified'),
-  
+
   body('department')
     .optional()
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
     .withMessage('Invalid department specified'),
-  
+
   body('isActive')
     .optional()
     .isBoolean()
     .withMessage('isActive must be a boolean value'),
-  
+
   body('isVerified')
     .optional()
     .isBoolean()
     .withMessage('isVerified must be a boolean value'),
-  
+
   body('page')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Page must be a positive integer'),
-  
+
   body('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-  
+
   body('sortBy')
     .optional()
     .isIn(['firstName', 'lastName', 'email', 'role', 'department', 'createdAt', 'lastLogin'])
     .withMessage('Invalid sort field'),
-  
+
   body('sortOrder')
     .optional()
     .isIn(['asc', 'desc'])
@@ -306,7 +306,7 @@ exports.validatePlacementDirectorProfileUpdate = [
     .optional()
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('name.firstName')
     .optional()
     .trim()
@@ -314,7 +314,7 @@ exports.validatePlacementDirectorProfileUpdate = [
     .withMessage('First name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('First name must contain only letters and spaces'),
-  
+
   body('name.lastName')
     .optional()
     .trim()
@@ -322,137 +322,137 @@ exports.validatePlacementDirectorProfileUpdate = [
     .withMessage('Last name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Last name must contain only letters and spaces'),
-  
+
   body('email')
     .optional()
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('mobileNumber')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Mobile number must be exactly 10 digits'),
-  
+
   body('gender')
     .optional()
     .isIn(['Male', 'Female', 'Other'])
     .withMessage('Gender must be Male, Female, or Other'),
-  
+
   body('profilePhotoUrl')
     .optional()
     .isURL()
     .withMessage('Profile photo URL must be a valid URL'),
-  
+
   // Professional Information
   body('role')
     .optional()
     .isIn(['placement_director'])
     .withMessage('Role must be placement_director'),
-  
+
   body('department')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Department must be between 2 and 100 characters'),
-  
+
   body('designation')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Designation must be between 2 and 100 characters'),
-  
+
   body('dateOfJoining')
     .optional()
     .isISO8601()
     .withMessage('Date of joining must be a valid date'),
-  
+
   body('officeRoomNo')
     .optional()
     .isLength({ min: 1, max: 20 })
     .withMessage('Office room number must be between 1 and 20 characters'),
-  
+
   body('officialEmail')
     .optional()
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid official email address'),
-  
+
   body('alternateMobile')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Alternate mobile number must be exactly 10 digits'),
-  
+
   body('reportingTo')
     .optional()
     .matches(/^[0-9a-fA-F]{24}$/)
     .withMessage('Reporting to must be a valid ObjectId'),
-  
+
   body('yearsOfExperience')
     .optional()
     .isInt({ min: 0, max: 50 })
     .withMessage('Years of experience must be between 0 and 50'),
-  
+
   body('resumeUrl')
     .optional()
     .isURL()
     .withMessage('Resume URL must be a valid URL'),
-  
+
   body('responsibilitiesText')
     .optional()
     .isLength({ max: 2000 })
     .withMessage('Responsibilities text cannot exceed 2000 characters'),
-  
+
   body('communicationPreferences')
     .optional()
     .isArray()
     .withMessage('Communication preferences must be an array'),
-  
+
   body('communicationPreferences.*')
     .optional()
     .isIn(['email', 'SMS', 'portal'])
     .withMessage('Communication preference must be email, SMS, or portal'),
-  
+
   // Contact Information
   body('contact.alternatePhone')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Alternate phone must be exactly 10 digits'),
-  
+
   body('contact.emergencyContact')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Emergency contact must be exactly 10 digits'),
-  
+
   body('contact.address.street')
     .optional()
     .isLength({ max: 200 })
     .withMessage('Street address cannot exceed 200 characters'),
-  
+
   body('contact.address.city')
     .optional()
     .isLength({ max: 50 })
     .withMessage('City cannot exceed 50 characters'),
-  
+
   body('contact.address.state')
     .optional()
     .isLength({ max: 50 })
     .withMessage('State cannot exceed 50 characters'),
-  
+
   body('contact.address.pincode')
     .optional()
     .matches(/^[0-9]{6}$/)
     .withMessage('Pincode must be exactly 6 digits'),
-  
+
   body('contact.address.country')
     .optional()
     .isLength({ max: 50 })
     .withMessage('Country cannot exceed 50 characters'),
-  
+
   // System Information
   body('status')
     .optional()
     .isIn(['active', 'inactive', 'deleted'])
     .withMessage('Status must be active, inactive, or deleted'),
-  
+
   body('authProvider')
     .optional()
     .isIn(['local', 'google', 'microsoft', 'other'])
@@ -467,49 +467,49 @@ exports.validateStaffCreation = [
     .withMessage('First name is required')
     .isLength({ min: 1, max: 50 })
     .withMessage('First name must be between 1 and 50 characters'),
-  
+
   body('lastName')
     .trim()
     .notEmpty()
     .withMessage('Last name is required')
     .isLength({ min: 1, max: 50 })
     .withMessage('Last name must be between 1 and 50 characters'),
-  
+
   body('email')
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('role')
     .notEmpty()
     .withMessage('Role is required')
     .isIn(['placement_staff', 'department_hod', 'other_staff'])
     .withMessage('Invalid staff role specified'),
-  
+
   body('department')
     .notEmpty()
     .withMessage('Department is required')
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
     .withMessage('Invalid department specified'),
-  
+
   body('designation')
     .trim()
     .notEmpty()
     .withMessage('Designation is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('Designation must be between 2 and 100 characters'),
-  
+
   body('employeeId')
     .optional()
     .trim()
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('phone')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Phone number must be exactly 10 digits'),
-  
+
   body('adminNotes')
     .optional()
     .trim()
@@ -524,46 +524,46 @@ exports.validateStaffUpdate = [
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('First name must be between 1 and 50 characters'),
-  
+
   body('lastName')
     .optional()
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Last name must be between 1 and 50 characters'),
-  
+
   body('department')
     .optional()
     .trim()
     .isLength({ min: 2, max: 10 })
     .withMessage('Department code must be between 2 and 10 characters'),
-  
+
   body('designation')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Designation must be between 2 and 100 characters'),
-  
+
   body('employeeId')
     .optional()
     .trim()
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('phone')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Phone number must be exactly 10 digits'),
-  
+
   body('isActive')
     .optional()
     .isBoolean()
     .withMessage('isActive must be a boolean value'),
-  
+
   body('isVerified')
     .optional()
     .isBoolean()
     .withMessage('isVerified must be a boolean value'),
-  
+
   body('adminNotes')
     .optional()
     .trim()
@@ -585,7 +585,7 @@ exports.validatePlacementStaffProfileUpdate = [
     .optional()
     .isLength({ min: 3, max: 20 })
     .withMessage('Employee ID must be between 3 and 20 characters'),
-  
+
   body('name.firstName')
     .optional()
     .trim()
@@ -593,7 +593,7 @@ exports.validatePlacementStaffProfileUpdate = [
     .withMessage('First name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('First name must contain only letters and spaces'),
-  
+
   body('name.lastName')
     .optional()
     .trim()
@@ -601,23 +601,23 @@ exports.validatePlacementStaffProfileUpdate = [
     .withMessage('Last name must be between 1 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Last name must contain only letters and spaces'),
-  
+
   body('email')
     .optional()
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-  
+
   body('mobileNumber')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Mobile number must be exactly 10 digits'),
-  
+
   body('gender')
     .optional()
     .isIn(['Male', 'Female', 'Other'])
     .withMessage('Gender must be Male, Female, or Other'),
-  
+
   body('profilePhotoUrl')
     .optional()
     .custom((value) => {
@@ -632,121 +632,121 @@ exports.validatePlacementStaffProfileUpdate = [
         throw new Error('Profile photo URL must be a valid URL');
       }
     }),
-  
+
   // Professional Information
   body('role')
     .optional()
     .isIn(['admin', 'director', 'staff', 'hod', 'other'])
     .withMessage('Invalid role specified'),
-  
+
   body('department')
     .optional()
-    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'])
+    .isIn(['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER', 'MCA', 'MBA'])
     .withMessage('Invalid department specified'),
-  
+
   body('designation')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Designation must be between 2 and 100 characters'),
-  
+
   body('dateOfJoining')
     .optional()
     .isISO8601()
     .withMessage('Date of joining must be a valid date'),
-  
+
   body('officeLocation')
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Office location must be between 2 and 100 characters'),
-  
+
   body('officialEmail')
     .optional()
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid official email address'),
-  
+
   body('experienceYears')
     .optional()
     .isInt({ min: 0, max: 50 })
     .withMessage('Experience years must be between 0 and 50'),
-  
+
   body('qualifications')
     .optional()
     .isArray()
     .withMessage('Qualifications must be an array'),
-  
+
   body('assignedStudents')
     .optional()
     .isArray()
     .withMessage('Assigned students must be an array'),
-  
+
   body('responsibilitiesText')
     .optional()
     .isLength({ max: 2000 })
     .withMessage('Responsibilities text cannot exceed 2000 characters'),
-  
+
   body('trainingProgramsHandled')
     .optional()
     .isArray()
     .withMessage('Training programs handled must be an array'),
-  
+
   body('languagesSpoken')
     .optional()
     .isArray()
     .withMessage('Languages spoken must be an array'),
-  
+
   body('availabilityTimeSlots')
     .optional()
     .isArray()
     .withMessage('Availability time slots must be an array'),
-  
+
   // Contact Information
   body('contact.alternatePhone')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Alternate phone must be exactly 10 digits'),
-  
+
   body('contact.emergencyContact')
     .optional()
     .matches(/^[0-9]{10}$/)
     .withMessage('Emergency contact must be exactly 10 digits'),
-  
+
   body('contact.address.street')
     .optional()
     .isLength({ max: 200 })
     .withMessage('Street address cannot exceed 200 characters'),
-  
+
   body('contact.address.city')
     .optional()
     .isLength({ max: 50 })
     .withMessage('City cannot exceed 50 characters'),
-  
+
   body('contact.address.state')
     .optional()
     .isLength({ max: 50 })
     .withMessage('State cannot exceed 50 characters'),
-  
+
   body('contact.address.pincode')
     .optional()
     .matches(/^[0-9]{6}$/)
     .withMessage('Pincode must be exactly 6 digits'),
-  
+
   body('contact.address.country')
     .optional()
     .isLength({ max: 50 })
     .withMessage('Country cannot exceed 50 characters'),
-  
+
   // System Information
   body('status')
     .optional()
     .isIn(['active', 'inactive', 'deleted'])
     .withMessage('Status must be active, inactive, or deleted'),
-  
+
   body('authProvider')
     .optional()
     .isIn(['local', 'google', 'microsoft', 'other'])
     .withMessage('Auth provider must be local, google, microsoft, or other'),
-  
+
   body('adminNotes')
     .optional()
     .isLength({ max: 1000 })
