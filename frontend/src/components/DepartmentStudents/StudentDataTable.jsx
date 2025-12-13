@@ -484,6 +484,7 @@ const StudentDataTable = ({
                 >
                   <MenuItem value="">All Status</MenuItem>
                   <MenuItem value="Placed">Placed</MenuItem>
+                  <MenuItem value="Multiple Offers">Multiple Offers</MenuItem>
                   <MenuItem value="Unplaced">Unplaced</MenuItem>
                 </Select>
               </FormControl>

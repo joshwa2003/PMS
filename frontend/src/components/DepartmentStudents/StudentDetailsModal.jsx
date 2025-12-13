@@ -444,6 +444,7 @@ const StudentDetailsModal = ({
                         >
                           <MenuItem value="Unplaced">Unplaced</MenuItem>
                           <MenuItem value="Placed">Placed</MenuItem>
+                          <MenuItem value="Multiple Offers">Multiple Offers</MenuItem>
                         </Select>
                       </FormControl>
                     </>
