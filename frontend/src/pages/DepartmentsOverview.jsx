@@ -37,19 +37,19 @@ import departmentStaffService from 'services/departmentStaffService';
 // Context
 import { useMaterialUIController } from 'context';
 
-const DepartmentCard = ({ department, staffStats, onClick }) => {
+const DepartmentCard = ({ department, staffStats, onClick, darkMode }) => {
   const getProgressColor = (percentage) => {
     if (percentage >= 80) return 'success';
     if (percentage >= 60) return 'warning';
     return 'error';
   };
 
-  const roleAssignedPercentage = staffStats?.total > 0 
-    ? Math.round((staffStats.roleAssigned / staffStats.total) * 100) 
+  const roleAssignedPercentage = staffStats?.total > 0
+    ? Math.round((staffStats.roleAssigned / staffStats.total) * 100)
     : 0;
 
-  const emailSentPercentage = staffStats?.total > 0 
-    ? Math.round((staffStats.emailSent / staffStats.total) * 100) 
+  const emailSentPercentage = staffStats?.total > 0
+    ? Math.round((staffStats.emailSent / staffStats.total) * 100)
     : 0;
 
   return (
@@ -69,10 +69,20 @@ const DepartmentCard = ({ department, staffStats, onClick }) => {
               <BusinessIcon />
             </Avatar>
             <Box flex={1}>
-              <Typography variant="h6" fontWeight="medium">
+              <Typography
+                variant="h6"
+                fontWeight="medium"
+                sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+              >
                 {department.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: darkMode ? '#FFFFFF' : 'text.secondary',
+                  opacity: darkMode ? 0.7 : 1
+                }}
+              >
                 {department.code}
               </Typography>
             </Box>
@@ -82,8 +92,14 @@ const DepartmentCard = ({ department, staffStats, onClick }) => {
           <Box mb={2}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box display="flex" alignItems="center">
-                <GroupIcon sx={{ mr: 1, fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
+                <GroupIcon sx={{ mr: 1, fontSize: 16, color: darkMode ? '#FFFFFF' : 'text.secondary', opacity: darkMode ? 0.7 : 1 }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: darkMode ? '#FFFFFF' : 'text.secondary',
+                    opacity: darkMode ? 0.7 : 1
+                  }}
+                >
                   Total Staff
                 </Typography>
               </Box>
@@ -94,13 +110,24 @@ const DepartmentCard = ({ department, staffStats, onClick }) => {
 
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Box display="flex" alignItems="center">
-                <AssignmentIndIcon sx={{ mr: 1, fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
+                <AssignmentIndIcon sx={{ mr: 1, fontSize: 16, color: darkMode ? '#FFFFFF' : 'text.secondary', opacity: darkMode ? 0.7 : 1 }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: darkMode ? '#FFFFFF' : 'text.secondary',
+                    opacity: darkMode ? 0.7 : 1
+                  }}
+                >
                   Roles Assigned
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center">
-                <Typography variant="body2" fontWeight="medium" mr={1}>
+                <Typography
+                  variant="body2"
+                  fontWeight="medium"
+                  mr={1}
+                  sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+                >
                   {staffStats?.roleAssigned || 0}/{staffStats?.total || 0}
                 </Typography>
                 <Chip
@@ -114,13 +141,24 @@ const DepartmentCard = ({ department, staffStats, onClick }) => {
 
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Box display="flex" alignItems="center">
-                <EmailIcon sx={{ mr: 1, fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
+                <EmailIcon sx={{ mr: 1, fontSize: 16, color: darkMode ? '#FFFFFF' : 'text.secondary', opacity: darkMode ? 0.7 : 1 }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: darkMode ? '#FFFFFF' : 'text.secondary',
+                    opacity: darkMode ? 0.7 : 1
+                  }}
+                >
                   Emails Sent
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center">
-                <Typography variant="body2" fontWeight="medium" mr={1}>
+                <Typography
+                  variant="body2"
+                  fontWeight="medium"
+                  mr={1}
+                  sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+                >
                   {staffStats?.emailSent || 0}/{staffStats?.total || 0}
                 </Typography>
                 <Chip
@@ -210,7 +248,7 @@ const DepartmentsOverview = () => {
       console.log('Fetching departments...');
       const departmentsResponse = await departmentService.getAllDepartmentsNoPagination();
       console.log('Departments Response:', departmentsResponse);
-      
+
       // Handle different response structures
       let departmentsList = [];
       if (departmentsResponse.departments) {
@@ -222,7 +260,7 @@ const DepartmentsOverview = () => {
       } else if (Array.isArray(departmentsResponse)) {
         departmentsList = departmentsResponse;
       }
-      
+
       console.log('Departments List:', departmentsList);
       setDepartments(departmentsList);
 
@@ -233,8 +271,8 @@ const DepartmentsOverview = () => {
           return { departmentId: dept._id, stats: statsResponse.stats };
         } catch (error) {
           console.error(`Error fetching stats for department ${dept.code}:`, error);
-          return { 
-            departmentId: dept._id, 
+          return {
+            departmentId: dept._id,
             stats: {
               total: 0,
               active: 0,
@@ -304,10 +342,14 @@ const DepartmentsOverview = () => {
           {/* Header */}
           <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <MDBox>
-              <MDTypography variant="h4" fontWeight="medium">
+              <MDTypography variant="h4" fontWeight="medium" color={darkMode ? "white" : "dark"}>
                 Departments Overview
               </MDTypography>
-              <MDTypography variant="body2" color="text">
+              <MDTypography
+                variant="body2"
+                color={darkMode ? "white" : "text"}
+                sx={{ opacity: darkMode ? 0.7 : 1 }}
+              >
                 Manage staff across all departments with role assignment and email notifications
               </MDTypography>
             </MDBox>
@@ -335,7 +377,13 @@ const DepartmentsOverview = () => {
                         <Typography variant="h4" fontWeight="bold" color="primary.main">
                           {finalOverallStats.totalDepartments}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: darkMode ? '#FFFFFF' : 'text.secondary',
+                            opacity: darkMode ? 0.7 : 1
+                          }}
+                        >
                           Total Departments
                         </Typography>
                       </Box>
@@ -355,7 +403,13 @@ const DepartmentsOverview = () => {
                         <Typography variant="h4" fontWeight="bold" color="info.main">
                           {finalOverallStats.totalStaff}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: darkMode ? '#FFFFFF' : 'text.secondary',
+                            opacity: darkMode ? 0.7 : 1
+                          }}
+                        >
                           Total Staff
                         </Typography>
                       </Box>
@@ -375,7 +429,13 @@ const DepartmentsOverview = () => {
                         <Typography variant="h4" fontWeight="bold" color="success.main">
                           {finalOverallStats.totalRoleAssigned}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: darkMode ? '#FFFFFF' : 'text.secondary',
+                            opacity: darkMode ? 0.7 : 1
+                          }}
+                        >
                           Roles Assigned
                         </Typography>
                       </Box>
@@ -395,7 +455,13 @@ const DepartmentsOverview = () => {
                         <Typography variant="h4" fontWeight="bold" color="warning.main">
                           {finalOverallStats.totalEmailSent}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: darkMode ? '#FFFFFF' : 'text.secondary',
+                            opacity: darkMode ? 0.7 : 1
+                          }}
+                        >
                           Emails Sent
                         </Typography>
                       </Box>
@@ -430,6 +496,7 @@ const DepartmentsOverview = () => {
                     department={department}
                     staffStats={departmentStats[department._id]}
                     onClick={() => handleDepartmentClick(department)}
+                    darkMode={darkMode}
                   />
                 </Grid>
               ))

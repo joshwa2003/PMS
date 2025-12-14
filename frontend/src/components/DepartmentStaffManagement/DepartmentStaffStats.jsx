@@ -26,18 +26,34 @@ import MDTypography from 'components/MDTypography';
 // Services
 import departmentStaffService from 'services/departmentStaffService';
 
-const StatCard = ({ title, value, total, icon, color, percentage }) => (
+import { useMaterialUIController } from "context";
+
+const StatCard = ({ title, value, total, icon, color, percentage, darkMode }) => (
   <Card sx={{ height: '100%' }}>
     <CardContent>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
         <Box>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Typography
+            variant="body2"
+            sx={{
+              color: darkMode ? '#FFFFFF' : 'text.secondary',
+              opacity: darkMode ? 0.8 : 1
+            }}
+            gutterBottom
+          >
             {title}
           </Typography>
           <Typography variant="h4" fontWeight="bold" color={color}>
             {value}
             {total && (
-              <Typography component="span" variant="body1" color="text.secondary">
+              <Typography
+                component="span"
+                variant="body1"
+                sx={{
+                  color: darkMode ? '#FFFFFF' : 'text.secondary',
+                  opacity: darkMode ? 0.6 : 1
+                }}
+              >
                 /{total}
               </Typography>
             )}
@@ -45,7 +61,7 @@ const StatCard = ({ title, value, total, icon, color, percentage }) => (
         </Box>
         <Box
           sx={{
-            bgcolor: `${color}.100`,
+            bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : `${color}.100`,
             borderRadius: 2,
             p: 1,
             display: 'flex',
@@ -53,19 +69,25 @@ const StatCard = ({ title, value, total, icon, color, percentage }) => (
             justifyContent: 'center'
           }}
         >
-          {React.cloneElement(icon, { 
-            sx: { color: `${color}.600`, fontSize: 24 } 
+          {React.cloneElement(icon, {
+            sx: { color: darkMode ? '#FFFFFF' : `${color}.600`, fontSize: 24 }
           })}
         </Box>
       </Box>
-      
+
       {percentage !== undefined && (
         <Box>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              sx={{
+                color: darkMode ? '#FFFFFF' : 'text.secondary',
+                opacity: darkMode ? 0.8 : 1
+              }}
+            >
               Progress
             </Typography>
-            <Typography variant="body2" fontWeight="medium" color={color}>
+            <Typography variant="body2" fontWeight="medium" sx={{ color: darkMode ? '#FFFFFF' : color }}>
               {percentage}%
             </Typography>
           </Box>
@@ -75,7 +97,7 @@ const StatCard = ({ title, value, total, icon, color, percentage }) => (
             sx={{
               height: 6,
               borderRadius: 3,
-              bgcolor: 'grey.200',
+              bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : 'grey.200',
               '& .MuiLinearProgress-bar': {
                 bgcolor: `${color}.main`,
                 borderRadius: 3
@@ -89,6 +111,9 @@ const StatCard = ({ title, value, total, icon, color, percentage }) => (
 );
 
 const DepartmentStaffStats = ({ stats, department }) => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
+
   if (!stats) {
     return null;
   }
@@ -102,10 +127,20 @@ const DepartmentStaffStats = ({ stats, department }) => {
   return (
     <MDBox>
       <MDBox mb={3}>
-        <MDTypography variant="h6" fontWeight="medium">
+        <MDTypography
+          variant="h6"
+          fontWeight="medium"
+          sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+        >
           Department Statistics - {department?.name || 'Department'}
         </MDTypography>
-        <MDTypography variant="body2" color="text">
+        <MDTypography
+          variant="body2"
+          sx={{
+            color: darkMode ? '#FFFFFF' : 'text.primary',
+            opacity: darkMode ? 0.8 : 1
+          }}
+        >
           Overview of staff members and their current status
         </MDTypography>
       </MDBox>
@@ -118,6 +153,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             value={stats.total}
             icon={<GroupIcon />}
             color="primary"
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -130,6 +166,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             icon={<CheckCircleIcon />}
             color="success"
             percentage={activePercentage}
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -142,6 +179,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             icon={<AssignmentIndIcon />}
             color="info"
             percentage={roleAssignedPercentage}
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -154,6 +192,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             icon={<EmailIcon />}
             color="warning"
             percentage={emailSentPercentage}
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -166,6 +205,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             icon={<CheckCircleIcon />}
             color="success"
             percentage={verifiedPercentage}
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -176,6 +216,7 @@ const DepartmentStaffStats = ({ stats, department }) => {
             value={stats.rolePending + stats.emailPending}
             icon={<PendingIcon />}
             color="error"
+            darkMode={darkMode}
           />
         </Grid>
 
@@ -183,16 +224,21 @@ const DepartmentStaffStats = ({ stats, department }) => {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <MDTypography variant="h6" fontWeight="medium" mb={3}>
+              <MDTypography
+                variant="h6"
+                fontWeight="medium"
+                mb={3}
+                sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+              >
                 Role Distribution
               </MDTypography>
-              
+
               <Box>
                 {/* Placement Staff */}
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                   <Box display="flex" alignItems="center">
-                    <SupportAgentIcon sx={{ mr: 2, color: 'info.main' }} />
-                    <Typography variant="body1">
+                    <SupportAgentIcon sx={{ mr: 2, color: darkMode ? '#FFFFFF' : 'info.main' }} />
+                    <Typography variant="body1" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>
                       Placement Staff
                     </Typography>
                   </Box>
@@ -206,8 +252,8 @@ const DepartmentStaffStats = ({ stats, department }) => {
                 {/* Department HOD */}
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                   <Box display="flex" alignItems="center">
-                    <SupervisorAccountIcon sx={{ mr: 2, color: 'success.main' }} />
-                    <Typography variant="body1">
+                    <SupervisorAccountIcon sx={{ mr: 2, color: darkMode ? '#FFFFFF' : 'success.main' }} />
+                    <Typography variant="body1" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>
                       Department HOD
                     </Typography>
                   </Box>
@@ -221,8 +267,8 @@ const DepartmentStaffStats = ({ stats, department }) => {
                 {/* Other Staff */}
                 <Box display="flex" alignItems="center" justifyContent="space-between">
                   <Box display="flex" alignItems="center">
-                    <PersonIcon sx={{ mr: 2, color: 'secondary.main' }} />
-                    <Typography variant="body1">
+                    <PersonIcon sx={{ mr: 2, color: darkMode ? '#FFFFFF' : 'secondary.main' }} />
+                    <Typography variant="body1" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>
                       Other Staff
                     </Typography>
                   </Box>
@@ -241,24 +287,36 @@ const DepartmentStaffStats = ({ stats, department }) => {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <MDTypography variant="h6" fontWeight="medium" mb={3}>
+              <MDTypography
+                variant="h6"
+                fontWeight="medium"
+                mb={3}
+                sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}
+              >
                 Status Overview
               </MDTypography>
-              
+
               <Box>
                 {/* Active vs Inactive */}
                 <Box mb={3}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: darkMode ? '#FFFFFF' : 'text.secondary',
+                      opacity: darkMode ? 0.8 : 1
+                    }}
+                    gutterBottom
+                  >
                     Account Status
                   </Typography>
                   <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Active</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Active</Typography>
                     <Typography variant="body2" fontWeight="medium" color="success.main">
                       {stats.active}
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Inactive</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Inactive</Typography>
                     <Typography variant="body2" fontWeight="medium" color="error.main">
                       {stats.inactive}
                     </Typography>
@@ -267,17 +325,24 @@ const DepartmentStaffStats = ({ stats, department }) => {
 
                 {/* Email Status */}
                 <Box mb={3}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: darkMode ? '#FFFFFF' : 'text.secondary',
+                      opacity: darkMode ? 0.8 : 1
+                    }}
+                    gutterBottom
+                  >
                     Email Status
                   </Typography>
                   <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Sent</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Sent</Typography>
                     <Typography variant="body2" fontWeight="medium" color="success.main">
                       {stats.emailSent}
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Pending</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Pending</Typography>
                     <Typography variant="body2" fontWeight="medium" color="warning.main">
                       {stats.emailPending}
                     </Typography>
@@ -286,17 +351,24 @@ const DepartmentStaffStats = ({ stats, department }) => {
 
                 {/* Verification Status */}
                 <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: darkMode ? '#FFFFFF' : 'text.secondary',
+                      opacity: darkMode ? 0.8 : 1
+                    }}
+                    gutterBottom
+                  >
                     Verification Status
                   </Typography>
                   <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">Verified</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Verified</Typography>
                     <Typography variant="body2" fontWeight="medium" color="success.main">
                       {stats.verified}
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body2">Unverified</Typography>
+                    <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.primary' }}>Unverified</Typography>
                     <Typography variant="body2" fontWeight="medium" color="warning.main">
                       {stats.unverified}
                     </Typography>

@@ -23,14 +23,14 @@ import MDButton from 'components/MDButton';
 import { useDepartment } from 'context/DepartmentContext';
 
 const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
-  const { 
-    updateDepartment, 
-    validateDepartmentData, 
+  const {
+    updateDepartment,
+    validateDepartmentData,
     fetchPlacementStaffOptions,
     placementStaffOptions,
-    loading 
+    loading
   } = useDepartment();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -86,7 +86,7 @@ const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
+
     if (!department) return;
 
     // Validate form data
@@ -98,7 +98,7 @@ const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
 
     try {
       const response = await updateDepartment(department.id, formData);
-      
+
       // Reset form
       setErrors({});
       setSubmitError('');
@@ -140,7 +140,7 @@ const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { 
+        sx: {
           borderRadius: '16px',
           boxShadow: '0 24px 48px rgba(0,0,0,0.15)'
         }
@@ -216,35 +216,6 @@ const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
               sx={{ mb: 2 }}
             />
 
-            <FormControl 
-              fullWidth 
-              error={!!errors.placementStaff}
-              disabled={loading}
-              sx={{ mb: 2 }}
-            >
-              <InputLabel>Placement Staff Assignment *</InputLabel>
-              <Select
-                value={formData.placementStaff}
-                onChange={handleInputChange('placementStaff')}
-                label="Placement Staff Assignment *"
-                required
-              >
-                <MenuItem value="">
-                  <em>Select Placement Staff</em>
-                </MenuItem>
-                {placementStaffOptions.map((staff) => (
-                  <MenuItem key={staff._id} value={staff._id}>
-                    {staff.firstName} {staff.lastName} ({staff.email})
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.placementStaff && (
-                <MDTypography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
-                  {errors.placementStaff}
-                </MDTypography>
-              )}
-            </FormControl>
-
             <FormControlLabel
               control={
                 <Switch
@@ -278,12 +249,12 @@ const EditDepartmentModal = ({ open, onClose, onSuccess, department }) => {
           >
             Cancel
           </Button>
-          
+
           <MDButton
             type="submit"
             variant="gradient"
             color="info"
-            disabled={loading || !formData.name.trim() || !formData.code.trim() || !formData.placementStaff}
+            disabled={loading || !formData.name.trim() || !formData.code.trim()}
             sx={{
               minWidth: '120px',
               display: 'flex',

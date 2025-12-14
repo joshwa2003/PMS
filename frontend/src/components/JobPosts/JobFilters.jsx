@@ -16,7 +16,12 @@ import {
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Work as WorkIcon,
+  School as SchoolIcon,
+  Laptop as RemoteIcon,
+  AccessTime as TimeIcon,
+  Timeline as TrendingIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -24,12 +29,12 @@ import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
 
-const JobFilters = ({ 
-  filters, 
-  onFilterChange, 
-  availableFilters = {}, 
+const JobFilters = ({
+  filters,
+  onFilterChange,
+  availableFilters = {},
   loading = false,
-  totalJobs = 0 
+  totalJobs = 0
 }) => {
   const [localFilters, setLocalFilters] = useState(filters);
 
@@ -52,8 +57,8 @@ const JobFilters = ({
     onFilterChange(clearedFilters);
   };
 
-  const hasActiveFilters = localFilters.search || localFilters.jobType || 
-                          localFilters.location || localFilters.company;
+  const hasActiveFilters = localFilters.search || localFilters.jobType ||
+    localFilters.location || localFilters.company;
 
   const sortOptions = [
     { value: 'createdAt', label: 'Latest First' },
@@ -62,18 +67,18 @@ const JobFilters = ({
   ];
 
   return (
-    <Card sx={{ 
-      borderRadius: '12px', 
+    <Card sx={{
+      borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       border: '1px solid #e5e5e5'
     }}>
       <CardContent sx={{ p: 2.5 }}>
         {/* Header */}
         <MDBox display="flex" alignItems="center" gap={1.5} mb={3}>
-          <MDBox 
-            sx={{ 
-              p: 0.75, 
-              borderRadius: '8px', 
+          <MDBox
+            sx={{
+              p: 0.75,
+              borderRadius: '8px',
               bgcolor: 'rgba(25, 118, 210, 0.1)',
               border: '1px solid rgba(25, 118, 210, 0.2)'
             }}
@@ -83,11 +88,11 @@ const JobFilters = ({
           <MDTypography variant="h6" fontWeight="bold" sx={{ fontSize: '16px' }}>
             Filters
           </MDTypography>
-          <Chip 
+          <Chip
             label={`${totalJobs} job${totalJobs !== 1 ? 's' : ''}`}
             size="small"
-            sx={{ 
-              ml: 'auto', 
+            sx={{
+              ml: 'auto',
               fontSize: '11px',
               height: 22,
               bgcolor: '#f0f0f0',
@@ -116,24 +121,22 @@ const JobFilters = ({
           </MDTypography>
           <TextField
             fullWidth
-            size="small"
             placeholder="Search jobs, companies, skills..."
             value={localFilters.search || ''}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#888', fontSize: 18 }} />
+                  <SearchIcon sx={{ color: '#888', fontSize: 20 }} />
                 </InputAdornment>
               ),
               endAdornment: localFilters.search && (
                 <InputAdornment position="end">
                   <IconButton
-                    size="small"
                     onClick={() => handleFilterChange('search', '')}
                     sx={{ color: '#888' }}
                   >
-                    <ClearIcon fontSize="small" />
+                    <ClearIcon />
                   </IconButton>
                 </InputAdornment>
               ),
@@ -141,7 +144,6 @@ const JobFilters = ({
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
-                fontSize: '14px',
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#e0e0e0',
                 },
@@ -161,14 +163,14 @@ const JobFilters = ({
           <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1} sx={{ fontSize: '13px' }}>
             Job Type
           </MDTypography>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth>
             <Select
               value={localFilters.jobType || ''}
               onChange={(e) => handleFilterChange('jobType', e.target.value)}
               displayEmpty
-              sx={{ 
+              sx={{
                 borderRadius: '8px',
-                fontSize: '14px',
+                height: '45px', // Fixed height for consistency
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#e0e0e0',
                 },
@@ -196,14 +198,14 @@ const JobFilters = ({
           <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1} sx={{ fontSize: '13px' }}>
             Location
           </MDTypography>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth>
             <Select
               value={localFilters.location || ''}
               onChange={(e) => handleFilterChange('location', e.target.value)}
               displayEmpty
-              sx={{ 
+              sx={{
                 borderRadius: '8px',
-                fontSize: '14px',
+                height: '45px',
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#e0e0e0',
                 },
@@ -231,12 +233,25 @@ const JobFilters = ({
           <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1}>
             Company
           </MDTypography>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth>
             <Select
               value={localFilters.company || ''}
               onChange={(e) => handleFilterChange('company', e.target.value)}
               displayEmpty
-              sx={{ borderRadius: 1 }}
+              sx={{
+                borderRadius: '8px',
+                height: '45px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1px',
+                },
+              }}
             >
               <MenuItem value="">All Companies</MenuItem>
               {availableFilters.companies?.map((company) => (
@@ -255,11 +270,24 @@ const JobFilters = ({
           <MDTypography variant="body2" fontWeight="medium" color="dark" mb={1}>
             Sort By
           </MDTypography>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth>
             <Select
               value={localFilters.sortBy || 'createdAt'}
               onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-              sx={{ borderRadius: 1 }}
+              sx={{
+                borderRadius: '8px',
+                height: '45px',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1px',
+                },
+              }}
             >
               {sortOptions.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -277,58 +305,108 @@ const JobFilters = ({
           <MDTypography variant="body2" fontWeight="medium" color="dark" mb={2}>
             Quick Filters
           </MDTypography>
-          <MDBox display="flex" flexDirection="column" gap={1}>
+          <MDBox display="flex" flexWrap="wrap" gap={1}>
             <Chip
-              label="Full-time Jobs"
+              icon={<WorkIcon style={{ fontSize: 18 }} />}
+              label="Full-time"
               clickable
-              color={localFilters.jobType === 'Full-time' ? 'primary' : 'default'}
-              onClick={() => handleFilterChange('jobType', 
+              color="primary"
+              variant={localFilters.jobType === 'Full-time' ? 'filled' : 'outlined'}
+              onClick={() => handleFilterChange('jobType',
                 localFilters.jobType === 'Full-time' ? '' : 'Full-time'
               )}
-              size="small"
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: localFilters.jobType === 'Full-time' ? 'primary.main' : '#e0e0e0',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }
+              }}
             />
             <Chip
+              icon={<SchoolIcon style={{ fontSize: 18 }} />}
               label="Internships"
               clickable
-              color={localFilters.jobType === 'Internship' ? 'primary' : 'default'}
-              onClick={() => handleFilterChange('jobType', 
+              color="info"
+              variant={localFilters.jobType === 'Internship' ? 'filled' : 'outlined'}
+              onClick={() => handleFilterChange('jobType',
                 localFilters.jobType === 'Internship' ? '' : 'Internship'
               )}
-              size="small"
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: localFilters.jobType === 'Internship' ? 'info.main' : '#e0e0e0',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }
+              }}
             />
             <Chip
-              label="Remote Work"
+              icon={<RemoteIcon style={{ fontSize: 18 }} />}
+              label="Remote"
               clickable
-              color={localFilters.location === 'Remote' ? 'primary' : 'default'}
-              onClick={() => handleFilterChange('location', 
+              color="success"
+              variant={localFilters.location === 'Remote' ? 'filled' : 'outlined'}
+              onClick={() => handleFilterChange('location',
                 localFilters.location === 'Remote' ? '' : 'Remote'
               )}
-              size="small"
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: localFilters.location === 'Remote' ? 'success.main' : '#e0e0e0',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }
+              }}
             />
             <Chip
-              label="Latest Jobs"
+              icon={<TrendingIcon style={{ fontSize: 18 }} />}
+              label="Latest"
               clickable
-              color={localFilters.sortBy === 'createdAt' ? 'primary' : 'default'}
+              color="warning"
+              variant={localFilters.sortBy === 'createdAt' ? 'filled' : 'outlined'}
               onClick={() => {
                 handleFilterChange('sortBy', 'createdAt');
                 handleFilterChange('sortOrder', 'desc');
               }}
-              size="small"
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: localFilters.sortBy === 'createdAt' ? 'warning.main' : '#e0e0e0',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }
+              }}
             />
             <Chip
-              label="Deadline Soon"
+              icon={<TimeIcon style={{ fontSize: 18 }} />}
+              label="Urgent"
               clickable
-              color={localFilters.sortBy === 'deadline' ? 'primary' : 'default'}
+              color="error"
+              variant={localFilters.sortBy === 'deadline' ? 'filled' : 'outlined'}
               onClick={() => {
                 handleFilterChange('sortBy', 'deadline');
                 handleFilterChange('sortOrder', 'asc');
               }}
-              size="small"
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: localFilters.sortBy === 'deadline' ? 'error.main' : '#e0e0e0',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }
+              }}
             />
           </MDBox>
         </MDBox>
@@ -351,7 +429,7 @@ const JobFilters = ({
                     variant="outlined"
                   />
                 )}
-                
+
                 {localFilters.jobType && (
                   <Chip
                     label={localFilters.jobType}
@@ -361,7 +439,7 @@ const JobFilters = ({
                     variant="outlined"
                   />
                 )}
-                
+
                 {localFilters.location && (
                   <Chip
                     label={localFilters.location}
@@ -371,7 +449,7 @@ const JobFilters = ({
                     variant="outlined"
                   />
                 )}
-                
+
                 {localFilters.company && (
                   <Chip
                     label={localFilters.company}

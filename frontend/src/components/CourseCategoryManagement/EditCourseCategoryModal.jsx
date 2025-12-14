@@ -16,11 +16,14 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
+import { useMaterialUIController } from "context";
 import { useCourseCategory } from 'context/CourseCategoryContext';
 
 const EditCourseCategoryModal = ({ open, onClose, onSuccess, category }) => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
   const { updateCategory, validateCategoryData, loading } = useCourseCategory();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -65,7 +68,7 @@ const EditCourseCategoryModal = ({ open, onClose, onSuccess, category }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
+
     if (!category) return;
 
     // Validate form data
@@ -77,7 +80,7 @@ const EditCourseCategoryModal = ({ open, onClose, onSuccess, category }) => {
 
     try {
       const response = await updateCategory(category.id, formData);
-      
+
       // Reset form
       setErrors({});
       setSubmitError('');
@@ -117,9 +120,11 @@ const EditCourseCategoryModal = ({ open, onClose, onSuccess, category }) => {
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { 
+        sx: {
           borderRadius: '16px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.15)'
+          boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+          bgcolor: darkMode ? "#202940" : "#fff",
+          color: darkMode ? "#fff" : "text.primary"
         }
       }}
     >
@@ -213,7 +218,7 @@ const EditCourseCategoryModal = ({ open, onClose, onSuccess, category }) => {
           >
             Cancel
           </Button>
-          
+
           <MDButton
             type="submit"
             variant="gradient"

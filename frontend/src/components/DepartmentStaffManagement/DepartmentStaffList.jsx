@@ -21,7 +21,7 @@ import {
   Checkbox,
   TablePagination
 } from '@mui/material';
-import { 
+import {
   Search as SearchIcon,
   Clear as ClearIcon,
   Refresh as RefreshIcon,
@@ -41,6 +41,8 @@ import MDBadge from "components/MDBadge";
 // S.A. Engineering College React example components
 import DataTable from "examples/Tables/DataTable";
 
+import { useMaterialUIController } from "context";
+
 // Context
 import { useDepartmentStaff } from 'context/DepartmentStaffContext';
 
@@ -48,6 +50,9 @@ import { useDepartmentStaff } from 'context/DepartmentStaffContext';
 import departmentStaffService from 'services/departmentStaffService';
 
 const DepartmentStaffList = () => {
+  const [controller] = useMaterialUIController();
+  const { darkMode } = controller;
+
   const {
     staff,
     selectedStaff,
@@ -200,17 +205,17 @@ const DepartmentStaffList = () => {
 
   // Create table data using the same pattern as DepartmentDataTable
   const columns = [
-    { 
+    {
       Header: (
         <Checkbox
           checked={selectedStaff.length === staff.length && staff.length > 0}
           indeterminate={selectedStaff.length > 0 && selectedStaff.length < staff.length}
           onChange={handleSelectAll}
         />
-      ), 
-      accessor: "select", 
-      width: "5%", 
-      align: "center" 
+      ),
+      accessor: "select",
+      width: "5%",
+      align: "center"
     },
     { Header: "Staff Member", accessor: "staffMember", width: "25%", align: "left" },
     { Header: "Role", accessor: "role", width: "15%", align: "left" },
@@ -230,10 +235,10 @@ const DepartmentStaffList = () => {
     ),
     staffMember: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
-        <MDAvatar 
-          src={staffMember.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(staffMember.fullName || 'Staff')}&size=40&background=2196F3&color=ffffff`} 
-          name={staffMember.fullName} 
-          size="sm" 
+        <MDAvatar
+          src={staffMember.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(staffMember.fullName || 'Staff')}&size=40&background=2196F3&color=ffffff`}
+          name={staffMember.fullName}
+          size="sm"
         />
         <MDBox ml={2} lineHeight={1}>
           <MDTypography display="block" variant="button" fontWeight="medium">
@@ -262,32 +267,32 @@ const DepartmentStaffList = () => {
     ),
     status: (
       <MDBox ml={-1}>
-        <MDBadge 
-          badgeContent={getStatusText(staffMember)} 
-          color={getStatusColor(staffMember)} 
-          variant="gradient" 
-          size="sm" 
+        <MDBadge
+          badgeContent={getStatusText(staffMember)}
+          color={getStatusColor(staffMember)}
+          variant="gradient"
+          size="sm"
         />
       </MDBox>
     ),
     emailStatus: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
-        <EmailIcon 
-          color={staffMember.emailSent ? 'success' : 'disabled'} 
-          sx={{ mr: 1, fontSize: 16 }}
+        <EmailIcon
+          color={staffMember.emailSent ? 'success' : 'disabled'}
+          sx={{ mr: 1, fontSize: 16, color: !staffMember.emailSent && darkMode ? 'rgba(255,255,255,0.6)' : undefined }}
         />
-        <MDTypography variant="caption" color="text" fontWeight="medium">
+        <MDTypography variant="caption" color="text" fontWeight="medium" sx={{ color: darkMode ? '#FFFFFF' : 'text.secondary' }}>
           {staffMember.emailSent ? 'Sent' : 'Pending'}
         </MDTypography>
       </MDBox>
     ),
     roleAssigned: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
-        <AssignmentIndIcon 
-          color={staffMember.roleAssignedAt ? 'success' : 'disabled'} 
-          sx={{ mr: 1, fontSize: 16 }}
+        <AssignmentIndIcon
+          color={staffMember.roleAssignedAt ? 'success' : 'disabled'}
+          sx={{ mr: 1, fontSize: 16, color: !staffMember.roleAssignedAt && darkMode ? 'rgba(255,255,255,0.6)' : undefined }}
         />
-        <MDTypography variant="caption" color="text" fontWeight="medium">
+        <MDTypography variant="caption" color="text" fontWeight="medium" sx={{ color: darkMode ? '#FFFFFF' : 'text.secondary' }}>
           {staffMember.roleAssignedAt ? formatDate(staffMember.roleAssignedAt) : 'Pending'}
         </MDTypography>
       </MDBox>
@@ -300,12 +305,12 @@ const DepartmentStaffList = () => {
     actions: (
       <MDBox display="flex" alignItems="center" gap={1}>
         <Tooltip title="Assign Role">
-          <IconButton size="small" onClick={() => handleAssignRole(staffMember)}>
+          <IconButton size="small" onClick={() => handleAssignRole(staffMember)} sx={{ color: darkMode ? '#FFFFFF' : 'inherit' }}>
             <AssignmentIndIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="View Details">
-          <IconButton size="small" onClick={() => handleViewDetails(staffMember)}>
+          <IconButton size="small" onClick={() => handleViewDetails(staffMember)} sx={{ color: darkMode ? '#FFFFFF' : 'inherit' }}>
             <VisibilityIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -313,6 +318,7 @@ const DepartmentStaffList = () => {
           <IconButton
             size="small"
             onClick={(e) => handleMenuOpen(e, staffMember)}
+            sx={{ color: darkMode ? '#FFFFFF' : 'inherit' }}
           >
             <MoreVertIcon fontSize="small" />
           </IconButton>
@@ -364,6 +370,7 @@ const DepartmentStaffList = () => {
                 onChange={handleSearchChange}
                 size="small"
                 InputProps={{
+                  sx: { height: 44 },
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
@@ -386,11 +393,12 @@ const DepartmentStaffList = () => {
             {/* Role Filter */}
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Role</InputLabel>
+                <InputLabel sx={{ lineHeight: '14px' }}>Role</InputLabel>
                 <Select
                   value={roleFilter}
                   onChange={handleRoleFilterChange}
                   label="Role"
+                  sx={{ height: 44 }}
                 >
                   <MenuItem value="">All Roles</MenuItem>
                   <MenuItem value="placement_staff">Placement Staff</MenuItem>
@@ -403,11 +411,12 @@ const DepartmentStaffList = () => {
             {/* Status Filter */}
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
+                <InputLabel sx={{ lineHeight: '14px' }}>Status</InputLabel>
                 <Select
                   value={statusFilter}
                   onChange={handleStatusFilterChange}
                   label="Status"
+                  sx={{ height: 44 }}
                 >
                   <MenuItem value="">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -426,6 +435,11 @@ const DepartmentStaffList = () => {
                 disabled={!searchTerm && !statusFilter && !roleFilter}
                 startIcon={<ClearIcon />}
                 size="small"
+                sx={{
+                  height: 44,
+                  color: darkMode ? '#FFFFFF' : 'inherit',
+                  borderColor: darkMode ? 'rgba(255,255,255,0.3)' : undefined
+                }}
               >
                 Clear Filters
               </Button>
@@ -441,6 +455,7 @@ const DepartmentStaffList = () => {
                 startIcon={<RefreshIcon />}
                 size="small"
                 disabled={loading}
+                sx={{ height: 44 }}
               >
                 Refresh
               </Button>
@@ -449,10 +464,10 @@ const DepartmentStaffList = () => {
 
           {/* Results Summary */}
           <MDBox mt={2} mb={2}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: darkMode ? '#FFFFFF' : 'text.secondary' }}>
               Showing {staff.length} of {pagination.totalStaff || 0} staff members
               {selectedStaff.length > 0 && (
-                <span style={{ marginLeft: 8, fontWeight: 'bold', color: '#1976d2' }}>
+                <span style={{ marginLeft: 8, fontWeight: 'bold', color: darkMode ? '#90CAF9' : '#1976d2' }}>
                   ({selectedStaff.length} selected)
                 </span>
               )}
@@ -477,7 +492,7 @@ const DepartmentStaffList = () => {
                   Select Pending Emails ({staff.filter(s => !s.emailSent).length})
                 </Button>
               </Grid>
-              
+
               <Grid item>
                 <Button
                   size="small"
@@ -493,7 +508,7 @@ const DepartmentStaffList = () => {
                   Select Pending Roles ({staff.filter(s => !s.roleAssignedAt).length})
                 </Button>
               </Grid>
-              
+
               <Grid item>
                 <Button
                   size="small"
@@ -509,7 +524,7 @@ const DepartmentStaffList = () => {
                   Select Other Staff ({staff.filter(s => s.role === 'other_staff').length})
                 </Button>
               </Grid>
-              
+
               {selectedStaff.length > 0 && (
                 <Grid item>
                   <Button
@@ -547,8 +562,8 @@ const DepartmentStaffList = () => {
           {staff.length === 0 ? (
             <MDBox p={4} textAlign="center">
               <Alert severity="info" sx={{ borderRadius: 2 }}>
-                No staff members found for this department. 
-                {(roleFilter || statusFilter || searchTerm) && 
+                No staff members found for this department.
+                {(roleFilter || statusFilter || searchTerm) &&
                   ' Try adjusting your filters.'}
               </Alert>
             </MDBox>
@@ -559,7 +574,7 @@ const DepartmentStaffList = () => {
                 isSorted={false}
                 noEndBorder
               />
-              
+
               {/* Pagination */}
               <Box mt={2} mb={2}>
                 <TablePagination
@@ -576,8 +591,17 @@ const DepartmentStaffList = () => {
                       paddingRight: 2
                     },
                     '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                      color: '#344767',
+                      color: darkMode ? '#FFFFFF' : '#344767',
                       fontSize: '0.875rem'
+                    },
+                    '& .MuiTablePagination-select': {
+                      color: darkMode ? '#FFFFFF' : '#344767',
+                      '& .MuiTablePagination-selectIcon': {
+                        color: darkMode ? '#FFFFFF' : '#344767'
+                      }
+                    },
+                    '& .MuiTablePagination-actions': {
+                      color: darkMode ? '#FFFFFF' : '#344767'
                     }
                   }}
                 />
@@ -601,7 +625,7 @@ const DepartmentStaffList = () => {
           </ListItemIcon>
           <ListItemText>Assign Role</ListItemText>
         </MenuItem>
-        
+
         <MenuItem onClick={() => handleViewDetails(selectedStaffForMenu)}>
           <ListItemIcon>
             <VisibilityIcon fontSize="small" />

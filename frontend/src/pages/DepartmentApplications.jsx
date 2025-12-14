@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Grid, 
-  Card, 
-  CardContent, 
-  IconButton, 
-  Tooltip, 
+import {
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Tooltip,
   Box,
   Chip,
   FormControl,
@@ -13,7 +13,7 @@ import {
   Select,
   MenuItem
 } from '@mui/material';
-import { 
+import {
   ArrowBack as ArrowBackIcon,
   People as PeopleIcon,
   Person as PersonIcon,
@@ -79,11 +79,11 @@ function DepartmentApplications() {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🔍 Fetching department applications:', { jobId, departmentId, page, batchId });
       const response = await jobApi.getJobApplicationsByDepartment(jobId, departmentId, page, batchId || null);
       console.log('📦 Response received:', response);
-      
+
       // API interceptor returns response.data, which contains { success, data }
       if (response && response.success) {
         console.log('✅ Setting data from response');
@@ -177,11 +177,11 @@ function DepartmentApplications() {
       Header: 'Status',
       accessor: 'status',
       Cell: ({ value }) => (
-        <MDBadge 
-          badgeContent={value} 
-          color={getApplicationStatusColor(value)} 
-          variant="gradient" 
-          size="sm" 
+        <MDBadge
+          badgeContent={value}
+          color={getApplicationStatusColor(value)}
+          variant="gradient"
+          size="sm"
         />
       ),
     },
@@ -269,11 +269,11 @@ function DepartmentApplications() {
 
   return (
     <DashboardLayout>
-      <DashboardNavbar 
+      <DashboardNavbar
         customTitle="Department Applications"
         customRoute={['Job Monitoring', 'Department', departmentData?.code || departmentId]}
       />
-      
+
       <MDBox pt={6} pb={3}>
         {/* Header */}
         <MDBox mb={3}>
@@ -330,7 +330,7 @@ function DepartmentApplications() {
                   </CardContent>
                 </Card>
               </Grid>
-              
+
               <Grid item xs={12} sm={6} md={3}>
                 <Card>
                   <CardContent>
@@ -348,7 +348,7 @@ function DepartmentApplications() {
                   </CardContent>
                 </Card>
               </Grid>
-              
+
               <Grid item xs={12} sm={6} md={3}>
                 <Card>
                   <CardContent>
@@ -366,7 +366,7 @@ function DepartmentApplications() {
                   </CardContent>
                 </Card>
               </Grid>
-              
+
               <Grid item xs={12} sm={6} md={3}>
                 <Card>
                   <CardContent>
@@ -400,7 +400,7 @@ function DepartmentApplications() {
                   Applications from {departmentData?.name} department
                 </MDTypography>
               </MDBox>
-              <ExportMenu 
+              <ExportMenu
                 rows={exportRows}
                 columns={exportColumns}
                 filename={`department-applications-${departmentData?.code || ''}`}
@@ -412,7 +412,7 @@ function DepartmentApplications() {
             {/* Batch Filter */}
             {batches.length > 0 && (
               <MDBox mb={3}>
-                <FormControl fullWidth variant="outlined" size="small">
+                <FormControl fullWidth variant="outlined">
                   <InputLabel id="batch-filter-label">Filter by Batch Year</InputLabel>
                   <Select
                     labelId="batch-filter-label"
@@ -420,6 +420,20 @@ function DepartmentApplications() {
                     value={selectedBatch}
                     onChange={handleBatchChange}
                     label="Filter by Batch Year"
+                    sx={{
+                      borderRadius: '8px',
+                      height: '45px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#e0e0e0',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#1976d2',
+                        borderWidth: '1px',
+                      },
+                    }}
                   >
                     <MenuItem value="">
                       <em>All Batches ({batches.reduce((sum, b) => sum + b.count, 0)} students)</em>
@@ -433,7 +447,7 @@ function DepartmentApplications() {
                 </FormControl>
               </MDBox>
             )}
-            
+
             <DataTable
               table={applicationTableData}
               showTotalEntries={true}
@@ -456,11 +470,11 @@ function DepartmentApplications() {
                 >
                   Previous
                 </MDButton>
-                
+
                 <MDTypography variant="body2" sx={{ mx: 2, alignSelf: 'center' }}>
                   Page {pagination.currentPage} of {pagination.totalPages}
                 </MDTypography>
-                
+
                 <MDButton
                   variant="outlined"
                   color="info"

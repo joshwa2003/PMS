@@ -37,7 +37,7 @@ function collapseItem(theme, ownerState) {
     borderRadius: borderRadius.md,
     cursor: "pointer",
     userSelect: "none",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
     boxShadow: active && !whiteSidenav && !darkMode && !transparentSidenav ? md : "none",
     [breakpoints.up("xl")]: {
       transition: transitions.create(["box-shadow", "background-color"], {
@@ -92,9 +92,19 @@ function collapseIconBox(theme, ownerState) {
   };
 }
 
-const collapseIcon = ({ palette: { white, gradients } }, { active }) => ({
-  color: active ? white.main : gradients.dark.state,
-});
+function collapseIcon(theme, ownerState) {
+  const { palette } = theme;
+  const { transparentSidenav, whiteSidenav, darkMode, active } = ownerState;
+
+  const { white, dark } = palette;
+
+  return {
+    color:
+      (transparentSidenav && !darkMode && !active) || (whiteSidenav && !active)
+        ? dark.main
+        : white.main,
+  };
+}
 
 function collapseText(theme, ownerState) {
   const { typography, transitions, breakpoints, functions } = theme;
@@ -119,7 +129,7 @@ function collapseText(theme, ownerState) {
     "& span": {
       fontWeight: active ? fontWeightRegular : fontWeightLight,
       fontSize: size.sm,
-      lineHeight: 0,
+      lineHeight: 1.4,
     },
   };
 }

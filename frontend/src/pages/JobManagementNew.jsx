@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Grid, 
-  Card, 
-  CardContent, 
-  IconButton, 
-  Tooltip, 
+import {
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Tooltip,
   Fab,
   Paper,
   Divider
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon, 
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
   Visibility as ViewIcon,
   TrendingUp as TrendingUpIcon,
   Work as WorkIcon,
@@ -201,8 +201,7 @@ function JobManagementNew() {
   };
 
   const handleEditJob = (job) => {
-    setSelectedJob(job);
-    setEditModalOpen(true);
+    navigate(`/job-management/edit/${job._id}`);
   };
 
   const handleDeleteJob = (job) => {
@@ -248,7 +247,7 @@ function JobManagementNew() {
   const handleConfirmPublish = async () => {
     try {
       setPublishLoading(true);
-      
+
       if (publishAction === 'publish') {
         await publishJob(selectedJob._id);
         setAlert({
@@ -264,7 +263,7 @@ function JobManagementNew() {
           type: 'success'
         });
       }
-      
+
       setPublishModalOpen(false);
       setSelectedJob(null);
       fetchJobs(); // Refresh the list
@@ -326,22 +325,22 @@ function JobManagementNew() {
         const daysLeft = getDaysUntilDeadline(value);
         const isExpired = daysLeft <= 0;
         const isUrgent = daysLeft <= 3 && daysLeft > 0;
-        
+
         return (
           <MDBox>
             <MDTypography variant="caption" color={isExpired ? 'error' : 'text'}>
               {new Date(value).toLocaleDateString()}
             </MDTypography>
             <MDBox display="flex" alignItems="center" mt={0.5}>
-              <ScheduleIcon 
-                fontSize="small" 
-                sx={{ 
-                  mr: 0.5, 
-                  color: isExpired ? 'error.main' : isUrgent ? 'warning.main' : 'text.secondary' 
-                }} 
+              <ScheduleIcon
+                fontSize="small"
+                sx={{
+                  mr: 0.5,
+                  color: isExpired ? 'error.main' : isUrgent ? 'warning.main' : 'text.secondary'
+                }}
               />
-              <MDTypography 
-                variant="caption" 
+              <MDTypography
+                variant="caption"
                 color={isExpired ? 'error' : isUrgent ? 'warning' : 'text'}
                 fontWeight={isUrgent || isExpired ? 'bold' : 'regular'}
               >
@@ -356,11 +355,11 @@ function JobManagementNew() {
       Header: 'Status',
       accessor: 'status',
       Cell: ({ value }) => (
-        <MDBadge 
-          badgeContent={value} 
-          color={getJobStatusColor(value)} 
-          variant="gradient" 
-          size="sm" 
+        <MDBadge
+          badgeContent={value}
+          color={getJobStatusColor(value)}
+          variant="gradient"
+          size="sm"
         />
       ),
     },
@@ -387,8 +386,8 @@ function JobManagementNew() {
       Cell: ({ row }) => (
         <MDBox display="flex" alignItems="center" gap={0.5}>
           <Tooltip title="View Details">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={() => handleViewJob(row.original)}
               sx={{ color: 'info.main' }}
             >
@@ -400,8 +399,8 @@ function JobManagementNew() {
               {/* Publish/Unpublish buttons */}
               {row.original.status === 'Draft' ? (
                 <Tooltip title="Publish Job">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     onClick={() => handlePublishJob(row.original)}
                     sx={{ color: 'success.main' }}
                   >
@@ -410,8 +409,8 @@ function JobManagementNew() {
                 </Tooltip>
               ) : row.original.status === 'Active' ? (
                 <Tooltip title="Unpublish Job">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     onClick={() => handleUnpublishJob(row.original)}
                     sx={{ color: 'warning.main' }}
                   >
@@ -419,10 +418,10 @@ function JobManagementNew() {
                   </IconButton>
                 </Tooltip>
               ) : null}
-              
+
               <Tooltip title="Edit Job">
-                <IconButton 
-                  size="small" 
+                <IconButton
+                  size="small"
                   onClick={() => handleEditJob(row.original)}
                   sx={{ color: 'warning.main' }}
                 >
@@ -430,8 +429,8 @@ function JobManagementNew() {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Delete Job">
-                <IconButton 
-                  size="small" 
+                <IconButton
+                  size="small"
                   onClick={() => handleDeleteJob(row.original)}
                   sx={{ color: 'error.main' }}
                 >
@@ -454,14 +453,14 @@ function JobManagementNew() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      
+
       <MDBox py={3}>
         {/* Alert */}
         {alert.show && (
           <MDBox mb={3}>
-            <MDAlert 
-              color={alert.type} 
-              dismissible 
+            <MDAlert
+              color={alert.type}
+              dismissible
               onClose={() => setAlert({ ...alert, show: false })}
             >
               {alert.message}
@@ -498,7 +497,7 @@ function JobManagementNew() {
                     size="large"
                     startIcon={<AddIcon />}
                     onClick={handleCreateJob}
-                    sx={{ 
+                    sx={{
                       borderRadius: 2,
                       textTransform: 'none',
                       fontSize: '0.875rem',
@@ -553,9 +552,9 @@ function JobManagementNew() {
                 </MDBox>
               </MDBox>
             </MDBox>
-            
+
             <Divider sx={{ my: 2 }} />
-            
+
             <MDBox px={3}>
               <DataTable
                 table={tableData}
@@ -567,7 +566,7 @@ function JobManagementNew() {
                 loading={jobsLoading}
               />
             </MDBox>
-            
+
             {/* Custom Pagination */}
             {pagination.totalPages > 1 && (
               <MDBox display="flex" justifyContent="center" p={3} pt={2}>
@@ -581,11 +580,11 @@ function JobManagementNew() {
                   >
                     Previous
                   </MDButton>
-                  
+
                   <MDTypography variant="body2" color="text">
                     Page <strong>{pagination.currentPage}</strong> of <strong>{pagination.totalPages}</strong>
                   </MDTypography>
-                  
+
                   <MDButton
                     variant="outlined"
                     color="info"

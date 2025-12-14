@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -52,8 +52,9 @@ import { useJob } from 'context/JobContext';
 
 const CreateJobPageEnhanced = () => {
   const navigate = useNavigate();
-  const { createJob, departments, fetchDepartments } = useJob();
-  
+  const { jobId } = useParams();
+  const { createJob, updateJob, fetchJobById, departments, fetchDepartments } = useJob();
+
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -147,6 +148,87 @@ const CreateJobPageEnhanced = () => {
     fetchDepartments();
   }, [fetchDepartments]);
 
+  useEffect(() => {
+    const loadJobDetails = async () => {
+      if (jobId) {
+        try {
+          const job = await fetchJobById(jobId);
+          if (job) {
+            setFormData({
+              title: job.title || '',
+              company: {
+                name: job.company?.name || '',
+                website: job.company?.website || '',
+                logo: job.company?.logo || null,
+                about: job.company?.about || '',
+                size: job.company?.size || '',
+                industry: job.company?.industry || '',
+                founded: job.company?.founded || ''
+              },
+              description: job.description || '',
+              keyResponsibilities: job.keyResponsibilities?.length ? job.keyResponsibilities : [''],
+              requirements: job.requirements?.length ? job.requirements : [''],
+              skillsRequired: job.skillsRequired?.length ? job.skillsRequired : [''],
+              otherRequirements: job.otherRequirements?.length ? job.otherRequirements : [''],
+              location: job.location || '',
+              workMode: job.workMode || 'Work from office',
+              jobType: job.jobType || 'Full-time',
+              startDate: job.startDate || 'Immediately',
+              applicationLink: job.applicationLink || '',
+              deadline: '', // Will be set by deadlineDate + deadlineTime
+              deadlineDate: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : '',
+              deadlineTime: job.deadline ? new Date(job.deadline).toTimeString().substring(0, 5) : '23:59',
+              googleDriveLink: job.googleDriveLink || '',
+              salary: {
+                min: job.salary?.min || '',
+                max: job.salary?.max || '',
+                currency: job.salary?.currency || 'INR',
+                period: job.salary?.period || 'Annual'
+              },
+              stipend: {
+                amount: job.stipend?.amount || '',
+                currency: job.stipend?.currency || 'INR',
+                period: job.stipend?.period || 'Monthly'
+              },
+              probation: {
+                hasProbation: job.probation?.hasProbation || false,
+                duration: job.probation?.duration || '',
+                salary: {
+                  min: job.probation?.salary?.min || '',
+                  max: job.probation?.salary?.max || '',
+                  currency: job.probation?.salary?.currency || 'INR',
+                  period: job.probation?.salary?.period || 'Monthly'
+                }
+              },
+              numberOfOpenings: job.numberOfOpenings || 1,
+              workEnvironmentRequirements: job.workEnvironmentRequirements?.length ? job.workEnvironmentRequirements : [''],
+              benefits: job.benefits?.length ? job.benefits : [''],
+              educationQualifications: job.educationQualifications?.length ? job.educationQualifications : [''],
+              eligibility: {
+                minCGPA: job.eligibility?.minCGPA || '',
+                maxBacklogs: job.eligibility?.maxBacklogs || '',
+                departments: job.eligibility?.departments || [],
+                graduationYears: job.eligibility?.graduationYears || [],
+                experience: {
+                  min: job.eligibility?.experience?.min || 0,
+                  max: job.eligibility?.experience?.max || ''
+                }
+              },
+              postingType: job.postingType || 'Specific Departments',
+              targetDepartments: job.targetDepartments || [],
+              targetBatches: job.targetBatches || [],
+              status: job.status || 'Draft'
+            });
+          }
+        } catch (error) {
+          console.error("Failed to fetch job details:", error);
+          setErrors({ submit: "Failed to load job details" });
+        }
+      }
+    };
+    loadJobDetails();
+  }, [jobId, fetchJobById]);
+
   // Helper function to combine date and time into ISO string
   const combineDateAndTime = (date, time) => {
     if (!date || !time) return '';
@@ -233,18 +315,18 @@ const CreateJobPageEnhanced = () => {
           ...prev,
           [field]: value
         };
-        
+
         // If updating deadlineDate or deadlineTime, combine them to create deadline
         if (field === 'deadlineDate' || field === 'deadlineTime') {
           const date = field === 'deadlineDate' ? value : prev.deadlineDate;
           const time = field === 'deadlineTime' ? value : prev.deadlineTime;
           newData.deadline = combineDateAndTime(date, time);
         }
-        
+
         return newData;
       });
     }
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -272,22 +354,22 @@ const CreateJobPageEnhanced = () => {
           }
         }
         break;
-      
+
       case 1: // Job Details
         if (!formData.description.trim()) newErrors.description = 'Job description is required';
         if (formData.numberOfOpenings < 1) newErrors.numberOfOpenings = 'Number of openings must be at least 1';
         break;
-      
+
       case 2: // Requirements & Skills
         // Optional validation for requirements
         break;
-      
+
       case 3: // Compensation
         if (formData.probation.hasProbation && !formData.probation.duration) {
           newErrors['probation.duration'] = 'Probation duration is required';
         }
         break;
-      
+
       case 4: // Target Departments
         if (formData.postingType === 'Specific Departments' && formData.targetDepartments.length === 0) {
           newErrors.targetDepartments = 'Please select at least one department';
@@ -301,7 +383,7 @@ const CreateJobPageEnhanced = () => {
           }
         }
         break;
-      
+
       default:
         // No validation needed for other steps
         break;
@@ -326,9 +408,51 @@ const CreateJobPageEnhanced = () => {
 
     setLoading(true);
     try {
+      // Helper to clean values (empty strings, null, undefined -> undefined)
+      const cleanValue = (val) => (val === '' || val === null || val === undefined) ? undefined : val;
+
+      const combinedDeadline = (formData.deadlineDate && formData.deadlineTime)
+        ? combineDateAndTime(formData.deadlineDate, formData.deadlineTime)
+        : undefined;
+
       const jobData = {
         ...formData,
         status: isDraft ? 'Draft' : formData.status,
+        deadline: combinedDeadline,
+        company: {
+          ...formData.company,
+          founded: cleanValue(formData.company.founded),
+          size: cleanValue(formData.company.size),
+          industry: cleanValue(formData.company.industry)
+        },
+        salary: {
+          ...formData.salary,
+          min: cleanValue(formData.salary.min),
+          max: cleanValue(formData.salary.max)
+        },
+        stipend: {
+          ...formData.stipend,
+          amount: cleanValue(formData.stipend.amount)
+        },
+        probation: {
+          ...formData.probation,
+          duration: cleanValue(formData.probation.duration),
+          salary: {
+            ...formData.probation.salary,
+            min: cleanValue(formData.probation.salary.min),
+            max: cleanValue(formData.probation.salary.max)
+          }
+        },
+        eligibility: {
+          ...formData.eligibility,
+          minCGPA: cleanValue(formData.eligibility.minCGPA),
+          maxBacklogs: cleanValue(formData.eligibility.maxBacklogs),
+          experience: {
+            min: cleanValue(formData.eligibility.experience.min),
+            max: cleanValue(formData.eligibility.experience.max)
+          }
+        },
+        numberOfOpenings: cleanValue(formData.numberOfOpenings) || 1,
         // Filter out empty array items
         keyResponsibilities: formData.keyResponsibilities.filter(item => item.trim()),
         requirements: formData.requirements.filter(item => item.trim()),
@@ -339,11 +463,11 @@ const CreateJobPageEnhanced = () => {
         educationQualifications: formData.educationQualifications.filter(item => item.trim())
       };
 
-      await createJob(jobData, companyLogo, documents);
+      await (jobId ? updateJob(jobId, jobData) : createJob(jobData, companyLogo, documents));
       navigate('/job-management');
     } catch (error) {
-      console.error('Error creating job:', error);
-      setErrors({ submit: error.message || 'Failed to create job' });
+      console.error(jobId ? 'Error updating job:' : 'Error creating job:', error);
+      setErrors({ submit: error.message || (jobId ? 'Failed to update job' : 'Failed to create job') });
     } finally {
       setLoading(false);
     }
@@ -371,14 +495,15 @@ const CreateJobPageEnhanced = () => {
           </IconButton>
         </MDBox>
       ))}
-      <Button
+      <MDButton
         startIcon={<AddIcon />}
         onClick={() => addArrayItem(field, subField)}
-        variant="outlined"
+        variant="gradient"
+        color="info"
         size="small"
       >
         Add {label.slice(0, -1)}
-      </Button>
+      </MDButton>
     </MDBox>
   );
 
@@ -432,6 +557,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.company.size}
                   onChange={(e) => handleInputChange('company.size', e.target.value)}
                   label="Company Size"
+                  sx={{ height: 45 }}
                 >
                   {companySizes.map((size) => (
                     <MenuItem key={size} value={size}>{size} employees</MenuItem>
@@ -491,6 +617,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.workMode}
                   onChange={(e) => handleInputChange('workMode', e.target.value)}
                   label="Work Mode"
+                  sx={{ height: 45 }}
                 >
                   {workModes.map((mode) => (
                     <MenuItem key={mode} value={mode}>{mode}</MenuItem>
@@ -506,6 +633,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.jobType}
                   onChange={(e) => handleInputChange('jobType', e.target.value)}
                   label="Job Type"
+                  sx={{ height: 45 }}
                 >
                   {jobTypes.map((type) => (
                     <MenuItem key={type} value={type}>{type}</MenuItem>
@@ -521,6 +649,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.startDate}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
                   label="Start Date"
+                  sx={{ height: 45 }}
                 >
                   {startDateOptions.map((option) => (
                     <MenuItem key={option} value={option}>{option}</MenuItem>
@@ -541,6 +670,7 @@ const CreateJobPageEnhanced = () => {
                 required
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                InputProps={{ sx: { height: 45 } }}
               />
             </Grid>
 
@@ -555,6 +685,7 @@ const CreateJobPageEnhanced = () => {
                 helperText={errors.deadlineTime || `Time in 12-hour format: ${formatTime12Hour(formData.deadlineTime)}`}
                 required
                 InputLabelProps={{ shrink: true }}
+                InputProps={{ sx: { height: 45 } }}
               />
             </Grid>
 
@@ -628,43 +759,7 @@ const CreateJobPageEnhanced = () => {
               />
             </Grid>
 
-            {/* File Upload Input */}
-            <Grid item xs={12}>
-              <input
-                accept="image/*,application/pdf"
-                id="job-documents-upload"
-                multiple
-                type="file"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files);
-                  setDocuments(files);
-                }}
-              />
-              <label htmlFor="job-documents-upload">
-                <MDButton variant="outlined" component="span" color="info" startIcon={<CloudUploadIcon />}>
-                  Upload Images or PDFs
-                </MDButton>
-              </label>
-            </Grid>
-
-            {/* Preview uploaded files */}
-            {documents && documents.length > 0 && (
-              <Grid item xs={12}>
-                <MDBox>
-                  <MDTypography variant="subtitle1" mb={1}>
-                    Uploaded Files:
-                  </MDTypography>
-                  <ul>
-                    {documents.map((file, index) => (
-                      <li key={index}>
-                        {file.name} ({(file.size / 1024).toFixed(2)} KB)
-                      </li>
-                    ))}
-                  </ul>
-                </MDBox>
-              </Grid>
-            )}
+            {/* File Upload Input Removed */}
 
             <Grid item xs={12}>
               {renderArrayField('keyResponsibilities', 'Key Responsibilities', 'Enter a key responsibility...')}
@@ -787,6 +882,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.salary.currency}
                   onChange={(e) => handleInputChange('salary.currency', e.target.value)}
                   label="Currency"
+                  sx={{ height: 45 }}
                 >
                   {currencies.map((currency) => (
                     <MenuItem key={currency} value={currency}>{currency}</MenuItem>
@@ -802,6 +898,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.salary.period}
                   onChange={(e) => handleInputChange('salary.period', e.target.value)}
                   label="Period"
+                  sx={{ height: 45 }}
                 >
                   {salaryPeriods.map((period) => (
                     <MenuItem key={period} value={period}>{period}</MenuItem>
@@ -832,6 +929,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.stipend.currency}
                   onChange={(e) => handleInputChange('stipend.currency', e.target.value)}
                   label="Currency"
+                  sx={{ height: 45 }}
                 >
                   {currencies.map((currency) => (
                     <MenuItem key={currency} value={currency}>{currency}</MenuItem>
@@ -847,6 +945,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.stipend.period}
                   onChange={(e) => handleInputChange('stipend.period', e.target.value)}
                   label="Period"
+                  sx={{ height: 45 }}
                 >
                   {stipendPeriods.map((period) => (
                     <MenuItem key={period} value={period}>{period}</MenuItem>
@@ -918,6 +1017,7 @@ const CreateJobPageEnhanced = () => {
                       value={formData.probation.salary.currency}
                       onChange={(e) => handleInputChange('probation.salary.currency', e.target.value)}
                       label="Currency"
+                      sx={{ height: 45 }}
                     >
                       {currencies.map((currency) => (
                         <MenuItem key={currency} value={currency}>{currency}</MenuItem>
@@ -933,6 +1033,7 @@ const CreateJobPageEnhanced = () => {
                       value={formData.probation.salary.period}
                       onChange={(e) => handleInputChange('probation.salary.period', e.target.value)}
                       label="Period"
+                      sx={{ height: 45 }}
                     >
                       {stipendPeriods.map((period) => (
                         <MenuItem key={period} value={period}>{period}</MenuItem>
@@ -965,6 +1066,7 @@ const CreateJobPageEnhanced = () => {
                     handleInputChange('postingType', e.target.value);
                   }}
                   label="Posting Type"
+                  sx={{ height: 45 }}
                 >
                   <MenuItem value="All Departments">All Departments</MenuItem>
                   <MenuItem value="Specific Departments">Specific Departments</MenuItem>
@@ -981,7 +1083,7 @@ const CreateJobPageEnhanced = () => {
                     multiple
                     value={formData.targetDepartments}
                     onChange={(e) => handleInputChange('targetDepartments', e.target.value)}
-                    input={<OutlinedInput label="Target Departments" />}
+                    input={<OutlinedInput label="Target Departments" sx={{ height: 45 }} />}
                     renderValue={(selected) => (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                         {selected.map((value) => {
@@ -992,6 +1094,7 @@ const CreateJobPageEnhanced = () => {
                         })}
                       </Box>
                     )}
+                    sx={{ height: 45 }}
                   >
                     {departments.map((dept) => (
                       <MenuItem key={dept._id} value={dept._id}>
@@ -1021,7 +1124,7 @@ const CreateJobPageEnhanced = () => {
                         // Clear selected batches when departments change
                         handleInputChange('targetBatches', []);
                       }}
-                      input={<OutlinedInput label="Select Departments First" />}
+                      input={<OutlinedInput label="Select Departments First" sx={{ height: 45 }} />}
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {selected.map((value) => {
@@ -1032,6 +1135,7 @@ const CreateJobPageEnhanced = () => {
                           })}
                         </Box>
                       )}
+                      sx={{ height: 45 }}
                     >
                       {departments.map((dept) => (
                         <MenuItem key={dept._id} value={dept._id}>
@@ -1046,7 +1150,7 @@ const CreateJobPageEnhanced = () => {
                     )}
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <MDTypography variant="subtitle2" fontWeight="medium" color="dark" mb={1}>
                     Select Specific Batches:
@@ -1078,6 +1182,7 @@ const CreateJobPageEnhanced = () => {
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
                   label="Status"
+                  sx={{ height: 45 }}
                 >
                   <MenuItem value="Draft">Draft</MenuItem>
                   <MenuItem value="Active">Active</MenuItem>
@@ -1112,7 +1217,7 @@ const CreateJobPageEnhanced = () => {
                     <strong>Type:</strong> {formData.jobType} • <strong>Start Date:</strong> {formData.startDate}
                   </MDTypography>
                   <MDTypography variant="body2" mb={2}>
-                    <strong>Openings:</strong> {formData.numberOfOpenings} • <strong>Deadline:</strong> {formData.deadlineDate && formData.deadlineTime 
+                    <strong>Openings:</strong> {formData.numberOfOpenings} • <strong>Deadline:</strong> {formData.deadlineDate && formData.deadlineTime
                       ? `${new Date(formData.deadlineDate).toLocaleDateString()} at ${formatTime12Hour(formData.deadlineTime)}`
                       : 'Not set'
                     }
@@ -1168,9 +1273,9 @@ const CreateJobPageEnhanced = () => {
                     <>
                       <MDTypography variant="h6" mb={1}>Compensation</MDTypography>
                       <MDTypography variant="body2" mb={2}>
-                        {formData.salary.min && formData.salary.max 
+                        {formData.salary.min && formData.salary.max
                           ? `₹${formData.salary.min} - ₹${formData.salary.max} ${formData.salary.period}`
-                          : formData.salary.min 
+                          : formData.salary.min
                             ? `₹${formData.salary.min}+ ${formData.salary.period}`
                             : `Up to ₹${formData.salary.max} ${formData.salary.period}`
                         }
@@ -1186,9 +1291,9 @@ const CreateJobPageEnhanced = () => {
                         {(formData.probation.salary.min || formData.probation.salary.max) && (
                           <span>
                             {' • Salary: '}
-                            {formData.probation.salary.min && formData.probation.salary.max 
+                            {formData.probation.salary.min && formData.probation.salary.max
                               ? `₹${formData.probation.salary.min} - ₹${formData.probation.salary.max} ${formData.probation.salary.period}`
-                              : formData.probation.salary.min 
+                              : formData.probation.salary.min
                                 ? `₹${formData.probation.salary.min}+ ${formData.probation.salary.period}`
                                 : `Up to ₹${formData.probation.salary.max} ${formData.probation.salary.period}`
                             }
@@ -1237,8 +1342,8 @@ const CreateJobPageEnhanced = () => {
                           <MDTypography variant="body2">
                             Google Drive Document Preview:
                           </MDTypography>
-                          <GoogleDrivePreview 
-                            link={formData.googleDriveLink} 
+                          <GoogleDrivePreview
+                            link={formData.googleDriveLink}
                             title={`${formData.title} - Document Preview`}
                             showPreview={true}
                           />
@@ -1288,7 +1393,7 @@ const CreateJobPageEnhanced = () => {
                 <IconButton onClick={() => navigate('/job-management')} sx={{ mr: 2 }}>
                   <ArrowBackIcon />
                 </IconButton>
-                <MDTypography variant="h4">Create New Job</MDTypography>
+                <MDTypography variant="h4">{jobId ? 'Edit Job' : 'Create New Job'}</MDTypography>
               </MDBox>
 
               <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
@@ -1342,7 +1447,7 @@ const CreateJobPageEnhanced = () => {
                       disabled={loading}
                       startIcon={<PreviewIcon />}
                     >
-                      {loading ? 'Creating...' : 'Create Job'}
+                      {loading ? (jobId ? 'Updating...' : 'Creating...') : (jobId ? 'Update Job' : 'Create Job')}
                     </MDButton>
                   ) : (
                     <MDButton

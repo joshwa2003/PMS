@@ -108,7 +108,7 @@ const routes = [
       </ProtectedRoute>
     ),
   },
-  
+
   // 2. User Management (with Staff Management and Placement Director Management nested inside)
   {
     type: "collapse",
@@ -126,6 +126,7 @@ const routes = [
           </ProtectedRoute>
         ),
         hideForRoles: ['placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student'],
+        icon: "manage_accounts",
       },
       {
         name: "Staff Management",
@@ -136,10 +137,11 @@ const routes = [
             <StaffManagement />
           </ProtectedRoute>
         ),
+        icon: "groups",
       }
     ],
   },
-  
+
   // 3. Departments (with Course Categories, Department Management, All Departments nested inside)
   {
     type: "collapse",
@@ -156,6 +158,7 @@ const routes = [
             <CourseCategoryManagement />
           </ProtectedRoute>
         ),
+        icon: "category",
       },
       {
         name: "Department Management",
@@ -166,6 +169,7 @@ const routes = [
             <DepartmentManagement />
           </ProtectedRoute>
         ),
+        icon: "business",
       },
       {
         name: "All Departments",
@@ -176,10 +180,11 @@ const routes = [
             <DepartmentsOverview />
           </ProtectedRoute>
         ),
+        icon: "view_list",
       }
     ],
   },
-  
+
   // 4. Administrator Profile
   {
     type: "collapse",
@@ -501,6 +506,18 @@ const routes = [
     name: "Create Job",
     key: "create-job",
     route: "/job-management/create",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+        <CreateJobPageEnhanced />
+      </ProtectedRoute>
+    ),
+  },
+  // Edit Job Page (hidden from sidebar - accessed via job management)
+  {
+    type: "route",
+    name: "Edit Job",
+    key: "edit-job",
+    route: "/job-management/edit/:jobId",
     component: (
       <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
         <CreateJobPageEnhanced />

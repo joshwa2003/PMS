@@ -67,7 +67,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
   const location = useLocation();
   const collapseName = location.pathname.replace("/", "");
-  
+
   // Auth context
   const { user } = useAuth();
 
@@ -92,7 +92,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-  
+
     };
     return roleNames[role] || role;
   };
@@ -128,7 +128,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   // Filter routes based on user role
   const filteredRoutes = routes.filter(({ key, hideForRoles, collapse }) => {
     if (!user) return true; // Show all routes if no user (shouldn't happen in protected routes)
-    
+
     // Check if route should be hidden for current user role
     if (hideForRoles && hideForRoles.includes(user.role)) {
       return false;
@@ -143,30 +143,30 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         }
         return true;
       });
-      
+
       // Hide parent if no nested routes are visible
       if (visibleNestedRoutes.length === 0) {
         return false;
       }
     }
-    
+
     // Define role groups
     const systemAdminRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff'];
     const administratorRoles = ['admin', 'director', 'staff', 'hod'];
     const studentRoles = ['student'];
-    
+
     // Check user role
     const isSystemAdmin = systemAdminRoles.includes(user.role);
     const isAdministrator = administratorRoles.includes(user.role);
     const isStudent = studentRoles.includes(user.role);
     const isAdmin = user.role === 'admin';
-    
+
     // For admin users, show only the reorganized sidebar structure
     if (isAdmin) {
       const adminSidebarItems = [
         'dashboard',
         'department-wise-student-dashboard',
-        'user-management', 
+        'user-management',
         'departments',
         'job-posts',
         'job-management',
@@ -175,25 +175,25 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       ];
       return adminSidebarItems.includes(key);
     }
-    
+
     // Role-based filtering logic for other users
     switch (key) {
       case 'profile':
         // Hide Profile for System Administrators, show for others
         return !isSystemAdmin;
-      
+
       case 'student-profile':
         // Hide Student Profile for System Administrators, show for students and others
         return !isSystemAdmin;
-      
+
       case 'administrator-profile':
         // Show Administrator Profile only for administrators
         return isAdministrator;
-      
+
       case 'placement-director-profile':
         // Show Placement Director Profile only for placement directors
         return user.role === 'placement_director';
-      
+
       case 'placement-staff-profile':
         // Show Placement Staff Profile only for placement staff
         return user.role === 'placement_staff';
@@ -217,7 +217,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       case 'staff-management':
         // Hide standalone Staff Management (now nested under User Management)
         return false;
-      
+
       default:
         // Show all other routes by default
         return true;
@@ -232,7 +232,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       // Handle collapsible menus with nested routes
       if (collapse && Array.isArray(collapse)) {
         const isOpen = openCollapse[key] || false;
-        
+
         returnValue = (
           <div key={key}>
             {/* Main collapsible item */}
@@ -255,7 +255,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                   }
                 >
                   {typeof icon === "string" ? (
-                    <Icon sx={(theme) => collapseIcon(theme, { active: false })}>{icon}</Icon>
+                    <Icon sx={(theme) => collapseIcon(theme, { active: false, transparentSidenav, whiteSidenav, darkMode })}>{icon}</Icon>
                   ) : (
                     icon
                   )}
@@ -282,7 +282,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                 </Icon>
               </MDBox>
             </ListItem>
-            
+
             {/* Nested items */}
             <Collapse in={isOpen} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
@@ -296,48 +296,48 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                     return true;
                   })
                   .map((nestedRoute) => (
-                  <NavLink key={nestedRoute.key} to={nestedRoute.route} style={{ textDecoration: "none" }}>
-                    <ListItem component="li" sx={{ pl: 2 }}>
-                      <MDBox
-                        sx={(theme) =>
-                          collapseItem(theme, {
-                            active: location.pathname === nestedRoute.route,
-                            transparentSidenav,
-                            whiteSidenav,
-                            darkMode,
-                            sidenavColor,
-                          })
-                        }
-                      >
-                        <ListItemIcon
+                    <NavLink key={nestedRoute.key} to={nestedRoute.route} style={{ textDecoration: "none" }}>
+                      <ListItem component="li" sx={{ pl: 2 }}>
+                        <MDBox
                           sx={(theme) =>
-                            collapseIconBox(theme, { 
-                              transparentSidenav, 
-                              whiteSidenav, 
-                              darkMode, 
-                              active: location.pathname === nestedRoute.route 
+                            collapseItem(theme, {
+                              active: location.pathname === nestedRoute.route,
+                              transparentSidenav,
+                              whiteSidenav,
+                              darkMode,
+                              sidenavColor,
                             })
                           }
                         >
-                          <Icon sx={(theme) => collapseIcon(theme, { active: location.pathname === nestedRoute.route })}>
-                            fiber_manual_record
-                          </Icon>
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={nestedRoute.name}
-                          sx={(theme) =>
-                            collapseText(theme, {
-                              miniSidenav,
-                              transparentSidenav,
-                              whiteSidenav,
-                              active: location.pathname === nestedRoute.route,
-                            })
-                          }
-                        />
-                      </MDBox>
-                    </ListItem>
-                  </NavLink>
-                ))}
+                          <ListItemIcon
+                            sx={(theme) =>
+                              collapseIconBox(theme, {
+                                transparentSidenav,
+                                whiteSidenav,
+                                darkMode,
+                                active: location.pathname === nestedRoute.route
+                              })
+                            }
+                          >
+                            <Icon sx={(theme) => collapseIcon(theme, { active: location.pathname === nestedRoute.route, transparentSidenav, whiteSidenav, darkMode })}>
+                              {typeof nestedRoute.icon === "string" ? nestedRoute.icon : "fiber_manual_record"}
+                            </Icon>
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={nestedRoute.name}
+                            sx={(theme) =>
+                              collapseText(theme, {
+                                miniSidenav,
+                                transparentSidenav,
+                                whiteSidenav,
+                                active: location.pathname === nestedRoute.route,
+                              })
+                            }
+                          />
+                        </MDBox>
+                      </ListItem>
+                    </NavLink>
+                  ))}
               </List>
             </Collapse>
           </div>
@@ -435,7 +435,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           (darkMode && !transparentSidenav && whiteSidenav)
         }
       />
-      
+
       {/* User Profile Section */}
       {user && (
         <>
@@ -444,8 +444,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               <Avatar
                 src={getGoogleDriveThumbnail(user.profilePicture || user.profilePhotoUrl)}
                 alt={user.fullName || `${user.firstName} ${user.lastName}`}
-                sx={{ 
-                  width: miniSidenav ? 32 : 48, 
+                sx={{
+                  width: miniSidenav ? 32 : 48,
                   height: miniSidenav ? 32 : 48,
                   mr: miniSidenav ? 0 : 2
                 }}
@@ -456,13 +456,13 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               </Avatar>
               {!miniSidenav && (
                 <MDBox>
-                  <MDTypography variant="button" fontWeight="medium" color={textColor} noWrap>
+                  <MDTypography variant="button" fontWeight="medium" color={textColor} sx={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2 }}>
                     {user.fullName || `${user.firstName} ${user.lastName}`}
                   </MDTypography>
-                  <MDTypography variant="caption" color={textColor} display="block" noWrap>
+                  <MDTypography variant="caption" color={textColor} display="block" sx={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2 }}>
                     {getRoleDisplayName(user.role)}
                   </MDTypography>
-                  <MDTypography variant="caption" color={textColor} display="block" noWrap>
+                  <MDTypography variant="caption" color={textColor} display="block" sx={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2 }}>
                     {user.email}
                   </MDTypography>
                 </MDBox>
@@ -477,7 +477,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           />
         </>
       )}
-      
+
       <List>{renderRoutes}</List>
     </SidenavRoot>
   );

@@ -19,9 +19,9 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { 
-  Close as CloseIcon, 
-  Edit as EditIcon, 
+import {
+  Close as CloseIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -179,8 +179,8 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
           </MDTypography>
           {department.description && (
             <MDTypography variant="caption" color="text">
-              {department.description.length > 50 
-                ? `${department.description.substring(0, 50)}...` 
+              {department.description.length > 50
+                ? `${department.description.substring(0, 50)}...`
                 : department.description
               }
             </MDTypography>
@@ -203,7 +203,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
     placementStaff: (
       <MDBox lineHeight={1}>
         <MDTypography display="block" variant="caption" color="text" fontWeight="medium">
-          {department.placementStaff 
+          {department.placementStaff
             ? getPlacementStaffDisplayName(department.placementStaff)
             : 'No Staff Assigned'
           }
@@ -242,8 +242,8 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
         </Tooltip>
         {canDelete && (
           <Tooltip title="Delete Department">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={() => handleDeleteDepartment(department)}
               sx={{ color: 'error.main' }}
             >
@@ -297,6 +297,11 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                 value={searchTerm}
                 onChange={handleSearchChange}
                 size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: '44.13px'
+                  }
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -320,11 +325,12 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             {/* Status Filter */}
             <Grid item xs={12} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
+                <InputLabel sx={{ lineHeight: '1.4375em' }}>Status</InputLabel>
                 <Select
                   value={statusFilter}
                   onChange={handleStatusFilterChange}
                   label="Status"
+                  sx={{ height: '44.13px' }}
                 >
                   <MenuItem value="">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -337,12 +343,21 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             <Grid item xs={12} md={3}>
               <Button
                 variant="outlined"
-                color="secondary"
+                color="dark"
                 fullWidth
                 onClick={handleClearFilters}
                 disabled={!searchTerm && !statusFilter}
                 startIcon={<ClearIcon />}
                 size="small"
+                sx={{
+                  height: '44.13px',
+                  color: 'text.primary',
+                  borderColor: 'text.secondary',
+                  '&:hover': {
+                    borderColor: 'text.primary',
+                    backgroundColor: 'rgba(0,0,0,0.04)'
+                  }
+                }}
               >
                 Clear Filters
               </Button>
@@ -358,6 +373,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                 startIcon={<RefreshIcon />}
                 size="small"
                 disabled={loading}
+                sx={{ height: '44.13px' }}
               >
                 Refresh
               </Button>
@@ -394,7 +410,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             isSorted={false}
             noEndBorder
           />
-          
+
           {/* Advanced Pagination */}
           {pagination.totalDepartments > 0 && (
             <MDBox mt={3}>
@@ -450,7 +466,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                 </Button>
               </Box>
             </DialogTitle>
-            
+
             <DialogContent>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -461,7 +477,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                     {selectedDepartment.name}
                   </MDTypography>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
                     Department Code
@@ -479,7 +495,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                     {selectedDepartment.courseCategory?.name || 'Not Assigned'}
                   </MDTypography>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
                     Description
@@ -488,13 +504,13 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                     {selectedDepartment.description || 'No description provided'}
                   </MDTypography>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
                     Assigned Placement Staff
                   </MDTypography>
                   <MDTypography variant="body2" mb={2}>
-                    {selectedDepartment.placementStaff 
+                    {selectedDepartment.placementStaff
                       ? getPlacementStaffDisplayName(selectedDepartment.placementStaff)
                       : 'No staff assigned'
                     }
@@ -505,7 +521,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                     </MDTypography>
                   )}
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
                     Status
@@ -516,7 +532,7 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                     size="small"
                   />
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
                     Created Date
@@ -527,23 +543,12 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
                 </Grid>
               </Grid>
             </DialogContent>
-            
+
             <DialogActions>
               <Button onClick={() => setDetailModalOpen(false)}>
                 Close
               </Button>
-              <MDButton
-                variant="gradient"
-                color="warning"
-                onClick={() => {
-                  setDetailModalOpen(false);
-                  handleManageStaffAssignment(selectedDepartment);
-                }}
-                startIcon={<PeopleIcon />}
-                sx={{ mr: 1 }}
-              >
-                Manage Staff
-              </MDButton>
+
               <MDButton
                 variant="gradient"
                 color="info"
@@ -571,23 +576,23 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             Delete Department
           </Typography>
         </DialogTitle>
-        
+
         <DialogContent>
           {departmentToDelete && (
             <>
               <Typography variant="body1" mb={2}>
                 Are you sure you want to delete <strong>{departmentToDelete.name}</strong>?
               </Typography>
-              
+
               <Typography variant="body2" color="text.secondary" mb={2}>
                 This action cannot be undone. All associated data will be permanently removed.
               </Typography>
 
-              <Box 
-                sx={{ 
-                  backgroundColor: 'error.light', 
+              <Box
+                sx={{
+                  backgroundColor: 'error.light',
                   color: 'error.contrastText',
-                  p: 2, 
+                  p: 2,
                   borderRadius: 1,
                   mb: 2
                 }}
@@ -611,15 +616,15 @@ const DepartmentDataTable = ({ onEditDepartment, onDepartmentDeleted }) => {
             </>
           )}
         </DialogContent>
-        
+
         <DialogActions>
-          <Button 
+          <Button
             onClick={handleDeleteCancel}
             color="inherit"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
