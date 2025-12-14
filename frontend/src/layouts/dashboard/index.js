@@ -106,23 +106,11 @@ function Dashboard() {
             applicationRate: appStatsResponse.data.applicationRate || 0
           }));
 
-          // Create mock data for job postings chart based on actual jobs
-          const mockJobPostingData = {
-            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            datasets: {
-              label: "Job Postings",
-              data: [
-                jobsResponse.data.jobs.length > 0 ? jobsResponse.data.jobs.length : 0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0
-              ]
-            },
-          };
-          setJobPostingChartData(mockJobPostingData);
+          // Fetch real monthly job posting stats
+          const jobStatsResponse = await dashboardService.getJobPostingStats();
+          if (jobStatsResponse.success) {
+            setJobPostingChartData(jobStatsResponse.data);
+          }
 
           // Use real monthly job application data from the backend
           const jobApplicationData = {

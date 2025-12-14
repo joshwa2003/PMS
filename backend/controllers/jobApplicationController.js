@@ -490,6 +490,19 @@ const submitStudentResponse = async (req, res) => {
       });
     }
 
+    // Check if student is an Alumni (batch.isGraduated === true)
+    if (student.batchId) {
+      const Batch = require('../models/Batch');
+      const batch = await Batch.findById(student.batchId);
+      if (batch && batch.isGraduated) {
+        console.log('❌ Student is Alumni and cannot apply:', student._id);
+        return res.status(403).json({
+          success: false,
+          message: 'Alumni students are restricted from applying to new jobs.'
+        });
+      }
+    }
+
     console.log('✅ Student can respond to job application');
 
     // If student clicked "No, I Didn't Apply", clear the pending state

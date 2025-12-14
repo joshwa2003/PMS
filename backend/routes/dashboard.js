@@ -5,7 +5,7 @@ const { protect, authorize } = require('../middleware/auth');
 
 // Apply authentication middleware to all dashboard routes
 router.use(protect);
-router.use(authorize('admin', 'placement_director'));
+router.use(authorize('admin', 'placement_director', 'placement_staff'));
 
 // @route   GET /api/dashboard/department-wise-students
 // @desc    Get department-wise student data for admin and placement director

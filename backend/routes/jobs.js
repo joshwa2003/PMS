@@ -155,7 +155,7 @@ router.get('/utils/departments', auth, async (req, res) => {
  */
 router.get('/utils/job-types', auth, (req, res) => {
   const jobTypes = ['Full-time', 'Part-time', 'Internship', 'Contract', 'Remote'];
-  
+
   res.status(200).json({
     success: true,
     data: { jobTypes }
@@ -177,7 +177,7 @@ router.get('/utils/job-statuses', auth, (req, res) => {
   }
 
   const jobStatuses = ['Draft', 'Active', 'Closed', 'Expired'];
-  
+
   res.status(200).json({
     success: true,
     data: { jobStatuses }
@@ -207,6 +207,13 @@ router.get('/applications/my', auth, jobApplicationController.getStudentApplicat
 router.get('/applications/stats', auth, jobApplicationController.getApplicationStats);
 
 /**
+ * @route   GET /api/v1/jobs/postings/stats
+ * @desc    Get job posting statistics (monthly)
+ * @access  Private (All authenticated users)
+ */
+router.get('/postings/stats', auth, jobController.getJobPostingStats);
+
+/**
  * @route   GET /api/v1/jobs/applications/:applicationId
  * @desc    Get application details
  * @access  Private (Student who owns the application, or Staff)
@@ -226,12 +233,12 @@ router.get('/:id', auth, jobController.getJob);
  * @access  Private (Admin, Placement Director only)
  * @body    title, company, description, location, applicationLink, deadline, etc.
  */
-router.post('/', 
-  auth, 
+router.post('/',
+  auth,
   upload.fields([
     { name: 'companyLogo', maxCount: 1 },
     { name: 'documents', maxCount: 5 }
-  ]), 
+  ]),
   jobController.createJob
 );
 
@@ -240,12 +247,12 @@ router.post('/',
  * @desc    Update job
  * @access  Private (Admin, Placement Director only)
  */
-router.put('/:id', 
-  auth, 
+router.put('/:id',
+  auth,
   upload.fields([
     { name: 'companyLogo', maxCount: 1 },
     { name: 'documents', maxCount: 5 }
-  ]), 
+  ]),
   jobController.updateJob
 );
 
@@ -374,21 +381,21 @@ router.use((error, req, res, next) => {
       });
     }
   }
-  
+
   if (error.message.includes('Only image files are allowed')) {
     return res.status(400).json({
       success: false,
       message: 'Only image files (PNG, JPG, JPEG, GIF) are allowed for company logos.'
     });
   }
-  
+
   if (error.message.includes('Only PDF, DOC, and DOCX files are allowed')) {
     return res.status(400).json({
       success: false,
       message: 'Only PDF, DOC, and DOCX files are allowed for documents.'
     });
   }
-  
+
   next(error);
 });
 

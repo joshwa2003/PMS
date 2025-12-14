@@ -221,6 +221,21 @@ class StudentManagementService {
     }
   }
 
+  // Transfer batch to alumni
+  async transferBatchToAlumni(batchId) {
+    try {
+      const response = await api.put(`/batches/${batchId}/transfer-alumni`);
+
+      if (response.success) {
+        return response;
+      }
+
+      throw new Error(response.message || 'Failed to transfer batch to alumni');
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Utility methods for student data processing
   formatStudentData(student) {
     return {

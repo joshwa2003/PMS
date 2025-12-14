@@ -12,36 +12,36 @@ const getAllJobs = async (req, res) => {
     console.log('📋 Fetching jobs - Request params:', req.query);
     console.log('👤 User making request:', req.user ? { id: req.user._id, role: req.user.role, email: req.user.email } : 'No user');
 
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = '', 
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
       status = '',
       department = '',
       jobType = '',
       sortBy = 'createdAt',
       sortOrder = 'desc',
-      all = false 
+      all = false
     } = req.query;
 
     // Build filter object
     const filter = {};
-    
+
     // Role-based filtering
     if (req.user.role === 'placement_staff') {
       // Placement staff can only see jobs for their department
       filter.status = { $in: ['Active', 'Closed', 'Expired'] };
-      
+
       // Get placement staff's department
       const PlacementStaffProfile = require('../models/PlacementStaffProfile');
       const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
-      
+
       if (staffProfile && staffProfile.department) {
         // Department can be stored as either ObjectId or string code
         // Need to find the actual Department document
         const Department = require('../models/Department');
         let department;
-        
+
         // Try to find by ObjectId first
         try {
           if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
@@ -50,23 +50,23 @@ const getAllJobs = async (req, res) => {
         } catch (err) {
           console.log('Not a valid ObjectId, trying by code...');
         }
-        
+
         // If not found by ID, try by code
         if (!department) {
           department = await Department.findOne({ code: staffProfile.department });
         }
-        
+
         if (department) {
           console.log('🔒 Placement staff department filter:', department.name, '(', department.code, ')');
           console.log('🔒 Department ObjectId:', department._id);
-          
+
           // Filter jobs to only show those targeting this department OR posted to all departments
           filter.$or = [
             { postingType: 'All Departments' },
             { targetDepartments: department._id },
             { 'eligibility.departments': department._id }
           ];
-          
+
           console.log('🔒 Applied filter:', JSON.stringify(filter, null, 2));
         } else {
           console.warn('⚠️ Department not found in database:', staffProfile.department);
@@ -83,7 +83,7 @@ const getAllJobs = async (req, res) => {
       // Students can only see active jobs for their department
       filter.status = 'Active';
       filter.deadline = { $gt: new Date() };
-      
+
       // Filter by student's department and batch
       const student = await Student.findOne({ userId: req.user._id }).populate('userId', 'department');
       if (student && student.userId.department) {
@@ -92,19 +92,19 @@ const getAllJobs = async (req, res) => {
           { targetDepartments: student.userId.department },
           { 'eligibility.departments': student.userId.department }
         ];
-        
+
         // Add batch-specific filtering if student has a batch
         if (student.batchId) {
           filterConditions.push({ targetBatches: student.batchId });
         }
-        
+
         filter.$or = filterConditions;
       }
     } else if (!['admin', 'placement_director'].includes(req.user.role)) {
       // Other roles have limited access
       filter.status = { $in: ['Active', 'Closed'] };
     }
-    
+
     // Search functionality
     if (search) {
       filter.$or = [
@@ -114,17 +114,17 @@ const getAllJobs = async (req, res) => {
         { location: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     // Status filter
     if (status) {
       filter.status = status;
     }
-    
+
     // Job type filter
     if (jobType) {
       filter.jobType = jobType;
     }
-    
+
     // Department filter
     if (department) {
       filter.$or = [
@@ -198,7 +198,7 @@ const getAllJobs = async (req, res) => {
         // Department can be stored as either ObjectId or string code
         const Department = require('../models/Department');
         let department;
-        
+
         // Try to find by ObjectId first
         try {
           if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
@@ -207,12 +207,12 @@ const getAllJobs = async (req, res) => {
         } catch (err) {
           // Not a valid ObjectId
         }
-        
+
         // If not found by ID, try by code
         if (!department) {
           department = await Department.findOne({ code: staffProfile.department });
         }
-        
+
         if (department) {
           staffDepartmentId = department._id;
           console.log('🔒 Filtering application counts by department:', department.name);
@@ -227,15 +227,15 @@ const getAllJobs = async (req, res) => {
         job: job._id,
         status: 'Applied'
       };
-      
+
       // If placement staff, only count applications from their department
       if (staffDepartmentId) {
         applicationQuery.department = staffDepartmentId;
       }
-      
+
       // Count actual applications with status 'Applied'
       const actualApplicationCount = await JobApplication.countDocuments(applicationQuery);
-      
+
       // Update the stats with real count
       return {
         ...job,
@@ -295,7 +295,7 @@ const getJob = async (req, res) => {
       .populate('createdBy', 'firstName lastName email role')
       .populate('updatedBy', 'firstName lastName email')
       .lean();
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -312,7 +312,7 @@ const getJob = async (req, res) => {
           message: 'Job is not available'
         });
       }
-      
+
       // Check if student is eligible
       const student = await Student.findOne({ userId: req.user._id }).populate('userId', 'department');
       if (student) {
@@ -345,22 +345,22 @@ const getJob = async (req, res) => {
 // Helper function to reconstruct nested objects from FormData
 const reconstructNestedObject = (body) => {
   const result = {};
-  
+
   Object.keys(body).forEach(key => {
     const value = body[key];
-    
+
     if (key.includes('.')) {
       // Handle nested properties like 'company.name', 'salary.min', etc.
       const keys = key.split('.');
       let current = result;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         if (!current[keys[i]]) {
           current[keys[i]] = {};
         }
         current = current[keys[i]];
       }
-      
+
       // Handle array fields that were JSON stringified
       if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
         try {
@@ -384,7 +384,7 @@ const reconstructNestedObject = (body) => {
       }
     }
   });
-  
+
   return result;
 };
 
@@ -559,7 +559,7 @@ const createJob = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error creating job:', error);
-    
+
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -568,7 +568,7 @@ const createJob = async (req, res) => {
         errors: validationErrors
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Error creating job',
@@ -592,7 +592,7 @@ const updateJob = async (req, res) => {
     }
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -634,9 +634,9 @@ const updateJob = async (req, res) => {
       }
     }
 
-    const updatedJob = await Job.findByIdAndUpdate(id, updateData, { 
-      new: true, 
-      runValidators: true 
+    const updatedJob = await Job.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
     }).populate('targetDepartments', 'name code')
       .populate('eligibility.departments', 'name code')
       .populate('createdBy', 'firstName lastName email')
@@ -656,7 +656,7 @@ const updateJob = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error updating job:', error);
-    
+
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -665,7 +665,7 @@ const updateJob = async (req, res) => {
         errors: validationErrors
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Error updating job',
@@ -678,7 +678,7 @@ const updateJob = async (req, res) => {
 const deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check permissions
     if (!['admin', 'placement_director'].includes(req.user.role)) {
       return res.status(403).json({
@@ -688,7 +688,7 @@ const deleteJob = async (req, res) => {
     }
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -732,7 +732,7 @@ const getStudentJobs = async (req, res) => {
 
     // Get student information
     const student = await Student.findOne({ userId: req.user._id }).populate('userId', 'department');
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -752,10 +752,10 @@ const getStudentJobs = async (req, res) => {
         { 'eligibility.departments': studentDepartment }
       ]
     })
-    .populate('targetDepartments', 'name code')
-    .populate('eligibility.departments', 'name code')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('targetDepartments', 'name code')
+      .populate('eligibility.departments', 'name code')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Filter jobs based on eligibility
     const eligibleJobs = [];
@@ -829,7 +829,7 @@ const createJobApplicationsForStudents = async (jobId) => {
 
     // Determine which departments to target
     let targetDepartmentIds = [];
-    
+
     if (job.postingType === 'All Departments') {
       const allDepartments = await Department.find({ isActive: true });
       targetDepartmentIds = allDepartments.map(dept => dept._id);
@@ -847,7 +847,7 @@ const createJobApplicationsForStudents = async (jobId) => {
       'userId': { $exists: true }
     }).populate({
       path: 'userId',
-      match: { 
+      match: {
         department: { $in: targetDepartmentIds },
         role: 'student',
         isActive: true
@@ -870,7 +870,7 @@ const createJobApplicationsForStudents = async (jobId) => {
       if (!existingApplication) {
         // Check eligibility
         const eligibilityCheck = job.isStudentEligible(student);
-        
+
         applications.push({
           job: jobId,
           student: student._id,
@@ -901,10 +901,10 @@ const getPublicJobs = async (req, res) => {
   try {
     console.log('🌐 Fetching public job listings - Request params:', req.query);
 
-    const { 
-      page = 1, 
-      limit = 12, 
-      search = '', 
+    const {
+      page = 1,
+      limit = 12,
+      search = '',
       jobType = '',
       location = '',
       company = '',
@@ -917,7 +917,7 @@ const getPublicJobs = async (req, res) => {
       status: 'Active',
       deadline: { $gt: new Date() }
     };
-    
+
     // Search functionality
     if (search) {
       filter.$or = [
@@ -928,17 +928,17 @@ const getPublicJobs = async (req, res) => {
         { skillsRequired: { $in: [new RegExp(search, 'i')] } }
       ];
     }
-    
+
     // Job type filter
     if (jobType) {
       filter.jobType = jobType;
     }
-    
+
     // Location filter
     if (location) {
       filter.location = { $regex: location, $options: 'i' };
     }
-    
+
     // Company filter
     if (company) {
       filter['company.name'] = { $regex: company, $options: 'i' };
@@ -1029,9 +1029,9 @@ const getPublicJob = async (req, res) => {
       status: 'Active',
       deadline: { $gt: new Date() }
     })
-    .populate('targetDepartments', 'name code')
-    .populate('eligibility.departments', 'name code')
-    .select(`
+      .populate('targetDepartments', 'name code')
+      .populate('eligibility.departments', 'name code')
+      .select(`
       title company description location jobType workMode startDate
       numberOfOpenings salary stipend deadline applicationLink
       keyResponsibilities requirements skillsRequired otherRequirements
@@ -1039,8 +1039,8 @@ const getPublicJob = async (req, res) => {
       eligibility stats.totalViews stats.totalApplications createdAt
       targetDepartments documents googleDriveLink
     `)
-    .lean();
-    
+      .lean();
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -1053,7 +1053,7 @@ const getPublicJob = async (req, res) => {
     // which properly tracks:
     // 1. Only student views (not admin/staff)
     // 2. Only unique views per student (first view only)
-    
+
     console.log('✅ Public job found:', job.title);
 
     res.status(200).json({
@@ -1085,7 +1085,7 @@ const publishJob = async (req, res) => {
     }
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -1119,12 +1119,12 @@ const publishJob = async (req, res) => {
 
     // Update job status to Active
     const updatedJob = await Job.findByIdAndUpdate(
-      id, 
-      { 
+      id,
+      {
         status: 'Active',
         publishedAt: new Date(),
         updatedBy: req.user._id
-      }, 
+      },
       { new: true, runValidators: true }
     ).populate('targetDepartments', 'name code')
       .populate('eligibility.departments', 'name code')
@@ -1166,7 +1166,7 @@ const unpublishJob = async (req, res) => {
     }
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -1192,12 +1192,12 @@ const unpublishJob = async (req, res) => {
 
     // Update job status to Draft
     const updatedJob = await Job.findByIdAndUpdate(
-      id, 
-      { 
+      id,
+      {
         status: 'Draft',
         publishedAt: null,
         updatedBy: req.user._id
-      }, 
+      },
       { new: true, runValidators: true }
     ).populate('targetDepartments', 'name code')
       .populate('eligibility.departments', 'name code')
@@ -1228,7 +1228,7 @@ const toggleSaveJob = async (req, res) => {
     console.log('🔖 Toggling save status for job:', id, 'by user:', req.user._id);
 
     const job = await Job.findById(id);
-    
+
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -1238,14 +1238,14 @@ const toggleSaveJob = async (req, res) => {
 
     // Check if job is already saved by user
     const isSaved = job.savedBy.includes(req.user._id);
-    
+
     if (isSaved) {
       // Unsave job
       job.savedBy = job.savedBy.filter(userId => userId.toString() !== req.user._id.toString());
       await job.save();
-      
+
       console.log('✅ Job unsaved successfully');
-      
+
       return res.status(200).json({
         success: true,
         message: 'Job unsaved successfully',
@@ -1255,9 +1255,9 @@ const toggleSaveJob = async (req, res) => {
       // Save job
       job.savedBy.push(req.user._id);
       await job.save();
-      
+
       console.log('✅ Job saved successfully');
-      
+
       return res.status(200).json({
         success: true,
         message: 'Job saved successfully',
@@ -1281,7 +1281,7 @@ const getSavedJobs = async (req, res) => {
 
     // Get student information
     const student = await Student.findOne({ userId: req.user._id });
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1293,10 +1293,10 @@ const getSavedJobs = async (req, res) => {
     const jobs = await Job.find({
       savedBy: req.user._id
     })
-    .populate('targetDepartments', 'name code')
-    .populate('eligibility.departments', 'name code')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('targetDepartments', 'name code')
+      .populate('eligibility.departments', 'name code')
+      .sort({ createdAt: -1 })
+      .lean();
 
     console.log('✅ Found', jobs.length, 'saved jobs for user');
 
@@ -1316,6 +1316,58 @@ const getSavedJobs = async (req, res) => {
   }
 };
 
+// Get job posting statistics (monthly)
+const getJobPostingStats = async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+
+    const stats = await Job.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ]);
+
+    // Initialize array with 0s for all 12 months
+    const monthlyData = Array(12).fill(0);
+
+    // Fill in actual data
+    stats.forEach(item => {
+      // item._id is 1-12 (month number)
+      monthlyData[item._id - 1] = item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        datasets: {
+          label: "Job Postings",
+          data: monthlyData
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching job posting stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching job posting stats'
+    });
+  }
+};
+
 module.exports = {
   getAllJobs,
   getJob,
@@ -1328,5 +1380,6 @@ module.exports = {
   publishJob,
   unpublishJob,
   toggleSaveJob,
-  getSavedJobs
+  getSavedJobs,
+  getJobPostingStats
 };

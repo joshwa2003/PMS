@@ -7,7 +7,7 @@ class DepartmentWiseStudentService {
       // Add timestamp to prevent caching
       const timestamp = Date.now();
       const response = await api.get(`/dashboard/department-wise-students?_t=${timestamp}`);
-      
+
       if (response.success) {
         // Add IDs to departments if they don't have them
         if (response.data && response.data.departments) {
@@ -18,29 +18,29 @@ class DepartmentWiseStudentService {
         }
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch department-wise student data');
     } catch (error) {
       throw error;
     }
   }
-  
+
   // Format numbers for display
   formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
-  
+
   // Get summary text for dashboard
   getSummaryText(stats) {
     return `Overview of ${stats.totalDepartments || 0} departments with ${stats.totalStudents || 0} students`;
   }
-  
+
   // Get department color based on index
   getDepartmentColor(index) {
     const colors = ['primary', 'info', 'success', 'warning', 'error', 'dark'];
     return colors[index % colors.length];
   }
-  
+
   // Check if user has permission to view dashboard
   hasPermission(role) {
     return ['admin', 'placement_director'].includes(role);
@@ -51,11 +51,11 @@ class DepartmentWiseStudentService {
     try {
       const queryParams = new URLSearchParams(params).toString();
       const response = await api.get(`/dashboard/department/${departmentId}/students?${queryParams}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch department students');
     } catch (error) {
       throw error;
@@ -68,12 +68,29 @@ class DepartmentWiseStudentService {
       // Add timestamp to prevent caching
       const timestamp = Date.now();
       const response = await api.get(`/dashboard/departments/${departmentId}/batches?_t=${timestamp}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch department batches');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get alumni batches for a specific department
+  async getDepartmentAlumniBatches(departmentId) {
+    try {
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      const response = await api.get(`/batches/department/${departmentId}/alumni?_t=${timestamp}`);
+
+      if (response.success) {
+        return response;
+      }
+
+      throw new Error(response.message || 'Failed to fetch department alumni batches');
     } catch (error) {
       throw error;
     }
@@ -90,12 +107,27 @@ class DepartmentWiseStudentService {
       });
 
       const response = await api.get(`/dashboard/departments/${departmentId}/batches/${batchId}/students?${queryParams}`);
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch department batch students');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Transfer batch to alumni
+  async transferBatchToAlumni(batchId) {
+    try {
+      const response = await api.put(`/batches/${batchId}/transfer-alumni`);
+
+      if (response.success) {
+        return response;
+      }
+
+      throw new Error(response.message || 'Failed to transfer batch to alumni');
     } catch (error) {
       throw error;
     }
@@ -105,12 +137,25 @@ class DepartmentWiseStudentService {
   async getDashboardSummary() {
     try {
       const response = await api.get('/dashboard/summary');
-      
+
       if (response.success) {
         return response;
       }
-      
+
       throw new Error(response.message || 'Failed to fetch dashboard summary');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get all departments (for dropdowns etc)
+  async getAllDepartments() {
+    try {
+      const response = await api.get('/departments?isActive=true&all=true');
+      if (response.success) {
+        return response;
+      }
+      throw new Error(response.message || 'Failed to fetch departments');
     } catch (error) {
       throw error;
     }
@@ -144,7 +189,7 @@ class DepartmentWiseStudentService {
   // Calculate placement percentage
   calculatePlacementPercentage(statistics) {
     if (!statistics || statistics.total === 0) return 0;
-    
+
     const placedCount = statistics.placed + statistics.multipleOffers;
     return Math.round((placedCount / statistics.total) * 100);
   }
@@ -154,7 +199,7 @@ class DepartmentWiseStudentService {
     if (!statistics) return null;
 
     const placementRate = this.calculatePlacementPercentage(statistics);
-    
+
     return {
       total: statistics.total || 0,
       placed: statistics.placed || 0,
@@ -185,7 +230,7 @@ class DepartmentWiseStudentService {
   // Format date for display
   formatDate(dateString) {
     if (!dateString) return 'N/A';
-    
+
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -197,7 +242,7 @@ class DepartmentWiseStudentService {
   // Format date and time for display
   formatDateTime(dateString) {
     if (!dateString) return 'N/A';
-    
+
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -298,7 +343,7 @@ class DepartmentWiseStudentService {
   downloadCSV(csvContent, filename) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    
+
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
@@ -317,82 +362,22 @@ class DepartmentWiseStudentService {
     this.downloadCSV(csvContent, csvFilename);
   }
 
-  // Get department color for cards (for visual variety)
-  getDepartmentColor(index) {
-    const colors = [
-      'primary',
-      'secondary', 
-      'info',
-      'success',
-      'warning',
-      'error',
-      'dark'
-    ];
-    return colors[index % colors.length];
-  }
 
-  // Validate search input
-  validateSearchInput(searchTerm) {
-    if (!searchTerm) return true;
-    
-    // Allow alphanumeric, spaces, dots, and common symbols
-    const validPattern = /^[a-zA-Z0-9\s@._-]*$/;
-    return validPattern.test(searchTerm);
-  }
-
-  // Get summary statistics text
-  getSummaryText(overallStats) {
-    if (!overallStats) return '';
-
-    const { students } = overallStats;
-    const placementRate = students.total > 0 ? 
-      Math.round(((students.placed + students.multipleOffers) / students.total) * 100) : 0;
-
-    return `${students.total} total students across ${overallStats.departments.total} departments with ${placementRate}% placement rate`;
-  }
-
-  // Check if user has permission to view dashboard
-  hasPermission(userRole) {
-    return ['admin', 'placement_director'].includes(userRole);
-  }
-
-  // Format large numbers for display
-  formatNumber(num) {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  }
-
-  // Get status icon for placement status
-  getPlacementStatusIcon(status) {
-    switch (status) {
-      case 'Placed':
-        return 'check_circle';
-      case 'Multiple Offers':
-        return 'star';
-      case 'Unplaced':
-      default:
-        return 'schedule';
-    }
-  }
 
   // Delete multiple students (bulk delete)
   async deleteBulkStudents(studentIds) {
     try {
       console.log('🔍 Service: Deleting bulk students:', studentIds);
-      
+
       // Ensure studentIds is an array of strings
-      const ids = Array.isArray(studentIds) 
+      const ids = Array.isArray(studentIds)
         ? studentIds.map(id => typeof id === 'object' ? id.id || id._id : id)
         : [studentIds];
-      
+
       console.log('🔧 Processed student IDs for deletion:', ids);
-      
+
       const requestData = { studentIds: ids };
-      
+
       const response = await api.delete('/student-management/students/bulk', {
         data: requestData,
         headers: {
@@ -400,21 +385,21 @@ class DepartmentWiseStudentService {
           'Accept': 'application/json'
         }
       });
-      
+
       console.log('✅ Service: Bulk delete response:', response);
-      
+
       if (response && response.success) {
         return response;
       }
-      
+
       throw new Error(response?.message || 'Failed to delete students. Please try again.');
     } catch (error) {
       console.error('❌ Service: Error in deleteBulkStudents:', error);
-      
-      const errorMessage = error.response?.data?.message || 
-                         error.message || 
-                         'An error occurred while deleting students. Please try again.';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        'An error occurred while deleting students. Please try again.';
+
       throw new Error(errorMessage);
     }
   }

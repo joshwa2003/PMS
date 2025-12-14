@@ -6,7 +6,14 @@ import {
   Tooltip,
   Chip,
   Box,
-  Typography
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -14,7 +21,8 @@ import {
   School as SchoolIcon,
   People as PeopleIcon,
   CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  SchoolOutlined as SchoolOutlinedIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
@@ -32,6 +40,13 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Transfer Dialog State
+  const [openTransferDialog, setOpenTransferDialog] = useState(false);
+  const [selectedBatchForTransfer, setSelectedBatchForTransfer] = useState(null);
+
+  // Notification State
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+
   // Fetch batches on component mount
   useEffect(() => {
     fetchBatches();
@@ -41,10 +56,10 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await studentManagementService.getAllBatches();
       setBatches(response.batches || []);
-      
+
       if (onRefresh) {
         onRefresh(response.batches || []);
       }
@@ -66,6 +81,50 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
     }
   };
 
+  // Transfer Handlers
+  const handleOpenTransferDialog = (batch) => {
+    setSelectedBatchForTransfer(batch);
+    setOpenTransferDialog(true);
+  };
+
+  const handleCloseTransferDialog = () => {
+    setOpenTransferDialog(false);
+    setSelectedBatchForTransfer(null);
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!selectedBatchForTransfer) return;
+
+    try {
+      handleCloseTransferDialog();
+      setLoading(true);
+
+      await studentManagementService.transferBatchToAlumni(selectedBatchForTransfer._id || selectedBatchForTransfer.id);
+
+      setNotification({
+        open: true,
+        message: `Batch ${selectedBatchForTransfer.batchCode} transferred to Alumni successfully`,
+        severity: 'success'
+      });
+
+      // Refresh list
+      fetchBatches();
+
+    } catch (error) {
+      console.error('Transfer failed:', error);
+      setNotification({
+        open: true,
+        message: error.message || 'Failed to transfer batch',
+        severity: 'error'
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   // Table data formatter
   const getBatchTableData = () => {
     const BatchInfo = ({ batch }) => (
@@ -77,7 +136,7 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
           width="40px"
           height="40px"
           borderRadius="50%"
-          sx={{ 
+          sx={{
             backgroundColor: `${studentManagementService.getBatchStatusColor(batch)}.main`,
             color: 'white'
           }}
@@ -130,14 +189,14 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
     const PlacementRate = ({ batch }) => {
       const rate = studentManagementService.calculateBatchPlacementRate(batch);
       const color = rate >= 80 ? 'success' : rate >= 60 ? 'warning' : rate >= 40 ? 'info' : 'error';
-      
+
       return (
         <MDBox textAlign="center">
-          <MDBadge 
-            badgeContent={`${rate}%`} 
-            color={color} 
-            variant="gradient" 
-            size="lg" 
+          <MDBadge
+            badgeContent={`${rate}%`}
+            color={color}
+            variant="gradient"
+            size="lg"
           />
         </MDBox>
       );
@@ -157,6 +216,22 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
             </IconButton>
           </span>
         </Tooltip>
+
+        {/* Transfer to Alumni Button - Only for active/non-graduated batches */}
+        {!batch.isGraduated && (
+          <Tooltip title="Transfer to Alumni">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenTransferDialog(batch)}
+                disabled={loading}
+                color="warning"
+              >
+                <SchoolOutlinedIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
       </MDBox>
     );
 
@@ -227,13 +302,51 @@ const BatchYearTable = ({ onBatchSelect, onRefresh }) => {
               {loading ? 'Loading batches...' : 'No batches found'}
             </MDTypography>
             <MDTypography variant="body2" color="text">
-              {loading 
+              {loading
                 ? 'Please wait while we fetch the batch information.'
                 : 'No batch years are available for your department.'
               }
             </MDTypography>
           </MDBox>
         )}
+
+        {/* Transfer Confirmation Dialog */}
+        <Dialog
+          open={openTransferDialog}
+          onClose={handleCloseTransferDialog}
+          aria-labelledby="transfer-dialog-title"
+        >
+          <DialogTitle id="transfer-dialog-title">
+            {"Transfer Batch to Alumni?"}
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to transfer the batch <strong>{selectedBatchForTransfer?.batchCode}</strong> to Alumni?
+              <br /><br />
+              <strong style={{ color: 'red' }}>⚠️ This action will prevent all students in this batch from applying to any new jobs.</strong>
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseTransferDialog} color="secondary">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmTransfer} color="warning" autoFocus>
+              Yes, Transfer to Alumni
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Notification Snackbar */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={6000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+            {notification.message}
+          </Alert>
+        </Snackbar>
       </MDBox>
     </Card>
   );

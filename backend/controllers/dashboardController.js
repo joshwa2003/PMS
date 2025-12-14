@@ -19,10 +19,10 @@ class DashboardController {
       console.log('getDepartmentStudents called with:', { departmentId, page, limit, search, status });
 
       // Check if user has permission
-      if (!['admin', 'placement_director'].includes(req.user.role)) {
+      if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. Only administrators and placement directors can view this data.'
+          message: 'Access denied. Only administrators and placement staff can view this data.'
         });
       }
 
@@ -238,7 +238,8 @@ class DashboardController {
       // Get all batches for this department
       const Batch = require('../models/Batch');
       const batches = await Batch.find({
-        department: departmentId
+        department: departmentId,
+        isGraduated: { $ne: true }
       })
         .select('batchCode startYear endYear courseType courseDuration isActive isGraduated')
         .sort({ startYear: -1 }) // Most recent first
@@ -355,10 +356,10 @@ class DashboardController {
       console.log('getDepartmentBatchStudents called with:', { departmentId, batchId, page, limit, search, status });
 
       // Check if user has permission
-      if (!['admin', 'placement_director'].includes(req.user.role)) {
+      if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. Only administrators and placement directors can view this data.'
+          message: 'Access denied. Only administrators and placement staff can view this data.'
         });
       }
 

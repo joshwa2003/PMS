@@ -10,9 +10,19 @@ exports.getDepartmentWiseStudents = async (req, res) => {
       .select('name code description placementStaff')
       .populate('placementStaff', 'firstName lastName email')
       .sort({ name: 1 });
-    
+
+    // Get all alumni (graduated) batches
+    const alumniBatches = await Batch.find({ isGraduated: true }).select('_id');
+    const alumniBatchIds = alumniBatches.map(b => b._id);
+
     // Get all students grouped by department and placement status
+    // Exclude students from alumni batches
     const studentsByDepartment = await Student.aggregate([
+      {
+        $match: {
+          batchId: { $nin: alumniBatchIds }
+        }
+      },
       {
         $group: {
           _id: {
@@ -28,7 +38,7 @@ exports.getDepartmentWiseStudents = async (req, res) => {
     const departmentsWithStats = departments.map(dept => {
       // Find students for this department
       const deptStudents = studentsByDepartment.filter(
-        s => s._id.department === dept.code
+        s => s._id.department === dept.code || s._id.department === dept.name
       );
 
       // Calculate statistics
@@ -57,22 +67,23 @@ exports.getDepartmentWiseStudents = async (req, res) => {
       };
     });
 
-    // Calculate overall statistics
-    const totalStudents = await Student.countDocuments();
-    const placedStudents = await Student.countDocuments({ 'placement.placementStatus': 'Placed' });
-    const unplacedStudents = await Student.countDocuments({ 'placement.placementStatus': 'Unplaced' });
-    const multipleOffersStudents = await Student.countDocuments({ 'placement.placementStatus': 'Multiple Offers' });
+    // Calculate overall statistics (excluding alumni)
+    const statsQuery = { batchId: { $nin: alumniBatchIds } };
+    const totalStudents = await Student.countDocuments(statsQuery);
+    const placedStudents = await Student.countDocuments({ ...statsQuery, 'placement.placementStatus': 'Placed' });
+    const unplacedStudents = await Student.countDocuments({ ...statsQuery, 'placement.placementStatus': 'Unplaced' });
+    const multipleOffersStudents = await Student.countDocuments({ ...statsQuery, 'placement.placementStatus': 'Multiple Offers' });
     const departmentsWithoutStaff = departments.filter(d => !d.placementStaff).length;
-    
-    const placementRate = totalStudents > 0 
-      ? Math.round(((placedStudents + multipleOffersStudents) / totalStudents) * 100) 
+
+    const placementRate = totalStudents > 0
+      ? Math.round(((placedStudents + multipleOffersStudents) / totalStudents) * 100)
       : 0;
-    
+
     // Set cache control headers to prevent stale data
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    
+
     return res.status(200).json({
       success: true,
       data: {
@@ -80,17 +91,17 @@ exports.getDepartmentWiseStudents = async (req, res) => {
         overallStatistics: {
           totalDepartments: departments.length,
           totalStudents: totalStudents,
-          departments: { 
-            total: departments.length, 
-            active: departments.length, 
-            withoutStaff: departmentsWithoutStaff 
+          departments: {
+            total: departments.length,
+            active: departments.length,
+            withoutStaff: departmentsWithoutStaff
           },
-          students: { 
-            total: totalStudents, 
-            placed: placedStudents, 
-            unplaced: unplacedStudents, 
-            placementRate: placementRate, 
-            multipleOffers: multipleOffersStudents 
+          students: {
+            total: totalStudents,
+            placed: placedStudents,
+            unplaced: unplacedStudents,
+            placementRate: placementRate,
+            multipleOffers: multipleOffersStudents
           }
         }
       }
@@ -113,7 +124,7 @@ exports.getDepartmentBatches = async (req, res) => {
     const department = await Department.findById(departmentId)
       .select('name code')
       .populate('placementStaff', 'firstName lastName email');
-    
+
     if (!department) {
       return res.status(404).json({
         success: false,
@@ -131,7 +142,7 @@ exports.getDepartmentBatches = async (req, res) => {
     console.log('getDepartmentBatches called with:', { departmentId, userRole: req.user?.role });
     console.log('Department found:', { name: department.name, code: department.code });
     console.log(`Found ${batches.length} batches for department ${department.name}`);
-    
+
     if (batches.length > 0) {
       console.log('First batch raw data:', JSON.stringify(batches[0], null, 2));
     }
@@ -163,7 +174,7 @@ exports.getDepartmentBatches = async (req, res) => {
         ...departmentQuery,
         'placement.placementStatus': 'Multiple Offers'
       });
-      
+
       console.log(`Batch ${batch.batchCode}: Total=${totalStudents}, Placed=${placedStudents}, Unplaced=${unplacedStudents}, Multiple=${multipleOffersStudents}`);
 
       const batchData = {
@@ -185,13 +196,13 @@ exports.getDepartmentBatches = async (req, res) => {
           multipleOffers: multipleOffersStudents
         }
       };
-      
-      console.log('Batch data:', { 
-        batchCode: batch.batchCode, 
+
+      console.log('Batch data:', {
+        batchCode: batch.batchCode,
         yearRange: batchData.yearRange,
-        stats: batchData.statistics 
+        stats: batchData.statistics
       });
-      
+
       return batchData;
     }));
 
@@ -294,18 +305,18 @@ exports.getDepartmentBatchStudents = async (req, res) => {
         { 'academic.department': department.name }
       ]
     };
-    
-    const placed = await Student.countDocuments({ 
+
+    const placed = await Student.countDocuments({
       ...baseQuery,
-      'placement.placementStatus': 'Placed' 
+      'placement.placementStatus': 'Placed'
     });
-    const unplaced = await Student.countDocuments({ 
+    const unplaced = await Student.countDocuments({
       ...baseQuery,
-      'placement.placementStatus': 'Unplaced' 
+      'placement.placementStatus': 'Unplaced'
     });
-    const multipleOffers = await Student.countDocuments({ 
+    const multipleOffers = await Student.countDocuments({
       ...baseQuery,
-      'placement.placementStatus': 'Multiple Offers' 
+      'placement.placementStatus': 'Multiple Offers'
     });
 
     // Format students for response

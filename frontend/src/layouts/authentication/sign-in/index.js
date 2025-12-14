@@ -73,7 +73,7 @@ function Basic() {
     department_hod: { email: "ramesh.hod.cse@saec.edu.in", password: "HOD@123" },
     other_staff: { email: "anita.staff@saec.edu.in", password: "Staff@123" },
     student: { email: "nithishkumar.mailbox@gmail.com", password: "Student@123" },
-    
+
   };
 
   // Redirect if already authenticated
@@ -128,26 +128,26 @@ function Basic() {
       }
 
       const response = await login(formData.email.trim(), formData.password);
-      
+
       // Check if user needs first login setup
       if (response.needsFirstLogin) {
         navigate("/authentication/first-login-password-reset", { replace: true });
         return;
       }
-      
+
       // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
       console.error("Login error:", error);
-      
+
       // Enhanced error messages based on error type
       let errorMessage = "Login failed. Please try again.";
-      
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.response?.data?.message) {
+
+      if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -171,7 +171,7 @@ function Basic() {
       department_hod: "Department HOD",
       other_staff: "Other Staff",
       student: "Student",
-      
+
     };
     return roleNames[role] || role;
   };
@@ -197,7 +197,7 @@ function Basic() {
             Sign in to access your account
           </MDTypography>
         </MDBox>
-        
+
         <MDBox pt={4} pb={3} px={3}>
           {error && (
             <MDBox mb={2}>
@@ -245,8 +245,8 @@ function Basic() {
               />
             </MDBox>
             <MDBox display="flex" alignItems="center" ml={-1}>
-              <Switch 
-                checked={rememberMe} 
+              <Switch
+                checked={rememberMe}
                 onChange={handleSetRememberMe}
                 disabled={isLoading}
               />
@@ -261,9 +261,9 @@ function Basic() {
               </MDTypography>
             </MDBox>
             <MDBox mt={4} mb={1}>
-              <MDButton 
-                variant="gradient" 
-                color="info" 
+              <MDButton
+                variant="gradient"
+                color="info"
                 fullWidth
                 type="submit"
                 disabled={isLoading}
@@ -326,7 +326,7 @@ function Basic() {
                       ))}
                     </Select>
                   </FormControl>
-                  
+
                   <MDTypography variant="caption" color="text" display="block" textAlign="center">
                     Select a role to auto-fill login credentials
                   </MDTypography>

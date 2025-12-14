@@ -5,7 +5,9 @@ import {
   IconButton,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Slide
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon
@@ -24,6 +26,10 @@ import DepartmentBatchesView from 'components/DepartmentStudents/DepartmentBatch
 // Services
 import departmentWiseStudentService from 'services/departmentWiseStudentService';
 
+function SlideTransition(props) {
+  return <Slide {...props} direction="up" />;
+}
+
 const DepartmentBatches = () => {
   const { departmentId } = useParams();
   const navigate = useNavigate();
@@ -32,6 +38,13 @@ const DepartmentBatches = () => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Notification state
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   // Fetch department batches
   const fetchDepartmentBatches = async () => {
@@ -70,6 +83,40 @@ const DepartmentBatches = () => {
   // Handle refresh
   const handleRefresh = () => {
     fetchDepartmentBatches();
+  };
+
+  // Handle Transfer Batch to Alumni
+  const handleTransferBatch = async (batchId) => {
+    try {
+      const response = await departmentWiseStudentService.transferBatchToAlumni(batchId);
+
+      if (response.success) {
+        setNotification({
+          open: true,
+          message: 'Batch transferred to Alumni successfully',
+          severity: 'success'
+        });
+        // Refresh the list to remove the transferred batch
+        fetchDepartmentBatches();
+      } else {
+        setNotification({
+          open: true,
+          message: response.message || 'Failed to transfer batch',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error transferring batch:', error);
+      setNotification({
+        open: true,
+        message: error.message || 'Failed to transfer batch',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
   };
 
   if (loading && !department) {
@@ -152,8 +199,27 @@ const DepartmentBatches = () => {
           error={error}
           onBatchSelect={handleBatchSelect}
           onRefresh={handleRefresh}
+          onTransferBatch={handleTransferBatch}
         />
       </MDBox>
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        TransitionComponent={SlideTransition}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          sx={{ width: '100%', boxShadow: 3 }}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </DashboardLayout>
   );
 };

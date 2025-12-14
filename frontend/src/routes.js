@@ -57,6 +57,7 @@ import DepartmentsOverview from "pages/DepartmentsOverview";
 import DepartmentWiseStudentDashboard from "pages/DepartmentWiseStudentDashboard";
 import DepartmentStudents from "pages/DepartmentStudents";
 import DepartmentBatches from "pages/DepartmentBatches";
+import AlumniBatches from "pages/AlumniBatches";
 import JobManagementNew from "pages/JobManagementNew";
 import CreateJobPageEnhanced from "pages/CreateJobPageEnhanced";
 import JobMonitoring from "pages/JobMonitoring";
@@ -471,7 +472,7 @@ const routes = [
     key: "department-batches",
     route: "/department-batches/:departmentId",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <DepartmentBatches />
       </ProtectedRoute>
     ),
@@ -483,7 +484,7 @@ const routes = [
     key: "department-students",
     route: "/department-students/:departmentId",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <DepartmentStudents />
       </ProtectedRoute>
     ),
@@ -495,10 +496,24 @@ const routes = [
     key: "batch-students",
     route: "/department-students/:departmentId/:batchId",
     component: (
-      <ProtectedRoute requiredRoles={['admin', 'placement_director']}>
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
         <DepartmentStudents />
       </ProtectedRoute>
     ),
+  },
+  // Alumni Batches (Sidebar Item)
+  {
+    type: "collapse",
+    name: "Alumni Batches",
+    key: "alumni-batches",
+    icon: <Icon fontSize="small">school</Icon>,
+    route: "/alumni-batches",
+    component: (
+      <ProtectedRoute requiredRoles={['admin', 'placement_director', 'placement_staff']}>
+        <AlumniBatches />
+      </ProtectedRoute>
+    ),
+    hideForRoles: ['student', 'other_staff'],
   },
   // Create Job Page (hidden from sidebar - accessed via job management)
   {
