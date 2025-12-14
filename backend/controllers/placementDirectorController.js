@@ -83,10 +83,10 @@ exports.createPlacementDirector = async (req, res) => {
       };
 
       const emailResult = await emailService.sendPlacementDirectorWelcomeEmail(emailData, defaultPassword);
-      
+
       if (emailResult.success) {
         console.log(`Welcome email sent successfully to ${director.email}`);
-        
+
         // Update email sent status
         await User.findByIdAndUpdate(director._id, {
           emailSent: true,
@@ -196,7 +196,9 @@ exports.getAllPlacementDirectors = async (req, res) => {
         roleAssignedBy: director.roleAssignedBy,
         createdBy: director.createdBy,
         emailSent: director.emailSent,
-        emailSentAt: director.emailSentAt
+        emailSentAt: director.emailSentAt,
+        profilePicture: director.profilePicture,
+        profilePhotoUrl: director.profilePhotoUrl
       }))
     });
   } catch (error) {
@@ -214,9 +216,9 @@ exports.getAllPlacementDirectors = async (req, res) => {
 // @access  Private (Admin only)
 exports.getPlacementDirectorById = async (req, res) => {
   try {
-    const director = await User.findOne({ 
-      _id: req.params.id, 
-      role: 'placement_director' 
+    const director = await User.findOne({
+      _id: req.params.id,
+      role: 'placement_director'
     })
       .select('-password')
       .populate('department', 'name code')
@@ -283,9 +285,9 @@ exports.updatePlacementDirector = async (req, res) => {
       });
     }
 
-    const director = await User.findOne({ 
-      _id: req.params.id, 
-      role: 'placement_director' 
+    const director = await User.findOne({
+      _id: req.params.id,
+      role: 'placement_director'
     });
 
     if (!director) {
@@ -310,9 +312,9 @@ exports.updatePlacementDirector = async (req, res) => {
 
     // If department is being updated, find the department ObjectId
     if (updates.department) {
-      const departmentObj = await Department.findOne({ 
-        code: updates.department, 
-        isActive: true 
+      const departmentObj = await Department.findOne({
+        code: updates.department,
+        isActive: true
       });
       if (!departmentObj) {
         return res.status(400).json({
@@ -326,7 +328,7 @@ exports.updatePlacementDirector = async (req, res) => {
 
     // Check if employeeId already exists (if being updated)
     if (updates.employeeId && updates.employeeId !== director.employeeId) {
-      const existingEmployee = await User.findOne({ 
+      const existingEmployee = await User.findOne({
         employeeId: updates.employeeId,
         _id: { $ne: director._id }
       });
@@ -389,9 +391,9 @@ exports.updatePlacementDirector = async (req, res) => {
 // @access  Private (Admin only)
 exports.deletePlacementDirector = async (req, res) => {
   try {
-    const director = await User.findOne({ 
-      _id: req.params.id, 
-      role: 'placement_director' 
+    const director = await User.findOne({
+      _id: req.params.id,
+      role: 'placement_director'
     });
 
     if (!director) {
@@ -430,9 +432,9 @@ exports.deletePlacementDirector = async (req, res) => {
 // @access  Private (Admin only)
 exports.resendWelcomeEmail = async (req, res) => {
   try {
-    const director = await User.findOne({ 
-      _id: req.params.id, 
-      role: 'placement_director' 
+    const director = await User.findOne({
+      _id: req.params.id,
+      role: 'placement_director'
     });
 
     if (!director) {
@@ -455,10 +457,10 @@ exports.resendWelcomeEmail = async (req, res) => {
 
       const defaultPassword = "Director@123"; // Use same default password
       const emailResult = await emailService.sendPlacementDirectorWelcomeEmail(emailData, defaultPassword);
-      
+
       if (emailResult.success) {
         console.log(`Welcome email resent successfully to ${director.email}`);
-        
+
         // Update email sent status
         await User.findByIdAndUpdate(director._id, {
           emailSent: true,
@@ -505,13 +507,13 @@ exports.resendWelcomeEmail = async (req, res) => {
 exports.getPlacementDirectorStats = async (req, res) => {
   try {
     const totalDirectors = await User.countDocuments({ role: 'placement_director' });
-    const activeDirectors = await User.countDocuments({ 
-      role: 'placement_director', 
-      isActive: true 
+    const activeDirectors = await User.countDocuments({
+      role: 'placement_director',
+      isActive: true
     });
-    const verifiedDirectors = await User.countDocuments({ 
-      role: 'placement_director', 
-      isVerified: true 
+    const verifiedDirectors = await User.countDocuments({
+      role: 'placement_director',
+      isVerified: true
     });
     const recentDirectors = await User.countDocuments({
       role: 'placement_director',

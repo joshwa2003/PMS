@@ -28,9 +28,9 @@ import {
   Fade,
   Collapse
 } from '@mui/material';
-import { 
-  Close as CloseIcon, 
-  Edit as EditIcon, 
+import {
+  Close as CloseIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -43,6 +43,8 @@ import {
   DeleteSweep as DeleteSweepIcon,
   SelectAll as SelectAllIcon
 } from '@mui/icons-material';
+import { getGoogleDriveThumbnail } from '../../utils/googleDriveUtils';
+import { getInitials } from "utils/formatUtils";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -140,7 +142,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   const handleSearchChange = (event) => {
     const newSearchTerm = event.target.value;
     setSearchTerm(newSearchTerm);
-    
+
     // Update context filters for server-side filtering
     const contextFilters = {
       searchTerm: newSearchTerm,
@@ -148,7 +150,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
       department: filters.department,
       isActive: filters.status === 'active' ? 'true' : filters.status === 'inactive' ? 'false' : ''
     };
-    
+
     // Use context's handleFilterChange for server-side filtering
     contextHandleFilterChange(contextFilters);
   };
@@ -159,17 +161,17 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
       ...prev,
       [filterType]: newValue
     }));
-    
+
     // Update context filters for server-side filtering
     const contextFilters = {
       searchTerm: searchTerm,
       role: filterType === 'role' ? newValue : filters.role,
       department: filterType === 'department' ? newValue : filters.department,
-      isActive: filterType === 'status' ? 
+      isActive: filterType === 'status' ?
         (newValue === 'active' ? 'true' : newValue === 'inactive' ? 'false' : '') :
         (filters.status === 'active' ? 'true' : filters.status === 'inactive' ? 'false' : '')
     };
-    
+
     // Use context's handleFilterChange for server-side filtering
     contextHandleFilterChange(contextFilters);
   };
@@ -181,7 +183,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
       department: '',
       status: ''
     });
-    
+
     // Clear context filters for server-side filtering
     contextHandleFilterChange({
       searchTerm: '',
@@ -262,7 +264,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
       const selectedStaffData = getSelectedStaffData();
       await deleteBulkStaff(contextSelectedStaff);
       setBulkDeleteDialogOpen(false);
-      
+
       if (onStaffDeleted) {
         const staffNames = selectedStaffData.map(s => s.fullName).join(', ');
         onStaffDeleted(`${contextSelectedStaff.length} staff members (${staffNames})`);
@@ -305,9 +307,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
   };
 
   // Helper functions
-  const getInitials = (staffMember) => {
-    return `${staffMember.firstName?.charAt(0) || ''}${staffMember.lastName?.charAt(0) || ''}`.toUpperCase();
-  };
+
 
   const getStatusIcon = (staffMember) => {
     if (!staffMember.isActive) {
@@ -381,7 +381,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                 value={searchTerm}
                 onChange={handleSearchChange}
                 size="small"
-                sx={{ 
+                sx={{
                   height: '40px',
                   '& .MuiOutlinedInput-root': {
                     height: '40px',
@@ -419,7 +419,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   value={filters.role}
                   onChange={handleFilterChange('role')}
                   label="Role"
-                  sx={{ 
+                  sx={{
                     height: '40px',
                     minHeight: '40px',
                     '& .MuiSelect-select': {
@@ -448,7 +448,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   value={filters.department}
                   onChange={handleFilterChange('department')}
                   label="Department"
-                  sx={{ 
+                  sx={{
                     height: '40px',
                     minHeight: '40px',
                     '& .MuiSelect-select': {
@@ -477,7 +477,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   value={filters.status}
                   onChange={handleFilterChange('status')}
                   label="Status"
-                  sx={{ 
+                  sx={{
                     height: '40px',
                     minHeight: '40px',
                     '& .MuiSelect-select': {
@@ -505,7 +505,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                 disabled={getActiveFiltersCount() === 0}
                 startIcon={<ClearIcon />}
                 size="small"
-                sx={{ 
+                sx={{
                   height: '40px',
                   minHeight: '40px',
                   padding: '8.5px 14px',
@@ -565,14 +565,14 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
           {/* Results Summary and Display Controls */}
           <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
-              {displayMode === 'paginated' 
+              {displayMode === 'paginated'
                 ? `Showing ${staff.length} of ${pagination.totalStaff} staff members • Page ${pagination.currentPage} of ${pagination.totalPages}`
                 : `Showing ${staff.length} staff members`
               }
               {getActiveFiltersCount() > 0 && ' (filtered)'}
               {contextSelectedStaff.length > 0 && ` • ${contextSelectedStaff.length} selected`}
             </Typography>
-            
+
             {/* Display Mode Controls */}
             <Box display="flex" alignItems="center" gap={2}>
               {/* Display Mode Toggle */}
@@ -614,7 +614,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   checked={selectAll}
                   indeterminate={contextSelectedStaff.length > 0 && contextSelectedStaff.length < staff.length}
                   onChange={handleSelectAllChange}
-                  sx={{ 
+                  sx={{
                     color: 'white',
                     '&.Mui-checked': { color: 'white' },
                     '&.MuiCheckbox-indeterminate': { color: 'white' }
@@ -624,7 +624,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   {contextSelectedStaff.length} staff member{contextSelectedStaff.length !== 1 ? 's' : ''} selected
                 </Typography>
               </Box>
-              
+
               <Box display="flex" alignItems="center" gap={1}>
                 <Tooltip title="Clear Selection">
                   <IconButton onClick={clearSelection} sx={{ color: 'white' }}>
@@ -633,8 +633,8 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                 </Tooltip>
                 {canDelete && (
                   <Tooltip title="Delete Selected">
-                    <IconButton 
-                      onClick={handleBulkDelete} 
+                    <IconButton
+                      onClick={handleBulkDelete}
                       disabled={bulkOperationLoading}
                       sx={{ color: 'white' }}
                     >
@@ -665,7 +665,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                   checked={selectAll}
                   indeterminate={contextSelectedStaff.length > 0 && contextSelectedStaff.length < staff.length}
                   onChange={handleSelectAllChange}
-                  sx={{ 
+                  sx={{
                     color: 'white',
                     '&.Mui-checked': { color: 'white' },
                     '&.MuiCheckbox-indeterminate': { color: 'white' },
@@ -698,7 +698,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             isSorted={false}
             noEndBorder
           />
-          
+
           {/* Advanced Pagination Controls (always show in paginated mode) */}
           {displayMode === 'paginated' && (
             <Box mt={3} mb={2}>
@@ -730,7 +730,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
         maxWidth="lg"
         fullWidth
         PaperProps={{
-          sx: { 
+          sx: {
             minHeight: '80vh',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
@@ -752,7 +752,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
               {/* Close Button */}
               <IconButton
                 onClick={() => setDetailModalOpen(false)}
-                sx={{ 
+                sx={{
                   position: 'absolute',
                   top: 16,
                   right: 16,
@@ -778,15 +778,17 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                     border: '4px solid rgba(255,255,255,0.3)',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
                   }}
+                  src={getGoogleDriveThumbnail(selectedStaff.profilePicture || selectedStaff.profilePhotoUrl)}
+                  imgProps={{ referrerPolicy: 'no-referrer' }}
                 >
-                  {getInitials(selectedStaff)}
+                  {getInitials(selectedStaff.fullName)}
                 </Avatar>
-                
+
                 <Box flex={1}>
                   <Typography variant="h3" fontWeight="bold" mb={1}>
                     {selectedStaff.fullName}
                   </Typography>
-                  
+
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
                     <Chip
                       label={selectedStaff.isActive ? 'Active' : 'Inactive'}
@@ -807,7 +809,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                       }}
                     />
                   </Box>
-                  
+
                   <Typography variant="h6" sx={{ opacity: 0.9 }}>
                     {getRoleDisplayName(selectedStaff.role)} • {getDepartmentDisplayName(selectedStaff.department)}
                   </Typography>
@@ -838,7 +840,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                           Personal Information
                         </Typography>
                       </Box>
-                      
+
                       <Box space={3}>
                         <Box mb={3}>
                           <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
@@ -909,7 +911,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                           Contact Information
                         </Typography>
                       </Box>
-                      
+
                       <Box space={3}>
                         <Box mb={3}>
                           <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
@@ -1001,7 +1003,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                           Record Information
                         </Typography>
                       </Box>
-                      
+
                       <Grid container spacing={4}>
                         <Grid item xs={12} md={6}>
                           <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
@@ -1017,7 +1019,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                             })}
                           </Typography>
                         </Grid>
-                        
+
                         <Grid item xs={12} md={6}>
                           <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
                             Last Updated
@@ -1038,7 +1040,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
                 </Grid>
               </Box>
             </DialogContent>
-            
+
             {/* Enhanced Action Buttons */}
             <Box
               sx={{
@@ -1062,7 +1064,7 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
               >
                 Close
               </Button>
-              
+
               <Box display="flex" gap={2}>
                 {canDelete && (
                   <MDButton
@@ -1103,23 +1105,23 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             Delete Staff Member
           </Typography>
         </DialogTitle>
-        
+
         <DialogContent>
           {staffToDelete && (
             <>
               <Typography variant="body1" mb={2}>
                 Are you sure you want to delete <strong>{staffToDelete.fullName}</strong>?
               </Typography>
-              
+
               <Typography variant="body2" color="text.secondary" mb={2}>
                 This action cannot be undone. The staff member will lose access to the system immediately.
               </Typography>
 
-              <Box 
-                sx={{ 
-                  backgroundColor: 'error.light', 
+              <Box
+                sx={{
+                  backgroundColor: 'error.light',
                   color: 'error.contrastText',
-                  p: 2, 
+                  p: 2,
                   borderRadius: 1,
                   mb: 2
                 }}
@@ -1145,15 +1147,15 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             </>
           )}
         </DialogContent>
-        
+
         <DialogActions>
-          <Button 
+          <Button
             onClick={handleDeleteCancel}
             color="inherit"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
@@ -1176,21 +1178,21 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             Delete Multiple Staff Members
           </Typography>
         </DialogTitle>
-        
+
         <DialogContent>
           <Typography variant="body1" mb={2}>
             Are you sure you want to delete <strong>{contextSelectedStaff.length} staff member{contextSelectedStaff.length !== 1 ? 's' : ''}</strong>?
           </Typography>
-          
+
           <Typography variant="body2" color="text.secondary" mb={3}>
             This action cannot be undone. All selected staff members will lose access to the system immediately.
           </Typography>
 
-          <Box 
-            sx={{ 
-              backgroundColor: 'error.light', 
+          <Box
+            sx={{
+              backgroundColor: 'error.light',
               color: 'error.contrastText',
-              p: 2, 
+              p: 2,
               borderRadius: 1,
               mb: 2,
               maxHeight: '300px',
@@ -1213,15 +1215,15 @@ const StaffDataTable = ({ onEditStaff, onStaffDeleted }) => {
             ))}
           </Box>
         </DialogContent>
-        
+
         <DialogActions>
-          <Button 
+          <Button
             onClick={handleBulkDeleteCancel}
             color="inherit"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleBulkDeleteConfirm}
             color="error"
             variant="contained"

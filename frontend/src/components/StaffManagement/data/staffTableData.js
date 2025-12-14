@@ -21,20 +21,24 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import { getGoogleDriveThumbnail } from "../../../utils/googleDriveUtils";
 import Checkbox from "@mui/material/Checkbox";
 import { useState } from "react";
-
-// Default avatar for staff members without profile pictures
-const defaultAvatar = "https://ui-avatars.com/api/?name=";
+import { getInitials } from "utils/formatUtils";
 
 export default function staffTableData(staff, onViewDetails, onDeleteStaff, onToggleStatus, selectionProps = null, departments = []) {
   const StaffMember = ({ image, name, email, employeeId }) => (
     <MDBox display="flex" alignItems="center" lineHeight={1}>
       <MDAvatar
-        src={image || `${defaultAvatar}${encodeURIComponent(name || 'Staff')}&size=40&background=2196F3&color=ffffff`}
+        src={getGoogleDriveThumbnail(image)}
         name={name}
         size="sm"
-      />
+        bgColor="info"
+        imgProps={{ referrerPolicy: 'no-referrer' }}
+        onError={(e) => { e.currentTarget.removeAttribute('src'); }}
+      >
+        {getInitials(name)}
+      </MDAvatar>
       <MDBox ml={2} lineHeight={1}>
         <MDTypography display="block" variant="button" fontWeight="medium">
           {name}

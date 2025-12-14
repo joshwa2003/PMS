@@ -42,6 +42,7 @@ import Footer from 'examples/Footer';
 // Services
 import studentViewService from 'services/studentViewService';
 import ProtectedRoute from 'components/ProtectedRoute';
+import { getGoogleDriveThumbnail } from 'utils/googleDriveUtils';
 
 // Field component for displaying student data
 const Field = ({ label, value, fullWidth = false }) => (
@@ -101,7 +102,7 @@ function PlacementDirectorStudentProfileContent() {
         setLoading(false);
       }
     };
-    
+
     if (studentId) {
       loadStudent();
     }
@@ -111,20 +112,20 @@ function PlacementDirectorStudentProfileContent() {
   const handleDownloadProfileImage = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const s = student || {};
     const personal = s.personalInfo || {};
-    const profileImageUrl = s.profileImageUrl || 
-                           s.profileImage || 
-                           s.userId?.profilePicture ||
-                           personal.profileImage || 
-                           s.profile?.profileImage || 
-                           s.profilePicture || 
-                           s.avatar || 
-                           s.image;
-    
+    const profileImageUrl = s.profileImageUrl ||
+      s.profileImage ||
+      s.userId?.profilePicture ||
+      personal.profileImage ||
+      s.profile?.profileImage ||
+      s.profilePicture ||
+      s.avatar ||
+      s.image;
+
     console.log('Attempting to download image:', profileImageUrl);
-    
+
     if (profileImageUrl) {
       try {
         // For Google Drive URLs, convert to direct download format
@@ -137,7 +138,7 @@ function PlacementDirectorStudentProfileContent() {
             downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
           }
         }
-        
+
         // Create a temporary link and trigger download
         const link = document.createElement('a');
         link.href = downloadUrl;
@@ -186,26 +187,26 @@ function PlacementDirectorStudentProfileContent() {
   // Convert Google Drive URL to viewable format
   const getViewableImageUrl = (url) => {
     if (!url) return null;
-    
+
     console.log('Original URL:', url);
-    
+
     // If it's a Google Drive URL, convert it to viewable format
     if (url.includes('drive.google.com')) {
       // Extract file ID from various Google Drive URL formats
       let fileId = null;
-      
+
       // Format: https://drive.google.com/file/d/FILE_ID/view
       const viewMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
       if (viewMatch) {
         fileId = viewMatch[1];
       }
-      
+
       // Format: https://drive.google.com/open?id=FILE_ID
       const openMatch = url.match(/[?&]id=([a-zA-Z0-9-_]+)/);
       if (openMatch) {
         fileId = openMatch[1];
       }
-      
+
       if (fileId) {
         // Convert to thumbnail/viewable format
         const viewableUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400-h400`;
@@ -213,7 +214,7 @@ function PlacementDirectorStudentProfileContent() {
         return viewableUrl;
       }
     }
-    
+
     console.log('Using original URL:', url);
     return url;
   };
@@ -290,14 +291,14 @@ function PlacementDirectorStudentProfileContent() {
   const languages = s.languagesKnown || [];
 
   // Get the profile image URL
-  const rawProfileImageUrl = s.profileImageUrl || 
-                            s.profileImage || 
-                            s.userId?.profilePicture ||
-                            personal.profileImage || 
-                            s.profile?.profileImage || 
-                            s.profilePicture || 
-                            s.avatar || 
-                            s.image;
+  const rawProfileImageUrl = s.profileImageUrl ||
+    s.profileImage ||
+    s.userId?.profilePicture ||
+    personal.profileImage ||
+    s.profile?.profileImage ||
+    s.profilePicture ||
+    s.avatar ||
+    s.image;
 
   // Convert to viewable format
   const profileImageUrl = getViewableImageUrl(rawProfileImageUrl);
@@ -350,7 +351,7 @@ function PlacementDirectorStudentProfileContent() {
             <Card sx={{ textAlign: 'center', boxShadow: 3 }}>
               <MDBox pt={4} pb={3}>
                 <Avatar
-                  src={profileImageUrl}
+                  src={getGoogleDriveThumbnail(rawProfileImageUrl)}
                   sx={{
                     width: 150,
                     height: 150,
@@ -359,25 +360,16 @@ function PlacementDirectorStudentProfileContent() {
                     fontSize: '3rem',
                     fontWeight: 'bold'
                   }}
-                  onError={(e) => {
-                    console.log('Avatar image failed to load:', profileImageUrl);
-                    // Try alternative Google Drive format
-                    if (rawProfileImageUrl && rawProfileImageUrl.includes('drive.google.com')) {
-                      const fileIdMatch = rawProfileImageUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                      if (fileIdMatch) {
-                        const fileId = fileIdMatch[1];
-                        e.target.src = `https://drive.google.com/uc?id=${fileId}`;
-                      }
-                    }
-                  }}
+                  imgProps={{ referrerPolicy: 'no-referrer' }}
+                  onError={(e) => { e.currentTarget.removeAttribute('src'); }}
                 >
                   {personal.fullName ? personal.fullName.charAt(0).toUpperCase() : 'S'}
                 </Avatar>
-                
+
                 <MDTypography variant="h5" fontWeight="medium" mb={1}>
                   {personal.fullName || s.fullName || 'Student Name'}
                 </MDTypography>
-                
+
                 <MDTypography variant="body2" color="text" mb={2}>
                   {academic.department} • {academic.program}
                 </MDTypography>
@@ -402,8 +394,8 @@ function PlacementDirectorStudentProfileContent() {
           {/* Detailed Information */}
           <Grid item xs={12} md={8}>
             {/* Basic Information */}
-            <Section 
-              title="Basic Information" 
+            <Section
+              title="Basic Information"
               icon={<PersonIcon color="inherit" />}
               color="info"
             >
@@ -424,8 +416,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Contact Details */}
-            <Section 
-              title="Contact Details" 
+            <Section
+              title="Contact Details"
               icon={<ContactPhoneIcon color="inherit" />}
               color="success"
             >
@@ -446,8 +438,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Academic Details */}
-            <Section 
-              title="Academic Details" 
+            <Section
+              title="Academic Details"
               icon={<SchoolIcon color="inherit" />}
               color="warning"
             >
@@ -473,8 +465,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Career Profile */}
-            <Section 
-              title="Career Profile" 
+            <Section
+              title="Career Profile"
               icon={<WorkIcon color="inherit" />}
               color="error"
             >
@@ -493,8 +485,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Placement Information */}
-            <Section 
-              title="Placement Information" 
+            <Section
+              title="Placement Information"
               icon={<BusinessCenterIcon color="inherit" />}
               color="dark"
             >
@@ -528,8 +520,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Skills & Certifications */}
-            <Section 
-              title="Skills & Certifications" 
+            <Section
+              title="Skills & Certifications"
               icon={<EmojiEventsIcon color="inherit" />}
               color="info"
             >
@@ -553,8 +545,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Projects & Internships */}
-            <Section 
-              title="Projects & Internships" 
+            <Section
+              title="Projects & Internships"
               icon={<CodeIcon color="inherit" />}
               color="success"
             >
@@ -600,8 +592,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Online Profiles */}
-            <Section 
-              title="Online Profiles" 
+            <Section
+              title="Online Profiles"
               icon={<LanguageIcon color="inherit" />}
               color="warning"
             >
@@ -625,8 +617,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Language Proficiency */}
-            <Section 
-              title="Language Proficiency" 
+            <Section
+              title="Language Proficiency"
               icon={<TranslateIcon color="inherit" />}
               color="error"
             >
@@ -650,8 +642,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Accomplishments */}
-            <Section 
-              title="Accomplishments & Awards" 
+            <Section
+              title="Accomplishments & Awards"
               icon={<StarIcon color="inherit" />}
               color="dark"
             >
@@ -676,8 +668,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Profile Summary */}
-            <Section 
-              title="Profile Summary" 
+            <Section
+              title="Profile Summary"
               icon={<DescriptionIcon color="inherit" />}
               color="info"
             >
@@ -693,8 +685,8 @@ function PlacementDirectorStudentProfileContent() {
             </Section>
 
             {/* Resume & Documents Upload */}
-            <Section 
-              title="Resume & Documents" 
+            <Section
+              title="Resume & Documents"
               icon={<CloudUploadIcon color="inherit" />}
               color="success"
             >

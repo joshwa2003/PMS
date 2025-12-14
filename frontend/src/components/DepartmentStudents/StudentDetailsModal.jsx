@@ -36,6 +36,7 @@ import MDButton from 'components/MDButton';
 
 // Material Dashboard 2 React context
 import { useMaterialUIController } from "context";
+import { getGoogleDriveThumbnail } from "utils/googleDriveUtils";
 
 const StudentDetailsModal = ({
   open,
@@ -175,6 +176,9 @@ const StudentDetailsModal = ({
         {/* Student Profile Header */}
         <Box display="flex" alignItems="center" gap={3}>
           <Avatar
+            src={getGoogleDriveThumbnail(student.profileImageUrl || student.profileImage || student.userId?.profilePicture || student.profile?.profileImage || student.profilePicture)}
+            imgProps={{ referrerPolicy: 'no-referrer' }}
+            onError={(e) => { e.currentTarget.removeAttribute('src'); }}
             sx={{
               width: 100,
               height: 100,

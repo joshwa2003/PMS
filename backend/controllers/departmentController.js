@@ -56,7 +56,7 @@ const getAllDepartments = async (req, res) => {
         })
         .populate({
           path: 'placementStaff',
-          select: 'firstName lastName email role',
+          select: 'firstName lastName email role profilePicture profilePhotoUrl',
           options: { strictPopulate: false }
         })
         .populate({
@@ -84,7 +84,7 @@ const getAllDepartments = async (req, res) => {
             department: dept._id,
             role: 'placement_staff',
             isActive: true
-          }).select('firstName lastName email role').lean();
+          }).select('firstName lastName email role profilePicture profilePhotoUrl').lean();
 
           if (staff) {
             dept.placementStaff = staff;
@@ -132,7 +132,7 @@ const getAllDepartments = async (req, res) => {
           department: dept._id,
           role: 'placement_staff',
           isActive: true
-        }).select('firstName lastName email role').lean();
+        }).select('firstName lastName email role profilePicture profilePhotoUrl').lean();
 
         if (staff) {
           dept.placementStaff = staff;
@@ -193,7 +193,7 @@ const getDepartment = async (req, res) => {
         })
         .populate({
           path: 'placementStaff',
-          select: 'firstName lastName email role',
+          select: 'firstName lastName email role profilePicture profilePhotoUrl',
           options: { strictPopulate: false }
         })
         .populate({
@@ -250,7 +250,7 @@ const getPlacementStaffOptions = async (req, res) => {
     const placementStaff = await User.find({
       role: { $in: ['placement_staff', 'placement_director'] },
       isActive: true
-    }).select('firstName lastName email role');
+    }).select('firstName lastName email role profilePicture profilePhotoUrl');
 
     res.status(200).json({
       success: true,

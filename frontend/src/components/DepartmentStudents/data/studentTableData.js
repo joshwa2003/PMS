@@ -17,7 +17,10 @@ import {
 
 // Material Dashboard 2 React components
 import MDBox from 'components/MDBox';
+
 import MDTypography from 'components/MDTypography';
+import { getGoogleDriveThumbnail } from "../../../utils/googleDriveUtils";
+import { getInitials } from "utils/formatUtils";
 
 const studentTableData = (
   students,
@@ -28,14 +31,6 @@ const studentTableData = (
   selectionProps = null,
   handleRowClick = null
 ) => {
-  // Helper function to get initials
-  const getInitials = (student) => {
-    const name = student.name || '';
-    const parts = name.split(' ');
-    return parts.length >= 2 ?
-      `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase() :
-      name.charAt(0).toUpperCase();
-  };
 
   // Helper function to get placement status color
   const getPlacementStatusColor = (status) => {
@@ -167,10 +162,14 @@ const studentTableData = (
               height: 40,
               fontSize: '0.875rem',
               fontWeight: 'bold',
+              fontWeight: 'bold',
               mr: 2
             }}
+            src={getGoogleDriveThumbnail(student.profilePhotoUrl || student.profilePicture)}
+            imgProps={{ referrerPolicy: 'no-referrer' }}
+            onError={(e) => { e.currentTarget.removeAttribute('src'); }}
           >
-            {getInitials(student)}
+            {getInitials(student.name)}
           </Avatar>
           <MDBox>
             <MDTypography variant="button" fontWeight="medium">

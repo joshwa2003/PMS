@@ -9,7 +9,7 @@ const googleDriveService = require('../services/googleDriveService');
 const getAdministratorProfile = async (req, res) => {
   try {
     const administrator = await Administrator.findByUserId(req.user.id);
-    
+
     if (!administrator) {
       return res.status(404).json({
         success: false,
@@ -179,15 +179,15 @@ const updateAdministratorProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update administrator profile error:', error);
-    
+
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => ({
         field: err.path,
         message: err.message
       }));
-      
+
       console.log('MongoDB validation errors:', validationErrors);
-      
+
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -198,7 +198,7 @@ const updateAdministratorProfile = async (req, res) => {
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyPattern)[0];
       console.log('Duplicate key error:', duplicateField);
-      
+
       return res.status(400).json({
         success: false,
         message: `${duplicateField} already exists. Please use a different value.`
@@ -240,15 +240,15 @@ const getAllAdministrators = async (req, res) => {
 
     // Build filter object
     const filter = {};
-    
+
     if (department) {
       filter.department = department;
     }
-    
+
     if (role) {
       filter.role = role;
     }
-    
+
     if (status) {
       filter.status = status;
     }
@@ -284,8 +284,8 @@ const getAllAdministrators = async (req, res) => {
     query = query.skip(skip).limit(parseInt(limit));
 
     // Populate user data
-    query = query.populate('userId', 'firstName lastName email isActive')
-                 .populate('createdBy', 'firstName lastName email');
+    query = query.populate('userId', 'firstName lastName email isActive profilePicture')
+      .populate('createdBy', 'firstName lastName email');
 
     const administrators = await query;
     const total = await Administrator.countDocuments(filter);
@@ -344,9 +344,9 @@ const getAdministratorById = async (req, res) => {
 const updateAdministratorStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    
+
     const administrator = await Administrator.findById(req.params.id);
-    
+
     if (!administrator) {
       return res.status(404).json({
         success: false,
@@ -376,7 +376,7 @@ const updateAdministratorStatus = async (req, res) => {
 const getAdministratorStats = async (req, res) => {
   try {
     const totalAdministrators = await Administrator.countDocuments();
-    
+
     const statusStats = await Administrator.aggregate([
       {
         $group: {
@@ -438,7 +438,7 @@ const getAdministratorStats = async (req, res) => {
 const deleteAdministrator = async (req, res) => {
   try {
     const administrator = await Administrator.findById(req.params.id);
-    
+
     if (!administrator) {
       return res.status(404).json({
         success: false,
@@ -470,7 +470,7 @@ const updateProfileImage = async (req, res) => {
     console.log('🔍 Administrator updateProfileImage called');
     console.log('🔍 Request body:', req.body);
     console.log('🔍 User:', req.user.id);
-    
+
     const { googleDriveUrl } = req.body;
 
     if (!googleDriveUrl) {
@@ -491,7 +491,7 @@ const updateProfileImage = async (req, res) => {
     // Use AdministratorProfile model instead of Administrator
     const AdministratorProfile = require('../models/AdministratorProfile');
     let administrator = await AdministratorProfile.findOne({ userId: req.user.id });
-    
+
     if (!administrator) {
       // Create a basic administrator profile if it doesn't exist
       const User = require('../models/User');
@@ -525,7 +525,7 @@ const updateProfileImage = async (req, res) => {
         officeLocation: 'Main Office',
         createdBy: req.user.id
       });
-      
+
       await administrator.save();
       console.log('✅ New administrator profile created with profile image');
     } else {

@@ -35,6 +35,7 @@ import { useDepartmentStaff } from 'context/DepartmentStaffContext';
 
 // Services
 import departmentStaffService from 'services/departmentStaffService';
+import { getGoogleDriveThumbnail } from 'utils/googleDriveUtils';
 
 const StaffDetailsModal = ({ open, onClose }) => {
   const { selectedStaff } = useDepartmentStaff();
@@ -80,19 +81,22 @@ const StaffDetailsModal = ({ open, onClose }) => {
       <DialogContent>
         <MDBox>
           {/* Header with Avatar and Basic Info */}
-          <Box 
-            display="flex" 
-            alignItems="center" 
-            p={3} 
-            bgcolor="grey.50" 
+          <Box
+            display="flex"
+            alignItems="center"
+            p={3}
+            bgcolor="grey.50"
             borderRadius={2}
             mb={3}
           >
-            <Avatar 
-              sx={{ 
-                mr: 3, 
-                bgcolor: 'primary.main', 
-                width: 80, 
+            <Avatar
+              src={getGoogleDriveThumbnail(staffMember.profilePicture || staffMember.profilePhotoUrl)}
+              imgProps={{ referrerPolicy: 'no-referrer' }}
+              onError={(e) => { e.currentTarget.removeAttribute('src'); }}
+              sx={{
+                mr: 3,
+                bgcolor: 'primary.main',
+                width: 80,
                 height: 80,
                 fontSize: '2rem'
               }}
@@ -139,7 +143,7 @@ const StaffDetailsModal = ({ open, onClose }) => {
                   <MDTypography variant="h6" fontWeight="medium" mb={2}>
                     Contact Information
                   </MDTypography>
-                  
+
                   <Box display="flex" alignItems="center" mb={2}>
                     <EmailIcon sx={{ mr: 2, color: 'text.secondary' }} />
                     <Box>
@@ -190,7 +194,7 @@ const StaffDetailsModal = ({ open, onClose }) => {
                   <MDTypography variant="h6" fontWeight="medium" mb={2}>
                     Professional Information
                   </MDTypography>
-                  
+
                   <Box display="flex" alignItems="center" mb={2}>
                     <BusinessIcon sx={{ mr: 2, color: 'text.secondary' }} />
                     <Box>
@@ -237,7 +241,7 @@ const StaffDetailsModal = ({ open, onClose }) => {
                   <MDTypography variant="h6" fontWeight="medium" mb={2}>
                     Account Status
                   </MDTypography>
-                  
+
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary" mb={0.5}>
                       Account Status
@@ -292,7 +296,7 @@ const StaffDetailsModal = ({ open, onClose }) => {
                   <MDTypography variant="h6" fontWeight="medium" mb={2}>
                     Activity Information
                   </MDTypography>
-                  
+
                   <Box display="flex" alignItems="center" mb={2}>
                     <LoginIcon sx={{ mr: 2, color: 'text.secondary' }} />
                     <Box>

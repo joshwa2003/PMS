@@ -48,6 +48,8 @@ import { useDepartmentStaff } from 'context/DepartmentStaffContext';
 
 // Services
 import departmentStaffService from 'services/departmentStaffService';
+import { getGoogleDriveThumbnail } from 'utils/googleDriveUtils';
+import { getInitials } from "utils/formatUtils";
 
 const DepartmentStaffList = () => {
   const [controller] = useMaterialUIController();
@@ -236,10 +238,14 @@ const DepartmentStaffList = () => {
     staffMember: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
         <MDAvatar
-          src={staffMember.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(staffMember.fullName || 'Staff')}&size=40&background=2196F3&color=ffffff`}
+          src={getGoogleDriveThumbnail(staffMember.profilePicture || staffMember.profilePhotoUrl)}
           name={staffMember.fullName}
           size="sm"
-        />
+          imgProps={{ referrerPolicy: 'no-referrer' }}
+          bgColor={getRoleColor(staffMember.role)}
+        >
+          {getInitials(staffMember.fullName)}
+        </MDAvatar>
         <MDBox ml={2} lineHeight={1}>
           <MDTypography display="block" variant="button" fontWeight="medium">
             {staffMember.fullName}

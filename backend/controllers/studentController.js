@@ -11,12 +11,12 @@ const getStudentProfile = async (req, res) => {
     console.log('🔍 Student Profile - Get Profile Request');
     console.log('User ID:', req.user.id);
     console.log('User Role:', req.user.role);
-    
+
     let student = await Student.findByUserId(req.user.id);
-    
+
     if (!student) {
       console.log('🔍 No existing profile found, creating basic profile');
-      
+
       // Create a basic student profile with minimal required fields
       const user = await User.findById(req.user.id);
       if (!user) {
@@ -175,15 +175,15 @@ const updateStudentProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update student profile error:', error);
-    
+
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => ({
         field: err.path,
         message: err.message
       }));
-      
+
       console.log('MongoDB validation errors:', validationErrors);
-      
+
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -194,7 +194,7 @@ const updateStudentProfile = async (req, res) => {
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyPattern)[0];
       console.log('Duplicate key error:', duplicateField);
-      
+
       return res.status(400).json({
         success: false,
         message: `${duplicateField} already exists. Please use a different value.`
@@ -235,15 +235,15 @@ const getAllStudents = async (req, res) => {
 
     // Build filter object
     const filter = {};
-    
+
     if (department) {
       filter['academic.department'] = department;
     }
-    
+
     if (yearOfStudy) {
       filter['academic.yearOfStudy'] = parseInt(yearOfStudy);
     }
-    
+
     if (placementStatus) {
       filter['placement.placementStatus'] = placementStatus;
     }
@@ -273,7 +273,7 @@ const getAllStudents = async (req, res) => {
     query = query.skip(skip).limit(parseInt(limit));
 
     // Populate user data
-    query = query.populate('userId', 'firstName lastName email isActive');
+    query = query.populate('userId', 'firstName lastName email isActive profilePicture');
 
     const students = await query;
     const total = await Student.countDocuments(filter);
@@ -303,7 +303,7 @@ const getAllStudents = async (req, res) => {
 const getStudentById = async (req, res) => {
   try {
     const student = await Student.findById(req.params.id)
-      .populate('userId', 'firstName lastName email isActive');
+      .populate('userId', 'firstName lastName email isActive profilePicture');
 
     if (!student) {
       return res.status(404).json({
@@ -331,9 +331,9 @@ const getStudentById = async (req, res) => {
 const updatePlacementStatus = async (req, res) => {
   try {
     const { placementStatus, offerDetails } = req.body;
-    
+
     const student = await Student.findById(req.params.id);
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -363,7 +363,7 @@ const updatePlacementStatus = async (req, res) => {
 const getStudentStats = async (req, res) => {
   try {
     const totalStudents = await Student.countDocuments();
-    
+
     const placementStats = await Student.aggregate([
       {
         $group: {
@@ -428,7 +428,7 @@ const getStudentStats = async (req, res) => {
 const deleteStudent = async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -466,7 +466,7 @@ const updateProfileImage = async (req, res) => {
     }
 
     const student = await Student.findOne({ userId: req.user.id });
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -526,7 +526,7 @@ const updateResume = async (req, res) => {
     }
 
     const student = await Student.findOne({ userId: req.user.id });
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -550,7 +550,7 @@ const updateResume = async (req, res) => {
     // Update resume link and last updated date
     student.placement.resumeLink = processResult.url;
     student.placement.resumeLastUpdated = new Date();
-    
+
     await student.save();
 
     res.status(200).json({

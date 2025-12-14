@@ -55,7 +55,10 @@ exports.getAllUsers = async (req, res) => {
         isActive: user.isActive,
         isVerified: user.isVerified,
         lastLogin: user.lastLogin,
+        lastLogin: user.lastLogin,
         createdAt: user.createdAt,
+        profilePicture: user.profilePicture,
+        profilePhotoUrl: user.profilePhotoUrl,
         // Role-specific fields
         ...(user.role === 'student' && {
           studentId: user.studentId,
@@ -369,7 +372,7 @@ exports.getUsersByRole = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const validRoles = ['admin', 'placement_director', 'placement_staff', 'department_hod', 'other_staff', 'student', 'alumni'];
-    
+
     if (!validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
@@ -408,7 +411,10 @@ exports.getUsersByRole = async (req, res) => {
         isActive: user.isActive,
         isVerified: user.isVerified,
         lastLogin: user.lastLogin,
-        createdAt: user.createdAt
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        profilePicture: user.profilePicture,
+        profilePhotoUrl: user.profilePhotoUrl
       }))
     });
   } catch (error) {
@@ -432,7 +438,7 @@ exports.getUsersByDepartment = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const validDepartments = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'ADMIN', 'HR', 'OTHER'];
-    
+
     if (!validDepartments.includes(department)) {
       return res.status(400).json({
         success: false,
@@ -471,7 +477,10 @@ exports.getUsersByDepartment = async (req, res) => {
         isActive: user.isActive,
         isVerified: user.isVerified,
         lastLogin: user.lastLogin,
-        createdAt: user.createdAt
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        profilePicture: user.profilePicture,
+        profilePhotoUrl: user.profilePhotoUrl
       }))
     });
   } catch (error) {
@@ -577,7 +586,10 @@ exports.searchUsers = async (req, res) => {
         isActive: user.isActive,
         isVerified: user.isVerified,
         lastLogin: user.lastLogin,
-        createdAt: user.createdAt
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        profilePicture: user.profilePicture,
+        profilePhotoUrl: user.profilePhotoUrl
       }))
     });
   } catch (error) {
@@ -684,7 +696,7 @@ exports.createStaff = async (req, res) => {
     // Send welcome email to the staff member
     try {
       const emailResult = await emailService.sendStaffWelcomeEmail(staff, defaultPassword);
-      
+
       if (emailResult.success) {
         console.log(`Welcome email sent successfully to ${staff.email}`);
       } else {
@@ -877,7 +889,7 @@ exports.createBulkStaff = async (req, res) => {
         // Create staff user data with defaults for optional fields
         const role = staffMember.role || 'other_staff';
         const departmentCode = staffMember.department.trim();
-        
+
         // Find the department ObjectId from the department code
         const departmentObj = departmentMap[departmentCode];
         if (!departmentObj) {
@@ -900,7 +912,7 @@ exports.createBulkStaff = async (req, res) => {
 
           continue;
         }
-        
+
         const newStaffData = {
           firstName: staffMember.firstName.trim(),
           lastName: staffMember.lastName.trim(),
@@ -973,7 +985,7 @@ exports.createBulkStaff = async (req, res) => {
       } catch (error) {
         console.error(`Error creating staff member at row ${rowNumber}:`, error);
         const errorMessage = error.message || 'Failed to create staff member';
-        
+
         failedStaff.push({
           rowNumber,
           data: staffMember,
@@ -1031,7 +1043,7 @@ exports.createBulkStaff = async (req, res) => {
 
   } catch (error) {
     console.error('Bulk create staff error:', error);
-    
+
     // Mark import history as failed if it exists
     if (importHistory) {
       try {
@@ -1177,7 +1189,7 @@ exports.updateStaff = async (req, res) => {
 
     // Check if employeeId is being updated and doesn't conflict
     if (updates.employeeId && updates.employeeId !== staff.employeeId) {
-      const existingEmployee = await User.findOne({ 
+      const existingEmployee = await User.findOne({
         employeeId: updates.employeeId,
         _id: { $ne: staff._id }
       });
@@ -1430,7 +1442,7 @@ exports.assignStaffRole = async (req, res) => {
     if (!updatedStaff.emailSent) {
       try {
         console.log(`Sending welcome email to staff member: ${updatedStaff.email}`);
-        
+
         // Prepare staff data for email
         const staffDataForEmail = {
           firstName: updatedStaff.firstName,
@@ -1443,7 +1455,7 @@ exports.assignStaffRole = async (req, res) => {
         };
 
         emailResult = await emailService.sendStaffWelcomeEmail(staffDataForEmail, "Staff@123");
-        
+
         if (emailResult.success) {
           // Update email sent status
           await User.findByIdAndUpdate(staffId, {
@@ -1534,7 +1546,7 @@ exports.getStaffByDepartment = async (req, res) => {
 
     // Build filter for staff roles in the specific department
     const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
-    const filter = { 
+    const filter = {
       role: { $in: staffRoles },
       $or: [
         { department: department._id },
@@ -1688,9 +1700,9 @@ exports.getUserStats = async (req, res) => {
     // Get staff statistics
     const staffRoles = ['placement_staff', 'department_hod', 'other_staff'];
     const totalStaff = await User.countDocuments({ role: { $in: staffRoles } });
-    const activeStaff = await User.countDocuments({ 
-      role: { $in: staffRoles }, 
-      isActive: true 
+    const activeStaff = await User.countDocuments({
+      role: { $in: staffRoles },
+      isActive: true
     });
 
     // Get staff with assigned roles

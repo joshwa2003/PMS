@@ -59,6 +59,8 @@ import MDButton from "../components/MDButton";
 // S.A. Engineering College React example components
 import DataTableHeadCell from "../examples/Tables/DataTable/DataTableHeadCell";
 import DataTableBodyCell from "../examples/Tables/DataTable/DataTableBodyCell";
+import { getGoogleDriveThumbnail } from "../utils/googleDriveUtils";
+import { getInitials } from "utils/formatUtils";
 
 
 const PlacementDirectorManagement = () => {
@@ -520,10 +522,6 @@ const PlacementDirectorManagement = () => {
                     </MDBox>
                     <TableBody>
                       {directors.map((director) => {
-                        const getInitials = (director) => {
-                          return `${director.firstName?.charAt(0) || ''}${director.lastName?.charAt(0) || ''}`.toUpperCase();
-                        };
-
                         return (
                           <TableRow key={director.id}>
                             <DataTableBodyCell align="left">
@@ -536,8 +534,11 @@ const PlacementDirectorManagement = () => {
                                     fontSize: '0.875rem',
                                     fontWeight: 'bold'
                                   }}
+                                  src={getGoogleDriveThumbnail(director.profilePhotoUrl || director.profilePicture)}
+                                  imgProps={{ referrerPolicy: 'no-referrer' }}
+                                  onError={(e) => { e.currentTarget.removeAttribute('src'); }}
                                 >
-                                  {getInitials(director)}
+                                  {getInitials(`${director.firstName} ${director.lastName}`)}
                                 </Avatar>
                                 <MDBox>
                                   <MDTypography

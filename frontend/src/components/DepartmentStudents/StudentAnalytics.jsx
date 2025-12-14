@@ -29,6 +29,8 @@ import MDBadge from 'components/MDBadge';
 
 // Material Dashboard 2 React contexts
 import { useMaterialUIController } from "context";
+import { getGoogleDriveThumbnail } from "utils/googleDriveUtils";
+import { getInitials } from "utils/formatUtils";
 
 const StudentAnalytics = ({ department, statistics, loading }) => {
   const [controller] = useMaterialUIController();
@@ -192,6 +194,9 @@ const StudentAnalytics = ({ department, statistics, loading }) => {
                 <Box>
                   <Box display="flex" alignItems="center" mb={1}>
                     <Avatar
+                      src={getGoogleDriveThumbnail(department.placementStaff.profilePhotoUrl || department.placementStaff.profilePicture)}
+                      imgProps={{ referrerPolicy: 'no-referrer' }}
+                      onError={(e) => { e.currentTarget.removeAttribute('src'); }}
                       sx={{
                         width: 40,
                         height: 40,
@@ -201,10 +206,7 @@ const StudentAnalytics = ({ department, statistics, loading }) => {
                         fontWeight: 'bold'
                       }}
                     >
-                      {department.placementStaff.name ?
-                        department.placementStaff.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase() :
-                        'PS'
-                      }
+                      {getInitials(department.placementStaff.name) || 'PS'}
                     </Avatar>
                     <Box>
                       <Typography variant="body1" fontWeight="medium" sx={{ color: darkMode ? "#ffffff !important" : "text.primary" }}>
@@ -410,7 +412,7 @@ const StudentAnalytics = ({ department, statistics, loading }) => {
           </Box>
         </Box>
       </Paper>
-    </Box>
+    </Box >
   );
 };
 

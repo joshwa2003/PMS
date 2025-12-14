@@ -746,6 +746,8 @@ const getStudentsForPlacementStaff = async (req, res) => {
       lastLogin: student.lastLogin,
       createdAt: student.createdAt,
       updatedAt: student.updatedAt,
+      profilePicture: student.profilePicture,
+      profilePhotoUrl: student.profilePhotoUrl,
       profile: student.profile ? {
         department: student.profile.academic?.department || 'Not Specified',
         program: student.profile.academic?.program || 'Not Specified',
