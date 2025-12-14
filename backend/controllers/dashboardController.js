@@ -119,8 +119,8 @@ class DashboardController {
       // Get students with pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
       const students = await Student.find(studentQuery)
-        .populate('userId', 'firstName lastName email isActive')
-        .select('academic placement personalInfo studentId registrationNumber createdAt')
+        .populate('userId', 'firstName lastName email isActive profilePicture profilePhotoUrl')
+        .select('academic placement personalInfo studentId registrationNumber createdAt profileImageUrl')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit));
@@ -142,7 +142,8 @@ class DashboardController {
         createdAt: student.createdAt,
         department: student.academic?.department,
         program: student.academic?.program,
-        cgpa: student.academic?.cgpa
+        cgpa: student.academic?.cgpa,
+        profilePicture: student.profileImageUrl || student.userId?.profilePicture || student.userId?.profilePhotoUrl
       }));
 
       res.status(200).json({
@@ -458,8 +459,8 @@ class DashboardController {
       // Get students with pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
       const students = await Student.find(studentQuery)
-        .populate('userId', 'firstName lastName email isActive')
-        .select('academic placement personalInfo studentId registrationNumber createdAt')
+        .populate('userId', 'firstName lastName email isActive profilePicture profilePhotoUrl')
+        .select('academic placement personalInfo studentId registrationNumber createdAt profileImageUrl')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit));
@@ -480,7 +481,8 @@ class DashboardController {
         createdAt: student.createdAt,
         department: student.academic?.department,
         program: student.academic?.program,
-        cgpa: student.academic?.cgpa
+        cgpa: student.academic?.cgpa,
+        profilePicture: student.profileImageUrl || student.userId?.profilePicture || student.userId?.profilePhotoUrl
       }));
 
       res.status(200).json({

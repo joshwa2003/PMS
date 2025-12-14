@@ -43,6 +43,7 @@ import SidenavCollapse from "examples/Sidenav/SidenavCollapse";
 // Custom styles for the Sidenav
 import SidenavRoot from "examples/Sidenav/SidenavRoot";
 import sidenavLogoLabel from "examples/Sidenav/styles/sidenav";
+import saecLogo from "assets/images/saec-logo.png";
 import {
   collapseItem,
   collapseIconBox,
@@ -417,13 +418,13 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             <Icon sx={{ fontWeight: "bold" }}>close</Icon>
           </MDTypography>
         </MDBox>
-        <MDBox component={NavLink} to="/" display="flex" alignItems="center">
-          {brand && <MDBox component="img" src={brand} alt="Brand" width="2rem" />}
+        <MDBox component={NavLink} to="/" display="flex" flexDirection="column" alignItems="center">
+          {brand && <MDBox component="img" src={saecLogo} alt="Brand" width="3.5rem" mb={0.5} />}
           <MDBox
-            width={!brandName && "100%"}
+            width="100%"
             sx={(theme) => sidenavLogoLabel(theme, { miniSidenav })}
           >
-            <MDTypography component="h6" variant="button" fontWeight="medium" color={textColor}>
+            <MDTypography component="h6" variant="button" fontWeight="medium" color={textColor} textAlign="center" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.8rem' }}>
               {brandName}
             </MDTypography>
           </MDBox>

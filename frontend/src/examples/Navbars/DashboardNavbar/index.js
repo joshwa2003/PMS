@@ -69,7 +69,7 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
   const defaultRoute = useLocation().pathname.split("/").slice(1);
   const route = customRoute || defaultRoute;
   const navigate = useNavigate();
-  
+
   // Auth context
   const { user, logout, isStudent } = useAuth();
 
@@ -109,7 +109,7 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
   const handleProfileClick = () => {
     handleCloseProfileMenu();
     if (typeof isStudent === 'function' && isStudent()) {
-      navigate('/student-profile');
+      navigate('/profile');
     } else if (user?.role === 'placement_director') {
       navigate('/placement-director-profile');
     } else if (user?.role === 'placement_staff') {
@@ -137,7 +137,7 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
       department_hod: 'Department HOD',
       other_staff: 'Other Staff',
       student: 'Student',
-  
+
     };
     return roleNames[role] || role;
   };
@@ -218,15 +218,15 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
     >
       <Toolbar sx={(theme) => navbarContainer(theme)}>
         <MDBox color="inherit" mb={{ xs: 1, md: 0 }} sx={(theme) => navbarRow(theme, { isMini })}>
-          <Breadcrumbs 
-            icon="home" 
-            title={customTitle || route[route.length - 1]} 
-            route={route} 
-            light={light} 
+          <Breadcrumbs
+            icon="home"
+            title={customTitle || route[route.length - 1]}
+            route={route}
+            light={light}
           />
         </MDBox>
         {isMini ? null : (
-          <MDBox sx={(theme) => ({ 
+          <MDBox sx={(theme) => ({
             ...navbarRow(theme, { isMini }),
             flexWrap: 'nowrap',
             gap: 1
@@ -234,11 +234,11 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
             <MDBox pr={1} sx={{ flexShrink: 1, minWidth: 0 }}>
               <MDInput label="Search here" />
             </MDBox>
-            <MDBox 
+            <MDBox
               color={light ? "white" : "inherit"}
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
                 flexWrap: 'nowrap',
                 flexShrink: 0,
                 gap: 0.5
@@ -246,11 +246,11 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
             >
               {user && (
                 <MDBox display="flex" alignItems="center" sx={{ flexShrink: 0 }}>
-                  <MDTypography 
-                    variant="button" 
-                    fontWeight="medium" 
-                    color={light ? "white" : "dark"} 
-                    sx={{ 
+                  <MDTypography
+                    variant="button"
+                    fontWeight="medium"
+                    color={light ? "white" : "dark"}
+                    sx={{
                       mr: 1,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -260,9 +260,9 @@ function DashboardNavbar({ absolute, light, isMini, customTitle, customRoute }) 
                   >
                     {user.fullName || `${user.firstName} ${user.lastName}`}
                   </MDTypography>
-                  <IconButton 
-                    sx={{ ...navbarIconButton, flexShrink: 0 }} 
-                    size="small" 
+                  <IconButton
+                    sx={{ ...navbarIconButton, flexShrink: 0 }}
+                    size="small"
                     disableRipple
                     onClick={handleOpenProfileMenu}
                   >

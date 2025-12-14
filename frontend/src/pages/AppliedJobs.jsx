@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, Container, Box, Tabs, Tab, Avatar, Typography, Divider } from '@mui/material';
-import { Work as WorkIcon, MoreVert as MoreVertIcon, BookmarkBorder as BookmarkIcon } from '@mui/icons-material';
+import { Work as WorkIcon, BookmarkBorder as BookmarkIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 // Material Dashboard 2 React components
@@ -15,6 +15,7 @@ import Footer from 'examples/Footer';
 
 // Custom components
 import LoadingSpinner from 'components/LoadingSpinner';
+import JobCard from 'components/JobPosts/JobCard';
 
 // Context
 import { useJob } from 'context/JobContext';
@@ -26,17 +27,17 @@ const getPostedTime = (createdAt) => {
   const now = new Date();
   const posted = new Date(createdAt);
   const diffInDays = Math.floor((now - posted) / (1000 * 60 * 60 * 24));
-  
+
   if (diffInDays === 0) return 'Today';
   if (diffInDays === 1) return '1 Day Ago';
   return `${diffInDays} Days Ago`;
 };
 
 const AppliedJobs = () => {
-  const { 
-    studentJobs, 
-    studentJobsLoading, 
-    studentJobsError, 
+  const {
+    studentJobs,
+    studentJobsLoading,
+    studentJobsError,
     fetchStudentJobs,
     savedJobs,
     savedJobsLoading,
@@ -74,6 +75,11 @@ const AppliedJobs = () => {
     navigate(`/job-detail/${jobId}`);
   };
 
+  // Helper to handle save toggle
+  const handleSaveToggle = async (jobId) => {
+    await toggleSaveJob(jobId);
+  };
+
   if (studentJobsLoading) {
     return (
       <DashboardLayout>
@@ -90,262 +96,195 @@ const AppliedJobs = () => {
       <DashboardNavbar />
       <MDBox py={3}>
         <Container maxWidth="xl">
-          <MDBox 
-            sx={{ 
-              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-              borderRadius: '15px',
-              boxShadow: '0 2px 12px 0 rgba(0,0,0,0.1)',
-              overflow: 'hidden',
-              mb: 3
-            }}
-          >
-            <MDBox p={3}>
-              <MDTypography variant="h4" fontWeight="bold" mb={2}>
-                My Jobs
-              </MDTypography>
-              
-              <Tabs 
-                value={tabValue} 
+          {/* Header Section */}
+          <MDBox mb={4}>
+            <MDBox display="flex" alignItems="center" gap={2.5} mb={3}>
+              <MDBox
+                sx={{
+                  p: 1.5,
+                  borderRadius: '12px',
+                  bgcolor: 'rgba(25, 118, 210, 0.1)',
+                  border: '1px solid rgba(25, 118, 210, 0.2)'
+                }}
+              >
+                <WorkIcon sx={{ fontSize: 28, color: '#1976d2' }} />
+              </MDBox>
+              <MDBox>
+                <MDTypography variant="h4" fontWeight="bold" color="dark" sx={{ mb: 0.5 }}>
+                  My Jobs
+                </MDTypography>
+                <MDTypography variant="body1" color="text" sx={{ fontSize: '15px' }}>
+                  Track your saved opportunities and applications
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+
+            {/* Tabs Section */}
+            <MDBox
+              sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                mb: 3
+              }}
+            >
+              <Tabs
+                value={tabValue}
                 onChange={handleTabChange}
-                variant="scrollable"
-                scrollButtons="auto"
+                aria-label="my jobs tabs"
                 sx={{
                   '& .MuiTabs-indicator': {
-                    display: 'none',
+                    backgroundColor: '#1976d2',
+                    height: 3,
+                    borderRadius: '3px 3px 0 0'
                   },
                   '& .MuiTab-root': {
-                    minWidth: 100,
-                    borderRadius: '50px',
-                    mx: 0.5,
-                    color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    minWidth: 120,
+                    color: 'text.secondary',
                     '&.Mui-selected': {
-                      color: tabValue === 0 ? '#000' : 
-                             tabValue === 1 ? '#fff' : 
-                             tabValue === 2 ? '#000' : 
-                             tabValue === 3 ? '#000' : '#000',
-                      backgroundColor: tabValue === 0 ? 'rgba(0,0,0,0.08)' : 
-                                      tabValue === 1 ? '#2e7d32' : 
-                                      tabValue === 2 ? 'rgba(0,0,0,0.08)' : 
-                                      tabValue === 3 ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.08)',
+                      color: '#1976d2',
                     },
-                    '&:hover': {
-                      backgroundColor: tabValue === 1 ? '#2e7d32' : 'rgba(0,0,0,0.04)',
-                      opacity: 0.9
-                    }
                   }
                 }}
               >
-                <Tab 
-                  label="Saved" 
-                  sx={{ 
-                    textTransform: 'none', 
-                    fontWeight: 600,
-                    fontSize: '16px',
-                    border: '1px solid',
-                    borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                  }} 
-                />
-                <Tab 
-                  label="Applied" 
-                  sx={{ 
-                    textTransform: 'none', 
-                    fontWeight: 600,
-                    fontSize: '16px',
-                    border: '1px solid',
-                    borderColor: '#2e7d32',
-                  }} 
-                />
+                <Tab label={`Saved (${savedJobs?.length || 0})`} />
+                <Tab label={`Applied (${appliedJobs?.length || 0})`} />
               </Tabs>
             </MDBox>
+          </MDBox>
 
-            {(tabValue === 0 && savedJobsError) || (tabValue === 1 && studentJobsError) && (
+          {/* Error Handling */}
+          {(savedJobsError || studentJobsError) && (
+            <Grid item xs={12}>
               <MDBox mb={3} p={3} bgcolor="error.main" borderRadius="lg">
                 <MDTypography variant="body1" color="white">
-                  {tabValue === 0 ? savedJobsError : studentJobsError}
+                  {savedJobsError || studentJobsError}
                 </MDTypography>
               </MDBox>
+            </Grid>
+          )}
+
+          {/* Content Area */}
+          <Grid container spacing={3}>
+
+            {/* Saved Jobs Tab Content */}
+            {tabValue === 0 && (
+              <>
+                {savedJobsLoading ? (
+                  <Grid item xs={12}>
+                    <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+                      <LoadingSpinner />
+                    </MDBox>
+                  </Grid>
+                ) : (!savedJobs || savedJobs.length === 0) ? (
+                  <Grid item xs={12}>
+                    <MDBox
+                      display="flex"
+                      flexDirection="column"
+                      justifyContent="center"
+                      alignItems="center"
+                      minHeight="40vh"
+                      textAlign="center"
+                      p={3}
+                      sx={{
+                        bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#fff',
+                        borderRadius: '12px',
+                        border: '1px dashed',
+                        borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <BookmarkIcon sx={{ fontSize: 60, mb: 2, color: 'text.secondary', opacity: 0.5 }} />
+                      <MDTypography variant="h5" color="text" gutterBottom>
+                        No saved jobs yet
+                      </MDTypography>
+                      <MDTypography variant="body2" color="text">
+                        Jobs you bookmark will appear here for easy access.
+                      </MDTypography>
+                      <MDButton
+                        variant="gradient"
+                        color="info"
+                        size="small"
+                        sx={{ mt: 3 }}
+                        onClick={() => navigate('/job-posts')}
+                      >
+                        Browse Jobs
+                      </MDButton>
+                    </MDBox>
+                  </Grid>
+                ) : (
+                  savedJobs.map((job) => {
+                    // Check if this saved job is also applied
+                    const isApplied = appliedJobs.some(appliedJob => appliedJob._id === job._id);
+
+                    return (
+                      <Grid item xs={12} md={6} lg={4} key={job._id}>
+                        <JobCard
+                          job={{ ...job, isSaved: true, hasApplied: isApplied }}
+                          onSave={handleSaveToggle}
+                          showAppliedBadge={isApplied}
+                        />
+                      </Grid>
+                    );
+                  })
+                )}
+              </>
             )}
 
-            {/* Saved Jobs Tab */}
-            {tabValue === 0 && savedJobsLoading ? (
-              <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
-                <LoadingSpinner />
-              </MDBox>
-            ) : tabValue === 0 && (!savedJobs || savedJobs.length === 0) ? (
-              <MDBox 
-                display="flex" 
-                flexDirection="column" 
-                justifyContent="center" 
-                alignItems="center" 
-                minHeight="40vh"
-                textAlign="center"
-                p={3}
-              >
-                <BookmarkIcon sx={{ fontSize: 60, mb: 2, color: 'text.secondary', opacity: 0.5 }} />
-                <MDTypography variant="h5" color="text.secondary">
-                  You haven't saved any jobs yet
-                </MDTypography>
-                <MDTypography variant="body2" color="text.secondary" mt={1}>
-                  Save jobs you're interested in to view them later
-                </MDTypography>
-              </MDBox>
-            ) : tabValue === 0 && (
-              <MDBox>
-                {savedJobs.map((job) => (
-                  <Box 
-                    key={job._id}
-                    onClick={() => handleJobClick(job._id)}
-                    sx={{
-                      cursor: 'pointer',
-                      borderBottom: '1px solid',
-                      borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                      '&:hover': {
-                        backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                      },
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <MDBox p={3} display="flex" alignItems="flex-start">
-                      <Avatar 
-                        src={job.company?.logo} 
-                        alt={job.company?.name}
-                        sx={{ 
-                          width: 60, 
-                          height: 60, 
-                          mr: 2,
-                          bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : '#f0f0f0',
-                          border: '1px solid',
-                          borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                          fontSize: '24px',
-                          fontWeight: 'bold',
-                          color: darkMode ? 'white' : 'text.primary'
-                        }}
+            {/* Applied Jobs Tab Content */}
+            {tabValue === 1 && (
+              <>
+                {(!appliedJobs || appliedJobs.length === 0) ? (
+                  <Grid item xs={12}>
+                    <MDBox
+                      display="flex"
+                      flexDirection="column"
+                      justifyContent="center"
+                      alignItems="center"
+                      minHeight="40vh"
+                      textAlign="center"
+                      p={3}
+                      sx={{
+                        bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : '#fff',
+                        borderRadius: '12px',
+                        border: '1px dashed',
+                        borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <WorkIcon sx={{ fontSize: 60, mb: 2, color: 'text.secondary', opacity: 0.5 }} />
+                      <MDTypography variant="h5" color="text" gutterBottom>
+                        No applications yet
+                      </MDTypography>
+                      <MDTypography variant="body2" color="text">
+                        When you apply to jobs, track their status here.
+                      </MDTypography>
+                      <MDButton
+                        variant="gradient"
+                        color="info"
+                        size="small"
+                        sx={{ mt: 3 }}
+                        onClick={() => navigate('/job-posts')}
                       >
-                        {!job.company?.logo && (job.company?.name?.charAt(0) || 'C')}
-                      </Avatar>
-                      
-                      <MDBox flex={1}>
-                        <MDTypography variant="h6" fontWeight="bold">
-                          {job.title}
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text">
-                          {job.company?.name} in {job.location || 'Remote'}
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text" mt={0.5}>
-                          {job.location || 'Remote'} ({job.locationType || 'On-site'})
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text.secondary" mt={0.5}>
-                          Saved {getPostedTime(job.savedAt || job.createdAt)}
-                        </MDTypography>
-                      </MDBox>
-                      
-                      <MoreVertIcon 
-                        sx={{ 
-                          color: 'text.secondary',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            color: 'primary.main'
-                          }
-                        }} 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add menu functionality here if needed
-                        }}
-                      />
+                        Find Opportunities
+                      </MDButton>
                     </MDBox>
-                  </Box>
-                ))}
-              </MDBox>
+                  </Grid>
+                ) : (
+                  appliedJobs.map((job) => (
+                    <Grid item xs={12} md={6} lg={4} key={job._id}>
+                      <JobCard
+                        job={job}
+                        onSave={handleSaveToggle}
+                        showAppliedBadge={true} // Explicitly show the applied badge
+                      />
+                    </Grid>
+                  ))
+                )}
+              </>
             )}
 
-            {/* Applied Jobs Tab */}
-            {tabValue === 1 && appliedJobs.length === 0 ? (
-              <MDBox 
-                display="flex" 
-                flexDirection="column" 
-                justifyContent="center" 
-                alignItems="center" 
-                minHeight="40vh"
-                textAlign="center"
-                p={3}
-              >
-                <WorkIcon sx={{ fontSize: 60, mb: 2, color: 'text.secondary', opacity: 0.5 }} />
-                <MDTypography variant="h5" color="text.secondary">
-                  You haven't applied to any jobs yet
-                </MDTypography>
-                <MDTypography variant="body2" color="text.secondary" mt={1}>
-                  When you apply for jobs, they will appear here for easy tracking
-                </MDTypography>
-              </MDBox>
-            ) : tabValue === 1 && (
-              <MDBox>
-                {appliedJobs.map((job) => (
-                  <Box 
-                    key={job._id}
-                    onClick={() => handleJobClick(job._id)}
-                    sx={{
-                      cursor: 'pointer',
-                      borderBottom: '1px solid',
-                      borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                      '&:hover': {
-                        backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                      },
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <MDBox p={3} display="flex" alignItems="flex-start">
-                      <Avatar 
-                        src={job.company?.logo} 
-                        alt={job.company?.name}
-                        sx={{ 
-                          width: 60, 
-                          height: 60, 
-                          mr: 2,
-                          bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : '#f0f0f0',
-                          border: '1px solid',
-                          borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                          fontSize: '24px',
-                          fontWeight: 'bold',
-                          color: darkMode ? 'white' : 'text.primary'
-                        }}
-                      >
-                        {!job.company?.logo && (job.company?.name?.charAt(0) || 'C')}
-                      </Avatar>
-                      
-                      <MDBox flex={1}>
-                        <MDTypography variant="h6" fontWeight="bold">
-                          {job.title}
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text">
-                          {job.company?.name} in {job.location || 'Remote'}
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text" mt={0.5}>
-                          {job.location || 'Remote'} ({job.locationType || 'On-site'})
-                        </MDTypography>
-                        <MDTypography variant="body2" color="text.secondary" mt={0.5}>
-                          Applied {getPostedTime(job.appliedAt || job.createdAt)}
-                        </MDTypography>
-                      </MDBox>
-                      
-                      <MoreVertIcon 
-                        sx={{ 
-                          color: 'text.secondary',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            color: 'primary.main'
-                          }
-                        }} 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add menu functionality here if needed
-                        }}
-                      />
-                    </MDBox>
-                  </Box>
-                ))}
-              </MDBox>
-            )}
-          </MDBox>
+          </Grid>
         </Container>
       </MDBox>
       <Footer />

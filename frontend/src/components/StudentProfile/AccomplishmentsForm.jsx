@@ -17,6 +17,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import PresentToAllIcon from "@mui/icons-material/PresentToAll";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import WorkIcon from "@mui/icons-material/Work";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 // S.A. Engineering College React components
 import MDBox from "../MDBox";
@@ -318,14 +319,28 @@ function AccomplishmentsForm() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDInput
-                    type="url"
-                    label="Paper Link"
-                    value={paper.link || ''}
-                    onChange={(e) => handleResearchPaperChange(index, 'link', e.target.value)}
-                    fullWidth
-                    placeholder="https://..."
-                  />
+                  <MDBox display="flex" alignItems="center">
+                    <MDInput
+                      type="url"
+                      label="Google Drive Link"
+                      value={paper.link || ''}
+                      onChange={(e) => handleResearchPaperChange(index, 'link', e.target.value)}
+                      fullWidth
+                      placeholder="https://drive.google.com..."
+                    />
+                    {paper.link && (
+                      <IconButton
+                        color="info"
+                        href={paper.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ ml: 1 }}
+                        title="Preview Document"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    )}
+                  </MDBox>
                 </Grid>
               </Grid>
             </Card>
@@ -381,14 +396,28 @@ function AccomplishmentsForm() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDInput
-                    type="url"
-                    label="Presentation Link"
-                    value={presentation.link || ''}
-                    onChange={(e) => handlePresentationChange(index, 'link', e.target.value)}
-                    fullWidth
-                    placeholder="https://..."
-                  />
+                  <MDBox display="flex" alignItems="center">
+                    <MDInput
+                      type="url"
+                      label="Google Drive Link"
+                      value={presentation.link || ''}
+                      onChange={(e) => handlePresentationChange(index, 'link', e.target.value)}
+                      fullWidth
+                      placeholder="https://drive.google.com..."
+                    />
+                    {presentation.link && (
+                      <IconButton
+                        color="info"
+                        href={presentation.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ ml: 1 }}
+                        title="Preview Presentation"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    )}
+                  </MDBox>
                 </Grid>
               </Grid>
             </Card>
@@ -509,14 +538,28 @@ function AccomplishmentsForm() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDInput
-                    type="url"
-                    label="Sample Link"
-                    value={sample.link || ''}
-                    onChange={(e) => handleWorkSampleChange(index, 'link', e.target.value)}
-                    fullWidth
-                    placeholder="https://..."
-                  />
+                  <MDBox display="flex" alignItems="center">
+                    <MDInput
+                      type="url"
+                      label="Google Drive Link"
+                      value={sample.link || ''}
+                      onChange={(e) => handleWorkSampleChange(index, 'link', e.target.value)}
+                      fullWidth
+                      placeholder="https://drive.google.com..."
+                    />
+                    {sample.link && (
+                      <IconButton
+                        color="info"
+                        href={sample.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ ml: 1 }}
+                        title="Preview Work Sample"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    )}
+                  </MDBox>
                 </Grid>
               </Grid>
             </Card>

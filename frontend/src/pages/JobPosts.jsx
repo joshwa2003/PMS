@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Grid, Container, CircularProgress, Alert, Pagination, Box } from '@mui/material';
 import { Work as WorkIcon } from '@mui/icons-material';
 
@@ -51,7 +51,7 @@ const JobPosts = () => {
   });
   // Application response context
   const { recordApplyClick, pendingResponse } = useApplicationResponse();
-  
+
   // Job context for save/unsave functionality
   const { toggleSaveJob, fetchSavedJobs, savedJobs } = useJob();
 
@@ -60,26 +60,26 @@ const JobPosts = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await getPublicJobs(currentFilters);
-      
+
       if (response.success) {
         // Get the jobs from the response
         let jobsData = response.data.jobs;
-        
+
         // Fetch applied jobs status from backend
         try {
           const appliedResponse = await api.get('/jobs/applications/my', {
             params: { status: 'Applied', limit: 1000 }
           });
-          
+
           if (appliedResponse.success && appliedResponse.data.applications) {
             const appliedJobIds = appliedResponse.data.applications.map(app => app.job._id || app.job);
             const appliedJobsMap = appliedJobIds.reduce((map, jobId) => {
               map[jobId] = true;
               return map;
             }, {});
-            
+
             // Mark jobs as applied
             jobsData = jobsData.map(job => ({
               ...job,
@@ -90,7 +90,7 @@ const JobPosts = () => {
           console.error('Error fetching applied jobs:', appliedErr);
           // Continue without applied status if this fails
         }
-        
+
         setJobs(jobsData);
         setPagination(response.data.pagination || {});
         setAvailableFilters(response.data.filters || {});
@@ -104,23 +104,17 @@ const JobPosts = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]); // Removed savedJobs from dependencies to prevent infinite loop
+  }, [filters]);
 
   // Initial load
   useEffect(() => {
     console.log('📌 Initial load: Fetching saved jobs and all jobs...');
-    
+
     const loadData = async () => {
       try {
-        // Fetch saved jobs first and wait for it to complete
+        // Fetch saved jobs first
         await fetchSavedJobs();
-        console.log('📌 Saved jobs fetched successfully');
-        
-        // Small delay to ensure savedJobs state is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Now fetch all jobs
-        console.log('📌 Now fetching all jobs...');
+        // Then fetch all jobs
         await fetchJobs();
       } catch (err) {
         console.error('📌 Error during initial load:', err);
@@ -128,35 +122,25 @@ const JobPosts = () => {
         await fetchJobs();
       }
     };
-    
+
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
-  
-  // Update jobs with saved state when savedJobs changes
-  useEffect(() => {
-    if (!savedJobs) return;
-    
-    console.log('📌 Updating jobs with saved state. Saved jobs:', savedJobs.length);
+
+  // Create processed jobs by merging generic jobs with saved status from context
+  const processedJobs = useMemo(() => {
+    if (!savedJobs) return jobs;
 
     const savedJobsMap = savedJobs.reduce((map, job) => {
       map[job._id] = true;
       return map;
     }, {});
-    
-    console.log('📌 Saved jobs map:', savedJobsMap);
 
-    // Ensure current jobs reflect saved state
-    setJobs(prevJobs => {
-      const updatedJobs = prevJobs.map(job => ({
-        ...job,
-        isSaved: !!savedJobsMap[job._id],
-      }));
-      console.log('📌 Updated jobs with isSaved property:', updatedJobs.filter(j => j.isSaved).length, 'jobs are saved');
-      return updatedJobs;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedJobs]); // Only depend on savedJobs, not jobs (to prevent infinite loop)
+    return jobs.map(job => ({
+      ...job,
+      isSaved: !!savedJobsMap[job._id]
+    }));
+  }, [jobs, savedJobs]);
 
   // Refresh jobs when application response modal closes (after student responds)
   // Only refresh if modal was previously open and is now closed
@@ -181,7 +165,7 @@ const JobPosts = () => {
     const updatedFilters = { ...filters, page };
     setFilters(updatedFilters);
     fetchJobs(updatedFilters);
-    
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -191,16 +175,16 @@ const JobPosts = () => {
     if (job?.applicationLink) {
       console.log('🔗 Apply button clicked for job:', job._id);
       console.log('🔗 Application link:', job.applicationLink);
-      
+
       // Open external application link FIRST (synchronously, before any async operations)
       const newWindow = window.open(job.applicationLink, '_blank', 'noopener,noreferrer');
-      
+
       if (newWindow) {
         console.log('✅ External link opened successfully in new tab');
       } else {
         console.warn('⚠️ Popup may have been blocked by browser');
       }
-      
+
       // Small delay to ensure window opens before showing modal
       setTimeout(() => {
         console.log('📱 Now recording apply click and showing modal');
@@ -215,7 +199,7 @@ const JobPosts = () => {
     } else {
       // If no external link, simulate the apply process for demo purposes
       console.log('🔗 No external link, simulating apply process for job:', job._id);
-      
+
       // Record the apply click for demo
       recordApplyClick(job._id || `demo-${Date.now()}`, {
         _id: job._id || `demo-${Date.now()}`,
@@ -223,29 +207,23 @@ const JobPosts = () => {
         company: job.company,
         location: job.location
       });
-      
+
       // Show alert and simulate external redirect
       alert('Demo: You would be redirected to the company\'s application page. When you return, you\'ll see the popup asking if you applied.');
-      
+
       // For demo purposes, you can refresh the page to see the popup
       console.log('💡 Tip: Refresh the page to see the application response popup!');
     }
   };
-  
+
   // Handle job save/unsave
   const handleSaveToggle = async (jobId) => {
     try {
       // Call the toggleSaveJob function from JobContext
+      // This will update the savedJobs context which triggers useMemo to re-calculate isSaved status
       const response = await toggleSaveJob(jobId);
-      
-      if (response.success) {
-        // Update the jobs list to reflect the new saved status
-        setJobs(prevJobs => 
-          prevJobs.map(job => 
-            job._id === jobId ? { ...job, isSaved: !job.isSaved } : job
-          )
-        );
-      } else {
+
+      if (!response.success) {
         setError(response.message || 'Failed to save/unsave job');
       }
     } catch (err) {
@@ -257,16 +235,16 @@ const JobPosts = () => {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      
+
       <MDBox py={3}>
         <Container maxWidth="xl">
           {/* Header */}
           <MDBox mb={4}>
             <MDBox display="flex" alignItems="center" gap={2.5} mb={3}>
-              <MDBox 
-                sx={{ 
-                  p: 1.5, 
-                  borderRadius: '12px', 
+              <MDBox
+                sx={{
+                  p: 1.5,
+                  borderRadius: '12px',
                   bgcolor: 'rgba(25, 118, 210, 0.1)',
                   border: '1px solid rgba(25, 118, 210, 0.2)'
                 }}
@@ -290,8 +268,8 @@ const JobPosts = () => {
             <Grid item xs={12} lg={8}>
               {/* Error Alert */}
               {error && (
-                <Alert 
-                  severity="error" 
+                <Alert
+                  severity="error"
                   sx={{ mb: 3, borderRadius: 2 }}
                   onClose={() => setError(null)}
                 >
@@ -303,11 +281,11 @@ const JobPosts = () => {
               {loading && <LoadingSpinner />} {/* Integrated Loading Spinner */}
 
               {/* No Jobs Found */}
-              {!loading && jobs.length === 0 && !error && (
-                <MDBox 
-                  display="flex" 
-                  flexDirection="column" 
-                  alignItems="center" 
+              {!loading && processedJobs.length === 0 && !error && (
+                <MDBox
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
                   py={8}
                   textAlign="center"
                 >
@@ -322,10 +300,10 @@ const JobPosts = () => {
               )}
 
               {/* Jobs List - Vertical Layout */}
-              {!loading && jobs.length > 0 && (
+              {!loading && processedJobs.length > 0 && (
                 <>
                   <MDBox mb={4} >
-                    {jobs.map((job) => (
+                    {processedJobs.map((job) => (
                       <JobCard
                         key={job._id}
                         job={job}
@@ -383,8 +361,8 @@ const JobPosts = () => {
 
             {/* Right Column - Filters Sidebar */}
             <Grid item xs={12} lg={4}>
-              <MDBox 
-                sx={{ 
+              <MDBox
+                sx={{
                   position: { lg: 'sticky' },
                   top: { lg: 24 },
                   height: 'fit-content'

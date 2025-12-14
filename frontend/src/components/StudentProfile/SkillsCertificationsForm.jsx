@@ -12,6 +12,7 @@ import TextField from "@mui/material/TextField";
 // @mui icons
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 // S.A. Engineering College React components
 import MDBox from "../MDBox";
@@ -53,34 +54,34 @@ function SkillsCertificationsForm() {
     // Programming Languages
     'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'Swift',
     'Kotlin', 'TypeScript', 'Scala', 'R', 'MATLAB', 'SQL', 'HTML', 'CSS',
-    
+
     // Frameworks & Libraries
     'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'Django', 'Flask',
     'Spring Boot', 'Laravel', 'Ruby on Rails', 'ASP.NET', 'jQuery', 'Bootstrap',
     'Tailwind CSS', 'Material-UI', 'Redux', 'Next.js', 'Nuxt.js',
-    
+
     // Databases
     'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SQLite', 'Cassandra',
     'DynamoDB', 'Firebase', 'Elasticsearch',
-    
+
     // Cloud & DevOps
     'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Jenkins', 'Git',
     'GitHub', 'GitLab', 'CI/CD', 'Terraform', 'Ansible',
-    
+
     // Data Science & AI
     'Machine Learning', 'Deep Learning', 'Data Analysis', 'Data Visualization',
     'TensorFlow', 'PyTorch', 'Pandas', 'NumPy', 'Scikit-learn', 'Tableau',
     'Power BI', 'Apache Spark', 'Hadoop',
-    
+
     // Mobile Development
     'React Native', 'Flutter', 'iOS Development', 'Android Development',
     'Xamarin', 'Ionic',
-    
+
     // Other Technical Skills
     'REST API', 'GraphQL', 'Microservices', 'Agile', 'Scrum', 'JIRA',
     'Linux', 'Windows Server', 'Networking', 'Cybersecurity', 'Blockchain',
     'IoT', 'AR/VR', 'Game Development', 'UI/UX Design', 'Figma', 'Adobe Creative Suite',
-    
+
     // Soft Skills
     'Leadership', 'Communication', 'Team Management', 'Problem Solving',
     'Critical Thinking', 'Project Management', 'Time Management', 'Presentation Skills'
@@ -221,7 +222,7 @@ function SkillsCertificationsForm() {
                   <MDInput
                     type="date"
                     label="Valid From"
-                    value={certification.validFrom ? 
+                    value={certification.validFrom ?
                       new Date(certification.validFrom).toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCertificationChange(index, 'validFrom', e.target.value)}
                     fullWidth
@@ -235,7 +236,7 @@ function SkillsCertificationsForm() {
                   <MDInput
                     type="date"
                     label="Valid To"
-                    value={certification.validTo ? 
+                    value={certification.validTo ?
                       new Date(certification.validTo).toISOString().split('T')[0] : ''}
                     onChange={(e) => handleCertificationChange(index, 'validTo', e.target.value)}
                     fullWidth
@@ -247,14 +248,28 @@ function SkillsCertificationsForm() {
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                  <MDInput
-                    type="url"
-                    label="Certificate Link"
-                    value={certification.link || ''}
-                    onChange={(e) => handleCertificationChange(index, 'link', e.target.value)}
-                    fullWidth
-                    placeholder="https://..."
-                  />
+                  <MDBox display="flex" alignItems="center">
+                    <MDInput
+                      type="url"
+                      label="Google Drive Link"
+                      value={certification.link || ''}
+                      onChange={(e) => handleCertificationChange(index, 'link', e.target.value)}
+                      fullWidth
+                      placeholder="https://drive.google.com..."
+                    />
+                    {certification.link && (
+                      <IconButton
+                        color="info"
+                        href={certification.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ ml: 1 }}
+                        title="Preview Certificate"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    )}
+                  </MDBox>
                 </Grid>
               </Grid>
             </Card>
@@ -297,7 +312,7 @@ function SkillsCertificationsForm() {
             p={2}
             bgcolor="light.main"
             borderRadius="lg"
-            sx={{ 
+            sx={{
               border: '1px solid',
               borderColor: 'info.main',
               backgroundColor: 'rgba(26, 115, 232, 0.08)'
