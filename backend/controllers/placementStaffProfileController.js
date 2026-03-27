@@ -9,9 +9,9 @@ const googleDriveService = require('../services/googleDriveService');
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    
+
     let profile = await PlacementStaffProfile.findByUserId(userId);
-    
+
     // If profile doesn't exist, create one from user data
     if (!profile) {
       const user = await User.findById(userId);
@@ -21,7 +21,7 @@ exports.getProfile = async (req, res) => {
           message: 'User not found'
         });
       }
-      
+
       // Create initial profile from user data with required defaults
       profile = new PlacementStaffProfile({
         userId: user._id,
@@ -62,7 +62,7 @@ exports.getProfile = async (req, res) => {
         createdBy: user._id,
         lastLoginAt: user.lastLogin
       });
-      
+
       // Save with validation disabled initially, then update profile completion
       await profile.save({ validateBeforeSave: false });
       await profile.updateProfileCompletion();
@@ -138,13 +138,13 @@ exports.updateProfile = async (req, res) => {
     // }
 
     const userId = req.user._id;
-    
+
     // Find existing profile or create new one
     let profile = await PlacementStaffProfile.findByUserId(userId);
-    
+
     if (!profile) {
       console.log('Profile not found, creating new profile for user:', userId);
-      
+
       // For new profile creation, we need to ensure required fields have default values
       const user = await User.findById(userId);
       if (!user) {
@@ -230,7 +230,11 @@ exports.updateProfile = async (req, res) => {
     if (updatedProfile.name?.lastName) userUpdateData.lastName = updatedProfile.name.lastName;
     if (updatedProfile.mobileNumber) userUpdateData.mobileNumber = updatedProfile.mobileNumber;
     if (updatedProfile.gender) userUpdateData.gender = updatedProfile.gender;
-    if (updatedProfile.profilePhotoUrl) userUpdateData.profilePhotoUrl = updatedProfile.profilePhotoUrl;
+    if (updatedProfile.profilePhotoUrl) {
+      userUpdateData.profilePhotoUrl = updatedProfile.profilePhotoUrl;
+      // Sync with profilePicture field used by auth controller
+      userUpdateData.profilePicture = updatedProfile.profilePhotoUrl;
+    }
     // Note: Skip department field as User model expects ObjectId but PlacementStaffProfile uses string
     // Store department code in departmentCode field instead
     if (updatedProfile.department) userUpdateData.departmentCode = updatedProfile.department;
@@ -290,7 +294,7 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update placement staff profile error:', error);
-    
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => ({
@@ -298,16 +302,16 @@ exports.updateProfile = async (req, res) => {
         message: err.message,
         value: err.value
       }));
-      
+
       console.log('Mongoose validation errors:', validationErrors);
-      
+
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
         errors: validationErrors
       });
     }
-    
+
     // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
@@ -317,7 +321,7 @@ exports.updateProfile = async (req, res) => {
         error: `Duplicate ${field}`
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error while updating placement staff profile',
@@ -613,10 +617,10 @@ exports.updateProfileImage = async (req, res) => {
 
     // Ensure placement staff profile exists before updating image
     let profile = await PlacementStaffProfile.findOne({ userId });
-    
+
     if (!profile) {
       console.log('Profile not found, creating new profile for user:', userId);
-      
+
       // Get user data to create profile
       const user = await User.findById(userId);
       if (!user) {
@@ -665,12 +669,12 @@ exports.updateProfileImage = async (req, res) => {
         createdBy: user._id,
         lastLoginAt: user.lastLogin
       });
-      
+
       // Save with validation disabled initially
       await profile.save({ validateBeforeSave: false });
       console.log('New profile created successfully');
     }
-    
+
     // Process and validate Google Drive URL
     console.log('Processing Google Drive URL...');
     const processResult = await googleDriveService.processProfileImageUrl(
@@ -696,7 +700,8 @@ exports.updateProfileImage = async (req, res) => {
 
     // Also update User model
     await User.findByIdAndUpdate(userId, {
-      profilePhotoUrl: profilePhotoUrl
+      profilePhotoUrl: profilePhotoUrl,
+      profilePicture: profilePhotoUrl
     });
     console.log('User model updated with new image URL');
 

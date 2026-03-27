@@ -20,7 +20,7 @@ import ivana from "assets/images/ivana-square.jpg";
 import team3 from "assets/images/team-3.jpg";
 import team4 from "assets/images/team-4.jpg";
 
-export default [
+const data = [
   {
     image: kal,
     name: "Sophie B.",

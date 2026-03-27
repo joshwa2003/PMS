@@ -268,7 +268,6 @@ class UserService {
         batch: user.batch,
         cgpa: user.cgpa
       }),
-        }),
       ...(['placement_staff', 'department_hod', 'other_staff', 'admin'].includes(user.role) && {
         employeeId: user.employeeId,
         designation: user.designation

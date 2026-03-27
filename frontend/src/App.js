@@ -22,6 +22,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Icon from "@mui/material/Icon";
+import CircularProgress from "@mui/material/CircularProgress";
 
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
@@ -195,7 +196,7 @@ function AppContent({
   configsButton, 
   getRoutes 
 }) {
-  const { pendingResponse, showModal, submitResponse, loading, error, checkForPendingResponses } = useApplicationResponse();
+  const { pendingResponse, showModal, submitResponse, loading, error, checkForPendingResponses, isInitialCheckComplete } = useApplicationResponse();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -268,7 +269,7 @@ function AppContent({
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.95)',
                   zIndex: 9997,
                   display: 'flex',
                   alignItems: 'center',
@@ -281,7 +282,31 @@ function AppContent({
               </div>
             )}
             
-            <div style={{ filter: showModal ? 'blur(5px)' : 'none', pointerEvents: showModal ? 'none' : 'auto' }}>
+            {/* Show a full-screen loading if initial check is not complete */}
+            {!isInitialCheckComplete && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                  zIndex: 9999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column'
+                }}
+              >
+                <CircularProgress color="info" />
+                <div style={{ marginTop: '20px', color: darkMode ? 'white' : 'black', fontSize: '18px' }}>
+                  Checking application status...
+                </div>
+              </div>
+            )}
+            
+            <div style={{ display: (!isInitialCheckComplete || showModal) ? 'none' : 'block' }}>
               {layout === "dashboard" && (
                 <>
                   <Sidenav
@@ -338,7 +363,7 @@ function AppContent({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                backgroundColor: 'rgba(0, 0, 0, 0.95)',
                 zIndex: 9997,
                 display: 'flex',
                 alignItems: 'center',
@@ -351,7 +376,31 @@ function AppContent({
             </div>
           )}
           
-          <div style={{ filter: showModal ? 'blur(5px)' : 'none', pointerEvents: showModal ? 'none' : 'auto' }}>
+          {/* Show a full-screen loading if initial check is not complete */}
+          {!isInitialCheckComplete && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                zIndex: 9999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column'
+              }}
+            >
+              <CircularProgress color="info" />
+              <div style={{ marginTop: '20px', color: darkMode ? 'white' : 'black', fontSize: '18px' }}>
+                Checking application status...
+              </div>
+            </div>
+          )}
+          
+          <div style={{ display: (!isInitialCheckComplete || showModal) ? 'none' : 'block' }}>
             {layout === "dashboard" && (
               <>
                 <Sidenav

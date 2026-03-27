@@ -167,17 +167,14 @@ const JobDetailPage = () => {
         console.warn('⚠️ Popup may have been blocked by browser');
       }
       
-      // Small delay to ensure window opens before showing modal
-      setTimeout(() => {
-        console.log('📱 Now recording apply click and showing modal');
-        // Record the apply click (this will show the modal)
-        recordApplyClick(job._id, {
-          _id: job._id,
-          title: job.title,
-          company: job.company,
-          location: job.location
-        });
-      }, 100);
+      console.log('📱 Now recording apply click and showing modal');
+      // Record the apply click (this will show the modal and block tab closing instantly)
+      recordApplyClick(job._id, {
+        _id: job._id,
+        title: job.title,
+        company: job.company,
+        location: job.location
+      });
     } else {
       // If no external link, simulate the apply process for demo purposes
       console.log('🔗 No external link, simulating apply process for job:', job._id);

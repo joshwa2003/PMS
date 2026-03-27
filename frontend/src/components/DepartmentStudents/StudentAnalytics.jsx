@@ -8,24 +8,16 @@ import {
   Avatar,
   LinearProgress,
   Chip,
-  Divider,
   Paper
 } from '@mui/material';
 import {
   School as SchoolIcon,
   TrendingUp as TrendingUpIcon,
-  Assignment as AssignmentIcon,
-  Person as PersonIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
   Star as StarIcon,
   Group as GroupIcon
 } from '@mui/icons-material';
-
-// Material Dashboard 2 React components
-import MDBox from 'components/MDBox';
-import MDTypography from 'components/MDTypography';
-import MDBadge from 'components/MDBadge';
 
 // Material Dashboard 2 React contexts
 import { useMaterialUIController } from "context";

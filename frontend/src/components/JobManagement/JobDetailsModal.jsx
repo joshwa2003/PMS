@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Box, Typography, Grid, Chip, Divider } from '@mui/material';
+import { Modal, Box, Grid, Chip, Divider } from '@mui/material';
 import {
   Business as CompanyIcon,
   LocationOn as LocationIcon,

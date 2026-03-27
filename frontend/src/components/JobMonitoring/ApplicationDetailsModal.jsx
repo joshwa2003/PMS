@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Box, Typography, Grid, Chip, Divider, Avatar } from '@mui/material';
+import { Modal, Box, Grid, Divider, Avatar } from '@mui/material';
 import {
   Person as PersonIcon,
   Email as EmailIcon,

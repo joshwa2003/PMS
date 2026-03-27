@@ -19,8 +19,6 @@ import Icon from "@mui/material/Icon";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import { getGoogleDriveThumbnail } from "../../../utils/googleDriveUtils";
 import Checkbox from "@mui/material/Checkbox";
 import { useState } from "react";

@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogActions,
-  Button,
   Grid,
   Typography,
   Box,

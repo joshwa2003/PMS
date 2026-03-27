@@ -1323,11 +1323,47 @@ const getJobPostingStats = async (req, res) => {
     const startDate = new Date(`${year}-01-01`);
     const endDate = new Date(`${year}-12-31`);
 
+    let matchStage = {
+      createdAt: { $gte: startDate, $lte: endDate }
+    };
+
+    // Filter for placement staff
+    if (req.user.role === 'placement_staff') {
+      const PlacementStaffProfile = require('../models/PlacementStaffProfile');
+      const mongoose = require('mongoose');
+      const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
+
+      if (staffProfile && staffProfile.department) {
+        const Department = require('../models/Department');
+        let departmentDoc;
+
+        if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
+          departmentDoc = await Department.findById(staffProfile.department);
+        }
+
+        if (!departmentDoc) {
+          departmentDoc = await Department.findOne({
+            $or: [{ code: staffProfile.department }, { name: staffProfile.department }]
+          });
+        }
+
+        if (departmentDoc) {
+          matchStage.$or = [
+            { postingType: 'All Departments' },
+            { targetDepartments: departmentDoc._id },
+            { 'eligibility.departments': departmentDoc._id }
+          ];
+        } else {
+          // Dept not found, show no data? or just show all?
+          // Better to show none to avoid confusion
+          matchStage._id = null;
+        }
+      }
+    }
+
     const stats = await Job.aggregate([
       {
-        $match: {
-          createdAt: { $gte: startDate, $lte: endDate }
-        }
+        $match: matchStage
       },
       {
         $group: {

@@ -18,12 +18,14 @@ export const ApplicationResponseProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isCheckingPending, setIsCheckingPending] = useState(false);
+  const [isInitialCheckComplete, setIsInitialCheckComplete] = useState(false);
   const hasCheckedOnMount = useRef(false);
 
   // Check server for pending responses (MongoDB only)
   const checkForPendingResponses = useCallback(async () => {
     // Only students need to check for pending responses
     if (!user || user.role !== 'student') {
+      setIsInitialCheckComplete(true);
       return;
     }
 
@@ -84,8 +86,9 @@ export const ApplicationResponseProvider = ({ children }) => {
       console.error('❌ Error checking for pending responses:', err);
     } finally {
       setIsCheckingPending(false);
+      setIsInitialCheckComplete(true);
     }
-  }, [isCheckingPending]);
+  }, [isCheckingPending, user]);
 
   // Check for pending responses on mount and when user authenticates
   useEffect(() => {
@@ -119,6 +122,16 @@ export const ApplicationResponseProvider = ({ children }) => {
     try {
       console.log('🔗 Recording apply click for job:', jobId);
 
+      // Show modal immediately to block UI before the server request completes
+      // This prevents the user from closing the tab and bypassing the tracker
+      setPendingResponse({
+        jobId: jobId,
+        jobData: jobData,
+        clickedAt: new Date()
+      });
+      setShowModal(true);
+      console.log('📱 Showing Application Confirmation Modal (Optimistic)');
+
       // Record click on server (MongoDB)
       const response = await fetch(`http://localhost:5001/api/v1/jobs/${jobId}/click`, {
         method: 'POST',
@@ -130,16 +143,6 @@ export const ApplicationResponseProvider = ({ children }) => {
 
       if (response.ok) {
         console.log('✅ Apply click recorded in database');
-
-        // Show modal immediately after recording the click
-        setPendingResponse({
-          jobId: jobId,
-          jobData: jobData,
-          clickedAt: new Date()
-        });
-        setShowModal(true);
-
-        console.log('📱 Showing Application Confirmation Modal');
       } else {
         console.error('❌ Failed to record apply click on server:', response.status);
         const errorText = await response.text();
@@ -235,7 +238,8 @@ export const ApplicationResponseProvider = ({ children }) => {
     forceCheck,
     clearPendingResponse,
     checkForPendingResponses,
-    checkIfApplied
+    checkIfApplied,
+    isInitialCheckComplete
   };
 
   return (

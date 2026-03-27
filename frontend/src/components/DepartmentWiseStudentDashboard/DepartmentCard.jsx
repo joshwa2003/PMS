@@ -7,14 +7,12 @@ import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Grid from '@mui/material/Grid';
 import Icon from '@mui/material/Icon';
-import Tooltip from '@mui/material/Tooltip';
 import Chip from '@mui/material/Chip';
 
 // Material Dashboard 2 React components
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import MDButton from 'components/MDButton';
-import MDBadge from 'components/MDBadge';
 
 // Services
 import departmentWiseStudentService from 'services/departmentWiseStudentService';

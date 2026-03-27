@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Box, Typography, Grid, LinearProgress, Divider } from '@mui/material';
+import { Modal, Box, Grid, LinearProgress, Divider } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   Visibility as ViewsIcon,

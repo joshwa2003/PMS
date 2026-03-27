@@ -1,5 +1,3 @@
-import React from 'react';
-import { Box } from '@mui/material';
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
 import { useMaterialUIController } from 'context';

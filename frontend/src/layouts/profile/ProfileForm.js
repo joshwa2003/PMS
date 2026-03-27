@@ -2,14 +2,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "context/AuthContext";
 import userService from "services/userService";
 import administratorProfileService from "services/administratorProfileService";
-import { getGoogleDriveThumbnail, getGoogleDriveDirectImageUrl } from "utils/googleDriveUtils";
-
 // @mui material components
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
 import Avatar from "@mui/material/Avatar";
-import IconButton from "@mui/material/IconButton";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Dialog from "@mui/material/Dialog";
@@ -630,7 +627,7 @@ function ProfileForm() {
                   {getGoogleDriveThumbnail(googleDriveUrl) ? (
                     <img
                       src={getGoogleDriveThumbnail(googleDriveUrl)}
-                      alt="Profile Image Preview"
+                      alt="Profile Preview"
                       style={{ 
                         maxWidth: '100%', 
                         maxHeight: 400, 

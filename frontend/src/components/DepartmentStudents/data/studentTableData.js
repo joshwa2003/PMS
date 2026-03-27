@@ -162,7 +162,6 @@ const studentTableData = (
               height: 40,
               fontSize: '0.875rem',
               fontWeight: 'bold',
-              fontWeight: 'bold',
               mr: 2
             }}
             src={getGoogleDriveThumbnail(student.profilePhotoUrl || student.profilePicture)}

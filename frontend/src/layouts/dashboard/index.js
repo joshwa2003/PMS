@@ -30,8 +30,8 @@ import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
 import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
 
 // Data
-import defaultBarChartData, { formatJobPostingData } from "layouts/dashboard/data/reportsBarChartData";
-import defaultLineChartData, { formatJobApplicationData, formatActiveStudentsData } from "layouts/dashboard/data/reportsLineChartData";
+import defaultBarChartData from "layouts/dashboard/data/reportsBarChartData";
+import defaultLineChartData from "layouts/dashboard/data/reportsLineChartData";
 
 // Dashboard components
 import Projects from "layouts/dashboard/components/Projects";
@@ -209,17 +209,32 @@ function Dashboard() {
           </Grid>
           <Grid item xs={12} md={6} lg={3}>
             <MDBox mb={1.5}>
-              <ComplexStatisticsCard
-                color="primary"
-                icon="school"
-                title="Departments"
-                count={dashboardData.totalDepartments}
-                percentage={{
-                  color: "success",
-                  amount: `${dashboardData.activeDepartments} active`,
-                  label: "departments",
-                }}
-              />
+              {/* Check if user is placement staff to show relevant data instead of Departments */}
+              {JSON.parse(localStorage.getItem("user"))?.role === "placement_staff" ? (
+                <ComplexStatisticsCard
+                  color="warning"
+                  icon="person_off"
+                  title="Unplaced Students"
+                  count={dashboardData.unplacedStudents}
+                  percentage={{
+                    color: "secondary",
+                    amount: "",
+                    label: "requiring placement",
+                  }}
+                />
+              ) : (
+                <ComplexStatisticsCard
+                  color="primary"
+                  icon="school"
+                  title="Departments"
+                  count={dashboardData.totalDepartments}
+                  percentage={{
+                    color: "success",
+                    amount: `${dashboardData.activeDepartments} active`,
+                    label: "departments",
+                  }}
+                />
+              )}
             </MDBox>
           </Grid>
         </Grid>

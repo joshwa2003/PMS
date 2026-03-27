@@ -35,7 +35,6 @@ import ListItemText from "@mui/material/ListItemText";
 // S.A. Engineering College React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import MDButton from "components/MDButton";
 
 // S.A. Engineering College React example components
 import SidenavCollapse from "examples/Sidenav/SidenavCollapse";
@@ -159,7 +158,6 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     // Check user role
     const isSystemAdmin = systemAdminRoles.includes(user.role);
     const isAdministrator = administratorRoles.includes(user.role);
-    const isStudent = studentRoles.includes(user.role);
     const isAdmin = user.role === 'admin';
 
     // For admin users, show only the reorganized sidebar structure

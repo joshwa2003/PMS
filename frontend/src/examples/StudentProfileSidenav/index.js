@@ -14,9 +14,7 @@ import PropTypes from "prop-types";
 // @mui material components
 import List from "@mui/material/List";
 import Divider from "@mui/material/Divider";
-import Link from "@mui/material/Link";
 import Icon from "@mui/material/Icon";
-import Avatar from "@mui/material/Avatar";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -36,7 +34,6 @@ import TranslateIcon from "@mui/icons-material/Translate";
 import StarIcon from "@mui/icons-material/Star";
 import DescriptionIcon from "@mui/icons-material/Description";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // S.A. Engineering College React components
@@ -168,8 +165,7 @@ function StudentProfileSidenav({ color, brand, brandName, ...rest }) {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Auth context
-  const { user } = useAuth();
+  // Auth context removed as it's not needed here
 
   // Student Profile Context
   const {
@@ -190,18 +186,7 @@ function StudentProfileSidenav({ color, brand, brandName, ...rest }) {
 
   const closeSidenav = () => setMiniSidenav(dispatch, true);
 
-  const getRoleDisplayName = (role) => {
-    const roleNames = {
-      admin: 'Administrator',
-      placement_director: 'Placement Director',
-      placement_staff: 'Placement Staff',
-      department_hod: 'Department HOD',
-      other_staff: 'Other Staff',
-      student: 'Student',
-  
-    };
-    return roleNames[role] || role;
-  };
+
 
   const getCompletionColor = (percentage) => {
     if (percentage >= 80) return 'success';

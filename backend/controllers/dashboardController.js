@@ -534,11 +534,95 @@ class DashboardController {
   async getDashboardSummary(req, res) {
     try {
       // Check if user has permission
-      if (!['admin', 'placement_director'].includes(req.user.role)) {
+      if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. Only administrators and placement directors can view this dashboard.'
+          message: 'Access denied. You do not have permission to view this dashboard.'
         });
+      }
+
+      let studentFilter = {};
+      let jobFilter = { status: 'Active' }; // Default for jobs
+      let departmentFilter = {};
+      let departmentWithStaffFilter = { placementStaff: { $ne: null } };
+
+      // If placement staff, filter by their department
+      if (req.user.role === 'placement_staff') {
+        const PlacementStaffProfile = require('../models/PlacementStaffProfile');
+        const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
+
+        if (staffProfile && staffProfile.department) {
+          // Find the department to get both name and code
+          const Department = require('../models/Department');
+          const mongoose = require('mongoose'); // Ensure mongoose is available
+
+          let departmentDoc;
+
+          if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
+            departmentDoc = await Department.findById(staffProfile.department);
+          }
+
+          if (!departmentDoc) {
+            // Try to find by code or name
+            departmentDoc = await Department.findOne({
+              $or: [
+                { code: staffProfile.department },
+                { name: staffProfile.department }
+              ]
+            });
+          }
+
+          if (departmentDoc) {
+            console.log(`🔒 Filtering dashboard for staff: ${req.user.email} (Dept: ${departmentDoc.name})`);
+
+            // Get alumni batch IDs to exclude them from counts
+            const Batch = require('../models/Batch');
+            const alumniBatches = await Batch.find({ isGraduated: true }).select('_id');
+            const alumniBatchIds = alumniBatches.map(b => b._id);
+
+            // Student Filter: Belong to dept AND not alumni
+            studentFilter = {
+              $and: [
+                {
+                  $or: [
+                    { 'academic.department': departmentDoc.name },
+                    { 'academic.department': departmentDoc.code }
+                  ]
+                },
+                { batchId: { $nin: alumniBatchIds } }
+              ]
+            };
+
+            // Job Filter: Target dept OR All Departments
+            jobFilter = {
+              status: 'Active',
+              $or: [
+                { postingType: 'All Departments' },
+                { targetDepartments: departmentDoc._id },
+                { 'eligibility.departments': departmentDoc._id }
+              ]
+            };
+
+            // Department Filter: Only this department
+            departmentFilter = { _id: departmentDoc._id };
+            departmentWithStaffFilter = { _id: departmentDoc._id, placementStaff: { $ne: null } };
+          } else {
+            console.warn(`⚠️ Staff department '${staffProfile.department}' not found in DB`);
+            studentFilter = { _id: null };
+            jobFilter = { _id: null };
+          }
+        } else {
+          console.warn(`⚠️ Staff profile not found for user ${req.user._id}`);
+          studentFilter = { _id: null };
+          jobFilter = { _id: null };
+        }
+      } else {
+        // For Admin/Director: Exclude Alumni from general counts?
+        // Usually dashboard shows current active students. Let's exclude alumni to be consistent with previous fix.
+        const Batch = require('../models/Batch');
+        const alumniBatches = await Batch.find({ isGraduated: true }).select('_id');
+        const alumniBatchIds = alumniBatches.map(b => b._id);
+        studentFilter = { batchId: { $nin: alumniBatchIds } };
       }
 
       // Get counts
@@ -553,15 +637,15 @@ class DashboardController {
         totalJobs,
         activeJobs
       ] = await Promise.all([
-        Department.countDocuments({}),
-        Department.countDocuments({ isActive: true }),
-        Student.countDocuments({}),
-        Student.countDocuments({ 'placement.placementStatus': 'Placed' }),
-        Student.countDocuments({ 'placement.placementStatus': 'Unplaced' }),
-        Student.countDocuments({ 'placement.placementStatus': 'Multiple Offers' }),
-        Department.countDocuments({ placementStaff: { $ne: null } }),
-        Job.countDocuments({}),
-        Job.countDocuments({ status: 'Active' })
+        Department.countDocuments(departmentFilter),
+        Department.countDocuments({ ...departmentFilter, isActive: true }),
+        Student.countDocuments(studentFilter),
+        Student.countDocuments({ ...studentFilter, 'placement.placementStatus': 'Placed' }),
+        Student.countDocuments({ ...studentFilter, 'placement.placementStatus': 'Unplaced' }),
+        Student.countDocuments({ ...studentFilter, 'placement.placementStatus': 'Multiple Offers' }),
+        Department.countDocuments(departmentWithStaffFilter),
+        Job.countDocuments(req.user.role === 'placement_staff' ? { ...jobFilter, status: { $exists: true } } : {}), // Total jobs visible
+        Job.countDocuments(jobFilter) // Active jobs
       ]);
 
       const placementRate = totalStudents > 0 ? ((placedStudents + multipleOffersStudents) / totalStudents * 100).toFixed(2) : 0;
@@ -604,7 +688,7 @@ class DashboardController {
   async getDailyActiveStudents(req, res) {
     try {
       // Check if user has permission
-      if (!['admin', 'placement_director'].includes(req.user.role)) {
+      if (!['admin', 'placement_director', 'placement_staff'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Access denied. Only administrators and placement directors can view this data.'
@@ -619,11 +703,53 @@ class DashboardController {
       // Initialize data array for each day of the week (Sunday to Saturday)
       const dailyData = Array(7).fill(0);
 
-      // Query users with login activity in the past week
-      const users = await User.find({
+      let userFilter = {
         role: 'student',
         lastLogin: { $gte: startDate, $lte: endDate }
-      });
+      };
+
+      // Ensure placement staff only see students from their department
+      if (req.user.role === 'placement_staff') {
+        const PlacementStaffProfile = require('../models/PlacementStaffProfile');
+        const staffProfile = await PlacementStaffProfile.findOne({ userId: req.user._id });
+
+        if (staffProfile && staffProfile.department) {
+          const Department = require('../models/Department');
+          const mongoose = require('mongoose');
+
+          let departmentDoc;
+          if (mongoose.Types.ObjectId.isValid(staffProfile.department)) {
+            departmentDoc = await Department.findById(staffProfile.department);
+          }
+
+          if (!departmentDoc) {
+            departmentDoc = await Department.findOne({
+              $or: [{ code: staffProfile.department }, { name: staffProfile.department }]
+            });
+          }
+
+          if (departmentDoc) {
+            // Find all students in this department
+            const Student = require('../models/Student');
+            const studentsInDept = await Student.find({
+              $or: [
+                { 'academic.department': departmentDoc.name },
+                { 'academic.department': departmentDoc.code }
+              ]
+            }).select('userId');
+
+            const studentUserIds = studentsInDept.map(s => s.userId);
+            userFilter._id = { $in: studentUserIds };
+          } else {
+            userFilter._id = null; // No students if dept not found
+          }
+        } else {
+          userFilter._id = null;
+        }
+      }
+
+      // Query users with login activity in the past week
+      const users = await User.find(userFilter);
 
       // Count logins for each day
       users.forEach(user => {

@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import {
   Card,
-  Grid,
   IconButton,
   Tooltip,
-  Chip,
-  Box,
   Typography,
   Dialog,
   DialogTitle,
@@ -17,21 +14,16 @@ import {
   Refresh as RefreshIcon,
   Visibility as ViewIcon,
   School as SchoolIcon,
-  People as PeopleIcon,
-  CheckCircle as CheckCircleIcon,
-  Schedule as ScheduleIcon,
   SchoolOutlined as SchoolOutlinedIcon
 } from '@mui/icons-material';
 
 // Material Dashboard 2 React components
 import MDBox from 'components/MDBox';
 import MDTypography from 'components/MDTypography';
-import MDButton from 'components/MDButton';
 import MDBadge from 'components/MDBadge';
 import DataTable from 'examples/Tables/DataTable';
 
-// Services
-import studentManagementService from 'services/studentManagementService';
+
 
 const DepartmentBatchesView = ({ department, batches, loading, error, onBatchSelect, onRefresh, onTransferBatch }) => {
   const [openDialog, setOpenDialog] = useState(false);
@@ -66,35 +58,6 @@ const DepartmentBatchesView = ({ department, batches, loading, error, onBatchSel
     handleCloseTransferDialog();
   };
 
-  // Helper functions for batch data formatting (reusing from studentManagementService)
-  const getBatchStatusColor = (batch) => {
-    if (!batch) return 'secondary';
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    if (batch.isGraduated) return 'success';
-    if (batch.endYear < currentYear || (batch.endYear === currentYear && currentMonth > 3)) return 'warning';
-    return 'info';
-  };
-
-  const formatBatchYear = (batch) => {
-    if (!batch) return '';
-    return `${batch.startYear}-${batch.endYear}`;
-  };
-
-  const getBatchStatusText = (batch) => {
-    if (!batch) return 'Unknown';
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    if (batch.isGraduated) return 'Alumni';
-    if (batch.endYear < currentYear || (batch.endYear === currentYear && currentMonth > 3)) return 'Completed';
-    return 'Active';
-  };
 
   const calculateBatchPlacementRate = (batch) => {
     if (!batch || !batch.statistics || batch.statistics.total === 0) return 0;

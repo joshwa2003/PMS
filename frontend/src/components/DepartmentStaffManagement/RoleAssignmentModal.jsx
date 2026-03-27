@@ -35,7 +35,6 @@ import departmentStaffService from 'services/departmentStaffService';
 const RoleAssignmentModal = ({ open, onClose, onSuccess }) => {
   const {
     selectedStaff,
-    loading,
     assignStaffRole
   } = useDepartmentStaff();
 

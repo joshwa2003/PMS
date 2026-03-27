@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {
   Modal,
   Box,
-  Typography,
   FormControl,
   FormLabel,
   RadioGroup,

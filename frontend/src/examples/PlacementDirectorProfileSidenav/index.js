@@ -38,7 +38,6 @@ function PlacementDirectorProfileSidenav({ color, brand, brandName, ...rest }) {
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
   const location = useLocation();
-  const collapseName = location.pathname.replace("/", "");
 
   // Placement Director Profile Context
   const {

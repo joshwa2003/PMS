@@ -27,6 +27,3 @@ Student:
 ishasubramanian279@rsc.ac.in
 Ishasubramanian279@123
 
-aaravbhat458@rsc.ac.in
-Aaravbhat458@123
-
